@@ -55,6 +55,10 @@ def run(cmd, timeout=120):
     except Exception as e:
         return False, str(e)
 
+def host(cmd, timeout=120):
+    """Run command on the host via nsenter."""
+    return run(f"nsenter -t 1 -m -u -i -n -p -- sh -c '{cmd}'", timeout=timeout)
+
 def get_active_backend():
     if MARKER_FILE.exists():
         return MARKER_FILE.read_text().strip()
@@ -227,10 +231,42 @@ def api_backend_logs():
 
 # ── API: System ───────────────────────────────────────────────────────────────
 
+GITHUB_REPO = "Niko11111/SpoolmanScalePro-Pi"
+IMAGE_NAME   = "ghcr.io/niko11111/spoolmanscale-pro-ui"
+
+@app.route("/api/system/check-ui-update")
+def api_check_ui_update():
+    import urllib.request
+    try:
+        url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
+        req = urllib.request.Request(url, headers={"User-Agent": "SpoolmanScalePro"})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            data = json.loads(r.read())
+        latest = data.get("tag_name", "")
+        current = UI_VERSION
+        update_available = latest and latest != current
+        return jsonify({
+            "ok": True,
+            "current": current,
+            "latest": latest,
+            "update_available": update_available,
+            "msg": f"Update available: {latest}" if update_available else f"Up to date ({current})"
+        })
+    except Exception as e:
+        return jsonify({"ok": False, "update_available": False, "msg": str(e)})
+
+@app.route("/api/system/update-ui", methods=["POST"])
+def api_update_ui():
+    ok, out = run(
+        f"docker pull {IMAGE_NAME}:latest && docker compose -f /data/docker-compose.yml up -d",
+        timeout=300
+    )
+    return jsonify({"ok": ok, "msg": out})
+
 @app.route("/api/system/update", methods=["POST"])
 def api_system_update():
-    ok, out = run("sudo apt-get update -qq && sudo apt-get upgrade -y", timeout=300)
-    return jsonify({"ok": ok, "msg": out})
+    ok, out = host("apt-get update -qq && apt-get upgrade -y", timeout=600)
+    return jsonify({"ok": ok, "msg": out or "Done."})
 
 @app.route("/api/system/reboot", methods=["POST"])
 def api_system_reboot():
