@@ -527,11 +527,12 @@
             🔑 <strong>FilaMan first login:</strong> admin@example.com / admin123<br>
             <span style="font-size:11px;color:var(--text-dim)">Please change your password after first login in FilaMan → Settings → Account.</span>
           </div>
-          <button onclick="document.getElementById('filaman-login-hint').style.display='none'" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:16px;flex-shrink:0;padding:0">✕</button>
+          <button onclick="filamanHintDismissed=true;document.getElementById('filaman-login-hint').style.display='none'" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:16px;flex-shrink:0;padding:0">✕</button>
         </div>
-        <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--warn)">
-          ⚠ FilaMan uses ~250 MB RAM. Performance may be limited on Pi Zero 2W (512 MB total).
-        </div>
+      </div>
+
+      <div class="backend-warning" id="filaman-ram-info" style="display:none;border-color:#2a2000;color:var(--warn)">
+        ⚠ FilaMan uses ~250 MB RAM and may run slowly or become unstable on the Pi Zero 2W (512 MB total). For best performance a Pi 4 with 2 GB RAM is recommended.
       </div>
 
       <div class="btn-row">
@@ -848,8 +849,13 @@ function applyStatus() {
 
   // FilaMan login hint
   const filamanHint = document.getElementById('filaman-login-hint');
-  if (filamanHint) {
+  if (filamanHint && !filamanHintDismissed) {
     filamanHint.style.display = (active === 'filaman' && backend.filaman_status === 'running') ? '' : 'none';
+  }
+  // FilaMan RAM info — always visible when filaman is active
+  const filamanRamInfo = document.getElementById('filaman-ram-info');
+  if (filamanRamInfo) {
+    filamanRamInfo.style.display = (active === 'filaman') ? '' : 'none';
   }
 
   // Reset selection UI if needed
@@ -1175,6 +1181,7 @@ async function closeWelcome() {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 let welcomeChecked = false;
+let filamanHintDismissed = false;
 loadStatus();
 setInterval(loadStatus, 15000);
 </script>
