@@ -1,0 +1,13 @@
+services:
+  filaman:
+    image: ghcr.io/fire-devils/filaman-system:latest
+    container_name: filaman
+    restart: unless-stopped
+    pull_policy: always
+    ports:
+      - "8002:8000"
+    volumes:
+      - ./filaman-data:/app/data
+    environment:
+      - TZ=Europe/Berlin
+      - DEBUG=false

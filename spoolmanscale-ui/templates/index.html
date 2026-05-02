@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="/static/logo.png?v=3">
+<title>SpoolmanScale Pro</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg:        #080f1a;
+    --surface:   #0d1829;
+    --surface2:  #111f33;
+    --border:    #1a3060;
+    --accent:    #28d49a;
+    --accent2:   #1aaa7a;
+    --warn:      #f0b838;
+    --danger:    #e04040;
+    --text:      #e8f0ff;
+    --text-mid:  #c8d8f0;
+    --text-dim:  #4a6fa0;
+    --text-dark: #2a4060;
+    --mono:      'Space Mono', monospace;
+    --sans:      'DM Sans', sans-serif;
+    --radius:    10px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    max-width: 860px;
+    width: 100%;
+    margin: 0 auto;
+    box-sizing: border-box;
+  }
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .logo {
+    height: 52px;
+    width: 52px;
+    border-radius: 10px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .logo img {
+    height: 100%;
+    width: 100%;
+    object-fit: contain;
+    mix-blend-mode: lighten;
+  }
+  .header-title { font-size: 16px; font-weight: 600; color: var(--text); letter-spacing: .3px; }
+  .header-sub   { font-size: 12px; color: var(--text-dim); font-family: var(--mono); margin-top: 2px; }
+  .ui-version   { font-size: 11px; color: var(--text-dark); font-family: var(--mono); }
+
+  /* ── Tabs ── */
+  nav {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    padding: 0 24px;
+    gap: 4px;
+    max-width: 860px;
+    width: 100%;
+    margin: 0 auto;
+    box-sizing: border-box;
+  }
+  .tab {
+    padding: 12px 20px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-dim);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color .15s, border-color .15s;
+    user-select: none;
+  }
+  .tab:hover { color: var(--text-mid); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ── Main ── */
+  main { flex: 1; padding: 28px 24px; max-width: 860px; width: 100%; margin: 0 auto; }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+  }
+
+  /* ── Backend Toggle ── */
+  .backend-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .backend-option {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+    position: relative;
+  }
+  .backend-option:hover { border-color: var(--accent2); }
+  .backend-option.selected {
+    border-color: var(--accent);
+    background: #0d2820;
+  }
+  .backend-option.selected::after {
+    content: '●';
+    position: absolute;
+    top: 12px; right: 14px;
+    color: var(--accent);
+    font-size: 10px;
+  }
+  .backend-name { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .backend-desc { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+  .backend-status {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-family: var(--mono);
+    margin-top: 10px;
+  }
+  .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--text-dark);
+    flex-shrink: 0;
+  }
+  .dot.running  { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+  .dot.stopped  { background: var(--text-dim); }
+  .dot.error    { background: var(--danger); }
+
+  .backend-warning {
+    background: #1a1800;
+    border: 1px solid #3a3010;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--warn);
+    margin-bottom: 16px;
+    line-height: 1.6;
+  }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: none;
+    font-size: 13px; font-weight: 500;
+    cursor: pointer;
+    transition: background .15s, opacity .15s;
+    font-family: var(--sans);
+    text-decoration: none;
+    color: var(--text);
+  }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-primary  { background: #1a3020; color: var(--accent); }
+  .btn-primary:hover:not(:disabled) { background: #24402a; }
+  .btn-warn     { background: #2a2010; color: var(--warn); }
+  .btn-warn:hover:not(:disabled)    { background: #3a3018; }
+  .btn-danger   { background: #2a1010; color: var(--danger); }
+  .btn-danger:hover:not(:disabled)  { background: #3a1818; }
+  .btn-ghost    { background: var(--surface2); color: var(--text-mid); border: 1px solid var(--border); }
+  .btn-ghost:hover:not(:disabled)   { background: #182030; }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+
+  /* ── Stats Grid ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .stat {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .stat-label { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; }
+  .stat-value { font-size: 22px; font-weight: 700; font-family: var(--mono); color: var(--text); }
+  .stat-sub   { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+  /* ── Progress Bar ── */
+  .progress { height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; margin-top: 8px; }
+  .progress-fill { height: 100%; border-radius: 2px; transition: width .3s; background: var(--accent); }
+  .progress-fill.warn   { background: var(--warn); }
+  .progress-fill.danger { background: var(--danger); }
+
+  /* ── Output box ── */
+  .output {
+    background: #050b12;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    max-height: 200px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    margin-top: 12px;
+    display: none;
+  }
+  .output.visible { display: block; }
+
+  /* ── WiFi Form ── */
+  .form-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 160px; }
+  .form-group label { font-size: 11px; color: var(--text-dim); letter-spacing: .5px; }
+  .form-group input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: var(--sans);
+    outline: none;
+    transition: border-color .15s;
+  }
+  .form-group input:focus { border-color: var(--accent2); }
+
+  /* ── Backup list ── */
+  .backup-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+  .backup-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .backup-info { flex: 1; min-width: 0; }
+  .backup-name { font-size: 13px; font-family: var(--mono); color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .backup-meta { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+  .backup-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+  /* ── Upload area ── */
+  .upload-area {
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s;
+    margin-top: 12px;
+  }
+  .upload-area:hover { border-color: var(--accent2); }
+  .upload-area input { display: none; }
+  .upload-text { font-size: 13px; color: var(--text-dim); }
+  .upload-text span { color: var(--accent); }
+
+  /* ── Toast ── */
+  #toast {
+    position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 13px;
+    color: var(--text-mid);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s;
+    z-index: 100;
+    white-space: nowrap;
+  }
+  #toast.show { opacity: 1; }
+  #toast.ok    { border-color: var(--accent); color: var(--accent); }
+  #toast.error { border-color: var(--danger); color: var(--danger); }
+
+  /* ── Footer ── */
+  footer {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .footer-link {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 14px;
+    height: 36px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text-mid);
+    text-decoration: none;
+    transition: border-color .15s, color .15s;
+    box-sizing: border-box;
+  }
+  .footer-link:hover { border-color: var(--accent2); color: var(--accent); }
+  .footer-icon { font-size: 13px; color: var(--accent); flex-shrink: 0; }
+  .footer-logo { width: 16px; height: 16px; object-fit: contain; flex-shrink: 0; }
+
+  /* ── Welcome Popup ── */
+  #welcome-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 200;
+    padding: 20px;
+  }
+  #welcome-overlay.hidden { display: none; }
+  .welcome-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px;
+    max-width: 420px;
+    width: 100%;
+  }
+  .welcome-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .welcome-sub {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 20px;
+    line-height: 1.6;
+  }
+  .welcome-link {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    text-decoration: none;
+    transition: border-color .15s;
+  }
+  .welcome-link:hover { border-color: var(--accent2); }
+  .welcome-link-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+  .welcome-link-name { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+  .welcome-link-desc { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+  .welcome-hint {
+    font-size: 12px;
+    color: var(--text-dark);
+    text-align: center;
+    margin: 16px 0;
+    line-height: 1.6;
+  }
+  .welcome-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .welcome-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-dim);
+    cursor: pointer;
+    user-select: none;
+  }
+  .welcome-check input { accent-color: var(--accent); width: 14px; height: 14px; }
+
+  /* ── Spinner ── */
+  .spin {
+    display: inline-block;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Divider ── */
+  hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+</style>
+</head>
+<body>
+
+<!-- Welcome Popup -->
+<div id="welcome-overlay" class="hidden">
+  <div class="welcome-box">
+    <div class="welcome-title">👋 Welcome to SpoolmanScale Pro</div>
+    <div class="welcome-sub">Not sure which backend to use? Take a look before deciding — you can always switch later and your data stays safe.</div>
+
+    <a class="welcome-link" href="https://github.com/Donkie/Spoolman" target="_blank" rel="noopener">
+      <div class="welcome-link-icon">
+        <img src="/static/spoolman-logo.svg" 
+             style="width:28px;height:28px;border-radius:6px;" 
+             onerror="this.style.display='none';this.nextSibling.style.display='block'">
+        <span style="display:none;font-size:20px">⌥</span>
+      </div>
+      <div>
+        <div class="welcome-link-name">Spoolman</div>
+        <div class="welcome-link-desc">Established, large community, stable API. The most widely used filament manager — integrates with OctoPrint, Klipper, Home Assistant and more.</div>
+      </div>
+    </a>
+
+    <a class="welcome-link" href="https://filaman.app" target="_blank" rel="noopener">
+      <div class="welcome-link-icon">
+        <img src="/static/filaman-logo.ico" 
+             style="width:28px;height:28px;border-radius:6px;" 
+             onerror="this.style.display='none';this.nextSibling.style.display='block'">
+        <span style="display:none;font-size:20px">🌐</span>
+      </div>
+      <div>
+        <div class="welcome-link-name">FilaMan</div>
+        <div class="welcome-link-desc">Modern UI, native iOS & Android app, growing fast. Great if you want a polished experience with smartphone integration.</div>
+      </div>
+    </a>
+
+    <div class="welcome-hint">You can install both and switch anytime.<br>Your data is always kept separately.</div>
+
+    <div class="welcome-footer">
+      <label class="welcome-check">
+        <input type="checkbox" id="welcome-dont-show"> Don't show this again
+      </label>
+      <button class="btn btn-primary" onclick="closeWelcome()">Got it, let me choose →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Header -->
+<header>
+  <div class="header-left">
+    <div class="logo"><img src="/static/logo.png" alt="SpoolmanScale Logo"></div>
+    <div>
+      <div class="header-title">SpoolmanScale Pro</div>
+      <div class="header-sub" id="pi-address">Loading...</div>
+    </div>
+  </div>
+  <div class="ui-version">UI {{ ui_version }}</div>
+</header>
+
+<!-- Tabs -->
+<nav>
+  <div class="tab active" data-tab="backend">Backend</div>
+  <div class="tab" data-tab="system">System</div>
+  <div class="tab" data-tab="backup">Backup</div>
+</nav>
+
+<!-- Main -->
+<main>
+
+  <!-- ── Backend Tab ── -->
+  <div class="panel active" id="tab-backend">
+    <div class="card">
+      <div class="card-title">Active Backend</div>
+      <div class="backend-toggle">
+        <div class="backend-option" id="opt-spoolman" onclick="selectBackend('spoolman')">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+            <img src="/static/spoolman-logo.svg" style="width:24px;height:24px;border-radius:4px;" onerror="this.style.display='none'">
+            <div class="backend-name">Spoolman</div>
+          </div>
+          <div class="backend-desc">Established, large community, stable API. Recommended for most users.</div>
+          <div class="backend-status">
+            <span class="dot" id="dot-spoolman"></span>
+            <span id="status-spoolman">—</span>
+          </div>
+        </div>
+        <div class="backend-option" id="opt-filaman" onclick="selectBackend('filaman')">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+            <img src="/static/filaman-logo.ico" style="width:24px;height:24px;border-radius:4px;" onerror="this.style.display='none'">
+            <div class="backend-name">FilaMan</div>
+          </div>
+          <div class="backend-desc">Modern UI, app integration. Both backends cannot run simultaneously.</div>
+          <div class="backend-status">
+            <span class="dot" id="dot-filaman"></span>
+            <span id="status-filaman">—</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="backend-warning" id="backend-warning" style="display:none">
+        ⚠ First start will download ~300 MB and may take 5–10 minutes on the Pi Zero 2W.<br>
+        Both backends cannot run simultaneously — the current one will be stopped first.
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btn-activate" onclick="activateBackend()" disabled>Activate</button>
+        <button class="btn btn-ghost"   onclick="loadStatus()">↻ Refresh</button>
+        <a class="btn btn-ghost" id="btn-open-backend" href="#" target="_blank" style="display:none">Open ↗</a>
+      </div>
+      <div class="output" id="out-backend"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Backend Update</div>
+      <p style="font-size:13px;color:var(--text-dim);margin-bottom:12px;">Check if a newer version of the active backend is available.</p>
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="btn-check-update" onclick="checkBackendUpdate()">↻ Check for update</button>
+        <button class="btn btn-warn" id="btn-do-update" onclick="updateBackend()" style="display:none">⬇ Install update</button>
+      </div>
+      <div class="output" id="out-update"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Logs</div>
+      <div class="btn-row" style="margin-top:0;margin-bottom:10px;">
+        <button class="btn btn-ghost btn-sm" onclick="loadLogs()">Load last 60 lines</button>
+      </div>
+      <div class="output visible" id="out-logs" style="max-height:260px;">Press "Load last 60 lines" to fetch logs.</div>
+    </div>
+  </div>
+
+  <!-- ── System Tab ── -->
+  <div class="panel" id="tab-system">
+    <div class="card">
+      <div class="card-title">System Status</div>
+      <div class="stats-grid">
+        <div class="stat">
+          <div class="stat-label">RAM</div>
+          <div class="stat-value" id="stat-ram">—</div>
+          <div class="stat-sub" id="stat-ram-sub">—</div>
+          <div class="progress"><div class="progress-fill" id="prog-ram" style="width:0%"></div></div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">SD Card</div>
+          <div class="stat-value" id="stat-disk">—</div>
+          <div class="stat-sub" id="stat-disk-sub">—</div>
+          <div class="progress"><div class="progress-fill" id="prog-disk" style="width:0%"></div></div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">CPU Temp</div>
+          <div class="stat-value" id="stat-temp">—</div>
+          <div class="stat-sub">°C</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Uptime</div>
+          <div class="stat-value" id="stat-uptime" style="font-size:16px;padding-top:4px">—</div>
+          <div class="stat-sub">since last boot</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Pi Update</div>
+      <p style="font-size:13px;color:var(--text-dim);margin-bottom:12px;">Run <code style="font-family:var(--mono);color:var(--accent);font-size:11px">apt update && apt upgrade</code> on the Pi. May take a few minutes.</p>
+      <div class="btn-row" style="margin-top:0">
+        <button class="btn btn-warn" onclick="piUpdate()">Update Pi OS</button>
+      </div>
+      <div class="output" id="out-pi-update"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">WiFi</div>
+      <p style="font-size:13px;color:var(--text-dim);margin-bottom:14px;">Add a new WiFi network. Use 2.4 GHz only (Pi Zero 2W has no 5 GHz).</p>
+      <div class="btn-row" style="margin-top:0;margin-bottom:14px;">
+        <button class="btn btn-ghost btn-sm" onclick="scanWifi()">↻ Scan for networks</button>
+      </div>
+      <div id="wifi-scan-result" style="display:none;margin-bottom:12px;">
+        <select id="wifi-ssid-select" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--text);font-size:13px;font-family:var(--sans);outline:none;margin-bottom:10px;" onchange="document.getElementById('wifi-ssid').value=this.value">
+          <option value="">— Select network —</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>SSID (or type manually)</label>
+          <input type="text" id="wifi-ssid" placeholder="Network name">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="wifi-pw" placeholder="Password">
+        </div>
+        <button class="btn btn-ghost" onclick="saveWifi()" style="flex-shrink:0">Save</button>
+      </div>
+      <div class="output" id="out-wifi"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Power</div>
+      <div class="btn-row" style="margin-top:0">
+        <button class="btn btn-warn"   onclick="confirmAction('reboot',   'Reboot the Pi now?')">Reboot</button>
+        <button class="btn btn-danger" onclick="confirmAction('shutdown', 'Shut down the Pi? You will need physical access to turn it back on.')">Shutdown</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Backup Tab ── -->
+  <div class="panel" id="tab-backup">
+    <div class="card">
+      <div class="card-title">Generate Backup</div>
+      <p style="font-size:13px;color:var(--text-dim);margin-bottom:12px;">
+        Creates a zip of all backend databases + config. The active backend is briefly stopped for DB consistency, then restarted automatically. Up to {{ "7" }} backups are kept.
+      </p>
+      <div class="btn-row" style="margin-top:0">
+        <button class="btn btn-primary" id="btn-generate" onclick="generateBackup()">Generate Backup</button>
+      </div>
+      <div class="output" id="out-generate"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Backups</div>
+      <div id="backup-list-wrap">
+        <p style="font-size:13px;color:var(--text-dim)">Loading...</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Restore from Backup</div>
+      <p style="font-size:13px;color:var(--text-dim);margin-bottom:4px;">
+        Upload a previously generated zip. Current data will be replaced. A rollback is attempted automatically if the backend fails to start after restore.
+      </p>
+      <div class="upload-area" onclick="document.getElementById('restore-file').click()">
+        <input type="file" id="restore-file" accept=".zip" onchange="doRestore(this)">
+        <div class="upload-text">Click to select backup zip — or drag & drop<br><span>*.zip</span></div>
+      </div>
+      <div class="output" id="out-restore"></div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Footer -->
+<footer>
+  <a class="footer-link" href="https://ko-fi.com/formfollowsfunction" target="_blank" rel="noopener">
+    <img class="footer-logo" src="/static/kofi-logo.ico" onerror="this.style.display='none'">
+    <span>Ko-fi</span>
+  </a>
+  <a class="footer-link" href="https://github.com/Niko11111/SpoolmanScale" target="_blank" rel="noopener">
+    <img class="footer-logo" src="/static/github-logo.svg" onerror="this.style.display='none'" style="filter:invert(1)">
+    <span>GitHub</span>
+  </a>
+  <a class="footer-link" href="https://discord.gg/GzQzGa5pBG" target="_blank" rel="noopener">
+    <img class="footer-logo" src="/static/discord-logo.ico" onerror="this.style.display='none'">
+    <span>Discord</span>
+  </a>
+  <a class="footer-link" href="https://makerworld.com/de/@FormFollowsF" target="_blank" rel="noopener">
+    <img class="footer-logo" src="/static/makerworld-logo.ico" onerror="this.style.display='none'">
+    <span>MakerWorld</span>
+  </a>
+</footer>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+// ── State ────────────────────────────────────────────────────────────────────
+let status = {};
+let selectedBackend = null;
+
+// ── Tab navigation ────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    if (tab.dataset.tab === 'backup') loadBackupList();
+  });
+});
+
+// ── API helpers ───────────────────────────────────────────────────────────────
+async function api(path, opts = {}) {
+  const r = await fetch(path, opts);
+  return r.json();
+}
+
+function toast(msg, type = 'ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show ' + type;
+  setTimeout(() => el.className = '', 2800);
+}
+
+function setOutput(id, text, visible = true) {
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.classList.toggle('visible', visible && !!text);
+}
+
+function setBusy(btnId, busy, label) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.disabled = busy;
+  btn.innerHTML = busy ? `<span class="spin">↻</span> Working...` : label;
+}
+
+// ── Status ────────────────────────────────────────────────────────────────────
+async function loadStatus() {
+  try {
+    status = await api('/api/status');
+    applyStatus();
+    if (!welcomeChecked) {
+      welcomeChecked = true;
+      showWelcomeIfNeeded(status.backend);
+    }
+  } catch(e) {
+    console.warn('Status load failed', e);
+  }
+}
+
+function applyStatus() {
+  const { backend, system } = status;
+
+  // Header address
+  document.getElementById('pi-address').textContent =
+    window.location.hostname + (window.location.port ? ':' + window.location.port : '');
+
+  // Backend options
+  const active = backend.active;
+  document.getElementById('opt-spoolman').classList.toggle('selected', active === 'spoolman');
+  document.getElementById('opt-filaman').classList.toggle('selected',  active === 'filaman');
+
+  // Dots + status text
+  setDot('spoolman', backend.spoolman_status);
+  setDot('filaman',  backend.filaman_status);
+  document.getElementById('status-spoolman').textContent =
+    backend.spoolman_status === 'running'
+      ? `Running · up ${backend.spoolman_uptime} · :${backend.spoolman_port}`
+      : backend.spoolman_status === 'not installed' ? 'Not installed' : backend.spoolman_status;
+  document.getElementById('status-filaman').textContent =
+    backend.filaman_status === 'running'
+      ? `Running · up ${backend.filaman_uptime} · :${backend.filaman_port}`
+      : backend.filaman_status === 'not installed' ? 'Not installed' : backend.filaman_status;
+
+  // Open button
+  const openBtn = document.getElementById('btn-open-backend');
+  if (active !== 'none') {
+    const port = active === 'spoolman' ? backend.spoolman_port : backend.filaman_port;
+    openBtn.href = `http://${window.location.hostname}:${port}`;
+    openBtn.style.display = '';
+  } else {
+    openBtn.style.display = 'none';
+  }
+
+  // System stats
+  const ram_pct  = system.ram_pct;
+  const disk_pct = system.disk_pct;
+  document.getElementById('stat-ram').textContent      = `${system.ram_used_mb} MB`;
+  document.getElementById('stat-ram-sub').textContent  = `of ${system.ram_total_mb} MB`;
+  document.getElementById('stat-disk').textContent     = `${system.disk_used_gb} GB`;
+  document.getElementById('stat-disk-sub').textContent = `of ${system.disk_total_gb} GB`;
+  document.getElementById('stat-temp').textContent     = system.cpu_temp ?? '—';
+  document.getElementById('stat-uptime').textContent   = system.uptime;
+
+  setBar('prog-ram',  ram_pct);
+  setBar('prog-disk', disk_pct);
+
+  // Reset selection UI if needed
+  if (selectedBackend && selectedBackend === active) {
+    document.getElementById('btn-activate').disabled = true;
+    document.getElementById('backend-warning').style.display = 'none';
+  }
+}
+
+function setDot(name, st) {
+  const dot = document.getElementById('dot-' + name);
+  dot.className = 'dot ' + (st === 'running' ? 'running' : st === 'exited' ? 'stopped' : '');
+}
+
+function setBar(id, pct) {
+  const el = document.getElementById(id);
+  el.style.width = pct + '%';
+  el.className = 'progress-fill' + (pct > 85 ? ' danger' : pct > 70 ? ' warn' : '');
+}
+
+// ── Backend selection ─────────────────────────────────────────────────────────
+function selectBackend(name) {
+  selectedBackend = name;
+  document.getElementById('opt-spoolman').classList.toggle('selected', name === 'spoolman');
+  document.getElementById('opt-filaman').classList.toggle('selected',  name === 'filaman');
+
+  const active = status.backend?.active;
+  const alreadyActive = active === name;
+  document.getElementById('btn-activate').disabled = alreadyActive;
+
+  const warn = document.getElementById('backend-warning');
+  const isInstalled = name === 'spoolman'
+    ? status.backend?.spoolman_status !== 'not installed'
+    : status.backend?.filaman_status  !== 'not installed';
+  warn.style.display = (!alreadyActive && !isInstalled) ? '' : 'none';
+
+  setOutput('out-backend', '');
+}
+
+async function activateBackend() {
+  if (!selectedBackend) return;
+  setBusy('btn-activate', true, 'Activate');
+  setOutput('out-backend', 'Switching backend — this may take several minutes on first install...', true);
+  try {
+    const res = await api('/api/backend/switch', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ backend: selectedBackend })
+    });
+    setOutput('out-backend', res.msg, true);
+    toast(res.ok ? '✓ Backend switched' : '✗ Switch failed', res.ok ? 'ok' : 'error');
+    await loadStatus();
+  } catch(e) {
+    setOutput('out-backend', 'Error: ' + e, true);
+    toast('Request failed', 'error');
+  }
+  setBusy('btn-activate', false, 'Activate');
+}
+
+async function checkBackendUpdate() {
+  const btn = document.getElementById('btn-check-update');
+  const doBtn = document.getElementById('btn-do-update');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin">↻</span> Checking...';
+  setOutput('out-update', 'Checking for updates...', true);
+  try {
+    const res = await api('/api/backend/check-update');
+    setOutput('out-update', res.msg, true);
+    if (res.update_available) {
+      doBtn.style.display = '';
+      toast('Update available!', 'ok');
+    } else {
+      doBtn.style.display = 'none';
+      toast('Already up to date', 'ok');
+    }
+  } catch(e) {
+    setOutput('out-update', 'Check failed: ' + e, true);
+  }
+  btn.disabled = false;
+  btn.innerHTML = '↻ Check for update';
+}
+
+async function updateBackend() {
+  setOutput('out-update', 'Pulling latest image and restarting...', true);
+  try {
+    const res = await api('/api/backend/update', { method: 'POST' });
+    setOutput('out-update', res.msg, true);
+    toast(res.ok ? '✓ Updated' : '✗ Update failed', res.ok ? 'ok' : 'error');
+    await loadStatus();
+  } catch(e) {
+    setOutput('out-update', 'Error: ' + e, true);
+  }
+}
+
+async function loadLogs() {
+  setOutput('out-logs', 'Loading logs...', true);
+  try {
+    const res = await api('/api/backend/logs');
+    setOutput('out-logs', res.lines.length ? res.lines.join('\n') : 'No logs available.', true);
+    const el = document.getElementById('out-logs');
+    el.scrollTop = el.scrollHeight;
+  } catch(e) {
+    setOutput('out-logs', 'Error: ' + e, true);
+  }
+}
+
+// ── System ────────────────────────────────────────────────────────────────────
+async function piUpdate() {
+  setOutput('out-pi-update', 'Running apt update && apt upgrade... this will take a while.', true);
+  try {
+    const res = await api('/api/system/update', { method: 'POST' });
+    setOutput('out-pi-update', res.msg || (res.ok ? 'Done.' : 'Failed.'), true);
+    toast(res.ok ? '✓ Pi updated' : '✗ Update failed', res.ok ? 'ok' : 'error');
+  } catch(e) {
+    setOutput('out-pi-update', 'Error: ' + e, true);
+  }
+}
+
+async function scanWifi() {
+  setOutput('out-wifi', 'Scanning for networks...', true);
+  try {
+    const res = await api('/api/system/wifi/scan');
+    if (!res.ok || !res.networks.length) {
+      setOutput('out-wifi', 'No networks found. Try again or enter SSID manually.', true);
+      return;
+    }
+    const sel = document.getElementById('wifi-ssid-select');
+    sel.innerHTML = '<option value="">— Select network —</option>' +
+      res.networks.map(n =>
+        `<option value="${n.ssid}">${n.ssid}${n.quality ? ' (' + n.quality + '%)' : ''}</option>`
+      ).join('');
+    document.getElementById('wifi-scan-result').style.display = '';
+    setOutput('out-wifi', `Found ${res.networks.length} network(s).`, true);
+  } catch(e) {
+    setOutput('out-wifi', 'Scan failed: ' + e, true);
+  }
+}
+
+async function saveWifi() {
+  const ssid = document.getElementById('wifi-ssid').value.trim();
+  const pw   = document.getElementById('wifi-pw').value;
+  if (!ssid) { toast('SSID required', 'error'); return; }
+  setOutput('out-wifi', 'Saving WiFi config...', true);
+  try {
+    const res = await api('/api/system/wifi', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ ssid, password: pw })
+    });
+    setOutput('out-wifi', res.msg, true);
+    toast(res.ok ? '✓ WiFi saved' : '✗ Failed', res.ok ? 'ok' : 'error');
+  } catch(e) {
+    setOutput('out-wifi', 'Error: ' + e, true);
+  }
+}
+
+function confirmAction(action, msg) {
+  if (!confirm(msg)) return;
+  api('/api/system/' + action, { method: 'POST' }).then(res => {
+    toast(res.msg, 'ok');
+  }).catch(() => toast('Failed', 'error'));
+}
+
+// ── Backup ────────────────────────────────────────────────────────────────────
+async function loadBackupList() {
+  const wrap = document.getElementById('backup-list-wrap');
+  wrap.innerHTML = '<p style="font-size:13px;color:var(--text-dim)">Loading...</p>';
+  try {
+    const list = await api('/api/backup/list');
+    if (!list.length) {
+      wrap.innerHTML = '<p style="font-size:13px;color:var(--text-dim)">No backups yet.</p>';
+      return;
+    }
+    wrap.innerHTML = '<div class="backup-list">' +
+      list.map(b => `
+        <div class="backup-item">
+          <div class="backup-info">
+            <div class="backup-name">${b.name}</div>
+            <div class="backup-meta">${b.date} · ${b.size_mb} MB</div>
+          </div>
+          <div class="backup-actions">
+            <a class="btn btn-ghost btn-sm" href="/api/backup/download/${b.name}" download>↓</a>
+            <button class="btn btn-danger btn-sm" onclick="deleteBackup('${b.name}')">🗑</button>
+          </div>
+        </div>
+      `).join('') + '</div>';
+  } catch(e) {
+    wrap.innerHTML = '<p style="font-size:13px;color:var(--danger)">Failed to load backups.</p>';
+  }
+}
+
+async function generateBackup() {
+  setBusy('btn-generate', true, 'Generate Backup');
+  setOutput('out-generate', 'Generating backup — backend will be briefly stopped...', true);
+  try {
+    const res = await api('/api/backup/generate', { method: 'POST' });
+    const msg = res.ok
+      ? `✓ Created: ${res.name}\nSHA256: ${res.checksum}`
+      : '✗ ' + res.msg;
+    setOutput('out-generate', msg, true);
+    toast(res.ok ? '✓ Backup created' : '✗ Backup failed', res.ok ? 'ok' : 'error');
+    if (res.ok) loadBackupList();
+  } catch(e) {
+    setOutput('out-generate', 'Error: ' + e, true);
+  }
+  setBusy('btn-generate', false, 'Generate Backup');
+}
+
+async function deleteBackup(name) {
+  if (!confirm(`Delete ${name}?`)) return;
+  try {
+    const res = await api('/api/backup/delete/' + name, { method: 'DELETE' });
+    toast(res.ok ? '✓ Deleted' : '✗ Failed', res.ok ? 'ok' : 'error');
+    loadBackupList();
+  } catch(e) {
+    toast('Error', 'error');
+  }
+}
+
+async function doRestore(input) {
+  if (!input.files[0]) return;
+  if (!confirm('This will replace all current data. Continue?')) { input.value=''; return; }
+  const form = new FormData();
+  form.append('file', input.files[0]);
+  setOutput('out-restore', 'Uploading and restoring — please wait...', true);
+  try {
+    const res = await api('/api/backup/restore', { method: 'POST', body: form });
+    setOutput('out-restore', (res.ok ? '✓ ' : '✗ ') + res.msg, true);
+    toast(res.ok ? '✓ Restored' : '✗ Restore failed', res.ok ? 'ok' : 'error');
+    if (res.ok) loadBackupList();
+  } catch(e) {
+    setOutput('out-restore', 'Error: ' + e, true);
+  }
+  input.value = '';
+}
+
+// ── Welcome Popup ─────────────────────────────────────────────────────────────
+async function showWelcomeIfNeeded(backendStatus) {
+  if (welcomeChecked) return;
+  welcomeChecked = true;
+  const overlay = document.getElementById('welcome-overlay');
+  if (!overlay) return;
+  try {
+    const res = await api('/api/welcome/dismissed');
+    if (res.dismissed) return;
+    overlay.classList.remove('hidden');
+  } catch(e) {
+    overlay.classList.remove('hidden');
+  }
+}
+
+async function closeWelcome() {
+  const overlay = document.getElementById('welcome-overlay');
+  if (document.getElementById('welcome-dont-show').checked) {
+    await api('/api/welcome/dismiss', { method: 'POST' });
+  }
+  overlay.remove();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+let welcomeChecked = false;
+loadStatus();
+setInterval(loadStatus, 15000);
+</script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+# SpoolmanScale Pro - Base Compose
+services:
+  setup-ui:
+    build: ./spoolmanscale-ui
+    container_name: spoolmanscale-ui
+    restart: always
+    ports:
+      - "80:5000"
+    pid: host
+    privileged: true
+    volumes:
+      - .:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./spoolmanscale-ui/templates:/app/templates
+      - ./spoolmanscale-ui/static:/app/static
+      - /usr/bin/docker:/usr/bin/docker
+      - /usr/libexec/docker:/usr/libexec/docker
+    environment:
+      - TZ=Europe/Berlin
