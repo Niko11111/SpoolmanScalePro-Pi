@@ -166,4 +166,4 @@ Both backends **cannot run simultaneously** on the Pi Zero 2W (512 MB RAM). Swit
 
 ---
 
-© 2026 Nikolai Herrmann. All rights reserved.
+© 2026 Niko11111. All rights reserved.
