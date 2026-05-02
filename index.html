@@ -516,6 +516,16 @@
         Both backends cannot run simultaneously — the current one will be stopped first.
       </div>
 
+      <div class="backend-warning" id="filaman-ram-warning" style="display:none;border-color:#3a2010;color:#f0a060">
+        ⚠ <strong>FilaMan uses more RAM (~250 MB)</strong> and may be slow or unstable on the Pi Zero 2W (512 MB).<br>
+        <span style="font-size:11px;color:var(--text-dim)">For best performance, a Pi 4 with 2 GB RAM is recommended for FilaMan.</span>
+      </div>
+
+      <div class="backend-warning" id="filaman-login-hint" style="display:none;border-color:#1a3060;color:var(--text-mid)">
+        🔑 <strong>FilaMan first login:</strong> admin@example.com / admin123<br>
+        <span style="font-size:11px;color:var(--text-dim)">Please change your password after first login in FilaMan → Settings → Account.</span>
+      </div>
+
       <div class="btn-row">
         <button class="btn btn-primary" id="btn-activate" onclick="activateBackend()" disabled>Activate</button>
         <button class="btn btn-ghost"   onclick="loadStatus()">↻ Refresh</button>
@@ -657,6 +667,41 @@
       </div>
       <div class="output" id="out-restore"></div>
     </div>
+
+    <div class="card" style="border-color:#3a1010;">
+      <div class="card-title" style="color:var(--danger)">⚠ Danger Zone</div>
+
+      <p style="font-size:13px;color:var(--text-dim);margin-bottom:14px;">
+        These actions are irreversible. Make sure you have a backup before proceeding.
+      </p>
+
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div style="background:var(--surface2);border:1px solid #3a1010;border-radius:8px;padding:14px 16px;">
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;">Delete Spoolman Database</div>
+          <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px;">Deletes the Spoolman database file. The Docker image stays installed. Spoolman will restart with an empty database.</div>
+          <button class="btn btn-danger btn-sm" onclick="dangerAction('delete-db', 'spoolman')">Delete Spoolman DB</button>
+        </div>
+
+        <div style="background:var(--surface2);border:1px solid #3a1010;border-radius:8px;padding:14px 16px;">
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;">Delete FilaMan Database</div>
+          <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px;">Deletes the FilaMan database file. The Docker image stays installed. FilaMan will restart with an empty database.</div>
+          <button class="btn btn-danger btn-sm" onclick="dangerAction('delete-db', 'filaman')">Delete FilaMan DB</button>
+        </div>
+
+        <div style="background:var(--surface2);border:1px solid #3a1010;border-radius:8px;padding:14px 16px;">
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;">Remove Spoolman completely</div>
+          <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px;">Stops and removes the Spoolman container and image. All data will be deleted. Must be downloaded again on next activation.</div>
+          <button class="btn btn-danger btn-sm" onclick="dangerAction('remove-backend', 'spoolman')">Remove Spoolman</button>
+        </div>
+
+        <div style="background:var(--surface2);border:1px solid #3a1010;border-radius:8px;padding:14px 16px;">
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;">Remove FilaMan completely</div>
+          <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px;">Stops and removes the FilaMan container and image. All data will be deleted. Must be downloaded again on next activation.</div>
+          <button class="btn btn-danger btn-sm" onclick="dangerAction('remove-backend', 'filaman')">Remove FilaMan</button>
+        </div>
+      </div>
+      <div class="output" id="out-danger"></div>
+    </div>
   </div>
 
 </main>
@@ -758,11 +803,17 @@ function applyStatus() {
   document.getElementById('status-spoolman').textContent =
     backend.spoolman_status === 'running'
       ? `Running · up ${backend.spoolman_uptime} · :${backend.spoolman_port}`
-      : backend.spoolman_status === 'not installed' ? 'Not installed' : backend.spoolman_status;
+      : backend.spoolman_status === 'not installed' ? 'Not installed'
+      : backend.spoolman_status === 'installed' ? 'Installed · not running'
+      : backend.spoolman_status === 'exited' ? 'Installed · not running'
+      : backend.spoolman_status;
   document.getElementById('status-filaman').textContent =
     backend.filaman_status === 'running'
       ? `Running · up ${backend.filaman_uptime} · :${backend.filaman_port}`
-      : backend.filaman_status === 'not installed' ? 'Not installed' : backend.filaman_status;
+      : backend.filaman_status === 'not installed' ? 'Not installed'
+      : backend.filaman_status === 'installed' ? 'Installed · not running'
+      : backend.filaman_status === 'exited' ? 'Installed · not running'
+      : backend.filaman_status;
 
   // Open button
   const openBtn = document.getElementById('btn-open-backend');
@@ -786,6 +837,12 @@ function applyStatus() {
 
   setBar('prog-ram',  ram_pct);
   setBar('prog-disk', disk_pct);
+
+  // FilaMan login hint
+  const filamanHint = document.getElementById('filaman-login-hint');
+  if (filamanHint) {
+    filamanHint.style.display = (active === 'filaman' && backend.filaman_status === 'running') ? '' : 'none';
+  }
 
   // Reset selection UI if needed
   if (selectedBackend && selectedBackend === active) {
@@ -816,10 +873,12 @@ function selectBackend(name) {
   document.getElementById('btn-activate').disabled = alreadyActive;
 
   const warn = document.getElementById('backend-warning');
+  const ramWarn = document.getElementById('filaman-ram-warning');
   const isInstalled = name === 'spoolman'
     ? status.backend?.spoolman_status !== 'not installed'
     : status.backend?.filaman_status  !== 'not installed';
   warn.style.display = (!alreadyActive && !isInstalled) ? '' : 'none';
+  if (ramWarn) ramWarn.style.display = (name === 'filaman' && !alreadyActive) ? '' : 'none';
 
   setOutput('out-backend', '');
 }
@@ -1041,6 +1100,28 @@ async function deleteBackup(name) {
     loadBackupList();
   } catch(e) {
     toast('Error', 'error');
+  }
+}
+
+async function dangerAction(action, backend) {
+  const confirmMsg = action === 'delete-db'
+    ? `Delete the ${backend} database? This cannot be undone. Type DELETE to confirm.`
+    : `Remove ${backend} completely (container + image + all data)? Type DELETE to confirm.`;
+
+  const input = prompt(confirmMsg);
+  if (input !== 'DELETE') {
+    toast('Cancelled', 'error');
+    return;
+  }
+
+  setOutput('out-danger', `Processing ${action} for ${backend}...`, true);
+  try {
+    const res = await api(`/api/danger/${action}/${backend}`, { method: 'POST' });
+    setOutput('out-danger', (res.ok ? '✓ ' : '✗ ') + res.msg, true);
+    toast(res.ok ? '✓ Done' : '✗ Failed', res.ok ? 'ok' : 'error');
+    if (res.ok) await loadStatus();
+  } catch(e) {
+    setOutput('out-danger', 'Error: ' + e, true);
   }
 }
 

@@ -55,6 +55,10 @@ def run(cmd, timeout=120):
     except Exception as e:
         return False, str(e)
 
+def host(cmd, timeout=120):
+    """Run command on the host via nsenter."""
+    return run(f"nsenter -t 1 -m -u -i -n -p -- sh -c '{cmd}'", timeout=timeout)
+
 def get_active_backend():
     if MARKER_FILE.exists():
         return MARKER_FILE.read_text().strip()
@@ -64,7 +68,10 @@ def get_container_status(name):
     ok, out = run(f"docker inspect --format='{{{{.State.Status}}}}' {name} 2>/dev/null")
     if ok and out:
         return out.strip("'")
-    return "not installed"
+    # Container existiert nicht — prüfen ob Image da ist
+    image = "ghcr.io/donkie/spoolman:latest" if name == "spoolman" else "ghcr.io/fire-devils/filaman-system:latest"
+    ok2, _ = run(f"docker image inspect {image} 2>/dev/null")
+    return "installed" if ok2 else "not installed"
 
 def get_container_uptime(name):
     ok, out = run(
@@ -95,6 +102,42 @@ def cleanup_old_backups():
     files = sorted(BACKUP_DIR.glob("*.zip"), key=lambda p: p.stat().st_mtime)
     while len(files) > BACKUP_KEEP:
         files.pop(0).unlink(missing_ok=True)
+
+@app.route("/api/danger/delete-db/<backend>", methods=["POST"])
+def api_danger_delete_db(backend):
+    if backend not in ("spoolman", "filaman"):
+        return jsonify({"ok": False, "msg": "Invalid backend"}), 400
+    data_dir = SPOOLMAN_DATA if backend == "spoolman" else FILAMAN_DATA
+    db_file  = data_dir / ("spoolman.db" if backend == "spoolman" else "filaman.db")
+    try:
+        run(f"docker stop {backend}", timeout=30)
+        if db_file.exists():
+            db_file.unlink()
+            msg = f"{backend} database deleted. Restarting..."
+        else:
+            msg = f"No database file found at {db_file}. Restarting anyway..."
+        run(f"docker start {backend}", timeout=30)
+        return jsonify({"ok": True, "msg": msg})
+    except Exception as e:
+        return jsonify({"ok": False, "msg": str(e)})
+
+@app.route("/api/danger/remove-backend/<backend>", methods=["POST"])
+def api_danger_remove_backend(backend):
+    if backend not in ("spoolman", "filaman"):
+        return jsonify({"ok": False, "msg": "Invalid backend"}), 400
+    image = "ghcr.io/donkie/spoolman:latest" if backend == "spoolman" else "ghcr.io/fire-devils/filaman-system:latest"
+    data_dir = SPOOLMAN_DATA if backend == "spoolman" else FILAMAN_DATA
+    try:
+        run(f"docker stop {backend} 2>/dev/null || true", timeout=30)
+        run(f"docker rm {backend} 2>/dev/null || true", timeout=30)
+        run(f"docker rmi {image} 2>/dev/null || true", timeout=60)
+        if data_dir.exists():
+            shutil.rmtree(data_dir)
+        if MARKER_FILE.exists() and MARKER_FILE.read_text().strip() == backend:
+            MARKER_FILE.unlink()
+        return jsonify({"ok": True, "msg": f"{backend} removed completely. Must be downloaded again on next activation."})
+    except Exception as e:
+        return jsonify({"ok": False, "msg": str(e)})
 
 @app.route("/api/welcome/dismissed")
 def api_welcome_get():
