@@ -1,7 +1,7 @@
 # SpoolmanScale Pro - Base Compose
 services:
   setup-ui:
-    build: ./spoolmanscale-ui
+    image: ghcr.io/niko11111/spoolmanscale-pro-ui:latest
     container_name: spoolmanscale-ui
     restart: always
     ports:
