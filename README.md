@@ -14,11 +14,13 @@ Designed to run inside the **SpoolmanScale Pro** enclosure (Pi Zero 2W), but wor
 
 ## Features
 
-- 🔄 **Switch between Spoolman and FilaMan** — only one runs at a time for stability
+- 🔄 **Switch between Spoolman and FilaMan** — only one runs at a time for stability on Pi Zero 2W
 - 🌐 **Built-in Web UI** — setup, status, backup, WiFi, update and more
 - 💾 **Backup & Restore** — generate and download database backups with one click
 - 🔁 **Auto-start** — last active backend starts automatically on boot
-- 📡 **mDNS** — reachable via `http://spoolmanscale.local`
+- 📡 **mDNS** — reachable via http://spoolmanscale.local
+- 🔄 **Auto-Backup** — daily scheduled backups, keeps last 7
+- ⬆️ **Self-Update** — check and install UI updates directly from the web interface
 
 ## Requirements
 
@@ -34,71 +36,45 @@ Flash **Raspberry Pi OS Lite (64-bit)** with Pi Imager. In the pre-configuration
 
 | Setting | Value |
 |---|---|
-| Hostname | `spoolmanscale` |
+| Hostname | spoolmanscale |
 | SSH | Enable, public key auth |
 | WiFi | 2.4 GHz only (Pi Zero 2W has no 5 GHz) |
 | Locale | Your region |
 
 ### 2. First boot
 
-```bash
 ssh pi@spoolmanscale.local
-```
 
 ### 3. Passwordless sudo (optional but recommended)
 
-```bash
 echo "pi ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/010_pi-nopasswd
 sudo chmod 440 /etc/sudoers.d/010_pi-nopasswd
-```
 
 ### 4. GPU RAM reduction (headless, saves ~48 MB)
 
-```bash
 echo "gpu_mem=16" | sudo tee -a /boot/firmware/config.txt
 sudo reboot
-```
 
 ### 5. Docker
 
-```bash
 curl -fsSL https://get.docker.com | sudo sh
 sudo usermod -aG docker pi
-```
 
-Log out and back in, then verify:
-
-```bash
-docker --version
-docker compose version
-```
+Log out and back in, then verify docker --version and docker compose version.
 
 ### 6. Clone and start
 
-```bash
-mkdir -p ~/spoolmanscale/spoolmanscale-ui/templates
-mkdir -p ~/spoolmanscale/spoolmanscale-ui/static
+mkdir -p ~/spoolmanscale
 cd ~/spoolmanscale
-
-# Clone repo
 git clone https://github.com/Niko11111/SpoolmanScalePro-Pi.git .
-
-# Fix permissions
-chmod +x switch-backend.sh
-
-# Start Setup UI
-docker compose up -d --build
-```
+chmod +x switch-backend.sh auto-backup.sh
+docker compose pull
+docker compose up -d
 
 ### 7. Auto-start on boot
 
-```bash
-sudo nano /etc/systemd/system/spoolmanscale-backend.service
-```
+Create /etc/systemd/system/spoolmanscale-backend.service with:
 
-Paste:
-
-```ini
 [Unit]
 Description=SpoolmanScale Backend Auto-Start
 After=docker.service network-online.target
@@ -114,22 +90,13 @@ ExecStart=/home/pi/spoolmanscale/switch-backend.sh auto
 
 [Install]
 WantedBy=multi-user.target
-```
 
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable spoolmanscale-backend.service
-```
+Then: sudo systemctl daemon-reload && sudo systemctl enable spoolmanscale-backend.service
 
 ### 8. Open Web UI
 
-```
-http://spoolmanscale.local
-```
-
-or use the Pi's IP address directly.
-
-From the Web UI, select and activate Spoolman or FilaMan — the backend will be downloaded and started automatically.
+http://spoolmanscale.local or use the Pi IP directly.
+From the Web UI, activate Spoolman or FilaMan — downloaded automatically on first use.
 
 ---
 
@@ -141,9 +108,12 @@ From the Web UI, select and activate Spoolman or FilaMan — the backend will be
 | Community | Large, established | Growing |
 | UI | Functional | Modern |
 | App | — | iOS & Android |
+| RAM usage | ~150 MB | ~250 MB |
 | Recommendation | Most users | App integration |
 
-Both backends **cannot run simultaneously** on the Pi Zero 2W (512 MB RAM). Switch anytime from the Web UI — your data is always kept separately.
+On Pi Zero 2W (512 MB RAM), only one backend runs at a time. On Pi 4 with 2+ GB RAM, parallel mode can be enabled in the Web UI.
+
+FilaMan first login: admin@example.com / admin123 — change after first login.
 
 ---
 
@@ -151,18 +121,18 @@ Both backends **cannot run simultaneously** on the Pi Zero 2W (512 MB RAM). Swit
 
 | Tab | Features |
 |---|---|
-| **Backend** | Switch Spoolman ↔ FilaMan, status, update, logs |
-| **System** | RAM/SD/Temp/Uptime, Pi update, WiFi, reboot, shutdown |
-| **Backup** | Generate, download, restore database backups |
+| **Backend** | Switch Spoolman/FilaMan, status, logs, update check, parallel mode |
+| **System** | RAM/SD/Temp/Uptime, Pi update, UI self-update, WiFi, reboot, shutdown |
+| **Backup** | Generate, download, restore, auto-backup, danger zone |
 
 ---
 
 ## Part of SpoolmanScale
 
-- 🔧 [SpoolmanScale](https://github.com/Niko11111/SpoolmanScale) — ESP32 filament scale with NFC
-- ☕ [Ko-fi](https://ko-fi.com/formfollowsfunction) — Support the project
-- 💬 [Discord](https://discord.gg/GzQzGa5pBG) — Community
-- 🖨️ [MakerWorld](https://makerworld.com/de/@FormFollowsF) — 3D printable enclosure
+- SpoolmanScale: https://github.com/Niko11111/SpoolmanScale — ESP32 filament scale with NFC
+- Ko-fi: https://ko-fi.com/formfollowsfunction — Support the project
+- Discord: https://discord.gg/GzQzGa5pBG — Community
+- MakerWorld: https://makerworld.com/de/@FormFollowsF — 3D printable enclosure
 
 ---
 
