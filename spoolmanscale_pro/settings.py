@@ -27,8 +27,6 @@ DEFAULTS = {
     # The scale's web password, if one is set there. Digits only, the way
     # the scale takes it.
     "scale_password": "",
-    # Shows the demo page (reset to the demo data set, set the clock).
-    "demo_mode": False,
 }
 
 SCALE_ADDRESS_MAX_LEN = 64
@@ -90,11 +88,6 @@ def clean_update(raw: dict) -> tuple[dict, list[str]]:
             clean["scale_password"] = value
         else:
             refused.append("scale_password")
-    if "demo_mode" in raw:
-        if isinstance(raw["demo_mode"], bool):
-            clean["demo_mode"] = raw["demo_mode"]
-        else:
-            refused.append("demo_mode")
     return clean, refused
 
 

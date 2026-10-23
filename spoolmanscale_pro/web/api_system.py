@@ -5,7 +5,7 @@ import socket
 
 from flask import Blueprint, request
 
-from .. import host_actions, system_info
+from .. import demo, host_actions, system_info
 from ..jobs import RUNNER
 from ..version import APP_VERSION
 from .responses import fail, ok
@@ -15,7 +15,8 @@ bp = Blueprint("api_system", __name__, url_prefix="/api/system")
 
 @bp.get("")
 def overview():
-    return ok(version=APP_VERSION, hostname=socket.gethostname(), **system_info.snapshot())
+    return ok(version=APP_VERSION, hostname=socket.gethostname(), demo_enabled=demo.enabled(),
+              **system_info.snapshot())
 
 
 @bp.post("/clock")

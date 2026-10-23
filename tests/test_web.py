@@ -48,6 +48,7 @@ def test_security_headers(client):
     r = client.get("/")
     assert "frame-ancestors 'self'" in r.headers["Content-Security-Policy"]
     assert r.headers["X-Content-Type-Options"] == "nosniff"
+    assert r.headers["Cache-Control"] == "no-cache"
 
 
 def test_open_endpoints_are_only_the_first_visit():
@@ -65,3 +66,18 @@ def test_every_route_but_the_open_ones_refuses_a_stranger():
             for method in rule.methods - {"HEAD", "OPTIONS"}:
                 r = stranger.open(url, method=method, headers=H)
                 assert r.status_code == 401, (method, url, r.status_code)
+
+
+def test_demo_is_off_until_the_flag_file_exists(client):
+    from spoolmanscale_pro.paths import DEMO_FLAG_FILE
+    client.post("/api/auth/login", json={"password": "longenough"}, headers=H)
+    DEMO_FLAG_FILE.unlink(missing_ok=True)
+    assert client.get("/api/system").json["demo_enabled"] is False
+    r = client.post("/api/demo/reset", headers=H)
+    assert r.status_code == 409 and r.json["error"] == "demo_off"
+    DEMO_FLAG_FILE.touch()
+    try:
+        assert client.get("/api/system").json["demo_enabled"] is True
+        assert client.get("/api/demo").status_code == 200
+    finally:
+        DEMO_FLAG_FILE.unlink()

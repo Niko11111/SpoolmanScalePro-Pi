@@ -23,11 +23,6 @@ def test_scale_password_is_four_to_eight_digits_or_empty():
         assert settings.clean_update({"scale_password": bad})[1] == ["scale_password"]
 
 
-def test_demo_mode_must_be_a_real_boolean():
-    assert settings.clean_update({"demo_mode": True})[0] == {"demo_mode": True}
-    assert settings.clean_update({"demo_mode": "yes"})[1] == ["demo_mode"]
-
-
 def test_unknown_fields_are_ignored():
     assert settings.clean_update({"active_backend": "spoolman"}) == ({}, [])
 

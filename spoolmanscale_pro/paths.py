@@ -22,6 +22,9 @@ AUTH_FILE = DATA_DIR / "auth.json"
 SESSION_KEY_FILE = DATA_DIR / "session.key"
 BACKUP_DIR = DATA_DIR / "backups"
 DEMO_SNAPSHOT_DIR = DATA_DIR / "demo-snapshot"
+# Demo mode is on while this file exists. Deliberately no switch on the page:
+# it is meant for one demo kit, not for every installation.
+DEMO_FLAG_FILE = DATA_DIR / "demo-enabled"
 
 # The host's own time zone, handed to the backend containers so their
 # timestamps match the Pi. Debian keeps the name in this file.

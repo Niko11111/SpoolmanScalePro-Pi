@@ -1,4 +1,4 @@
-/* SpoolmanScale Pro - the backend tiles and the progress of a switch.
+/* SpoolmanScale Pro - the backend tiles and a backend's log.
  *
  * Pure drawing: takes what /api/backends and /api/job returned, gives back
  * nodes. The overview page owns the polling and passes onChange, which it
@@ -13,7 +13,6 @@
     filaman: "/static/img/filaman-logo.ico",
     bambuddy: "/static/img/bambuddy-logo.png",
   };
-  const SWITCH_STEPS = ["stopping_others", "starting", "waiting_ready", "switching_scale"];
 
   function backendUrl(backend) {
     return location.protocol + "//" + location.hostname + ":" + backend.port;
@@ -74,34 +73,6 @@
     return card;
   }
 
-  function stepClass(index, current, job) {
-    if (SWITCH_STEPS[index] === "switching_scale" && job.result.scale === "not_paired") return "skipped";
-    if (job.ok) return "done";
-    if (index < current) return "done";
-    if (index === current) return job.running ? "now" : "failed";
-    return "";
-  }
-
-  // label: the target's name as the tiles show it.
-  function jobCard(job, label, onDismiss) {
-    const current = SWITCH_STEPS.indexOf(job.step);
-    const titleKey = "job.title_" + job.kind;
-    const card = el("section", { class: "card wide" },
-      el("h2", {}, el("span", { text: t(titleKey, { to: label }) }),
-        job.running ? null : el("button", { class: "quiet", type: "button", onclick: onDismiss }, t("common.close"))));
-    if (job.kind === "switch") {
-      card.append(el("ol", { class: "steps" },
-        SWITCH_STEPS.map((step, i) => {
-          const cls = stepClass(i, current, job);
-          return el("li", { class: cls }, t("step." + step), cls === "skipped" ? " - " + t("step.skipped_no_scale") : null);
-        })));
-    }
-    if (job.ok === true) card.append(el("div", { class: "callout ok", text: t("job.done") }));
-    if (job.ok === false) card.append(el("div", { class: "callout bd", text: t("err." + job.error) }));
-    for (const code of job.warnings) card.append(el("div", { class: "callout wr", text: t("warn." + code) }));
-    return card;
-  }
-
   async function logCard(backend, onClose) {
     const body = el("div", { class: "log", text: t("common.loading") });
     const card = el("section", { class: "card wide" },
@@ -119,5 +90,5 @@
     return card;
   }
 
-  SSPro.views = Object.assign(SSPro.views || {}, { backendsCard, jobCard, logCard });
+  SSPro.views = Object.assign(SSPro.views || {}, { backendsCard, logCard });
 })();

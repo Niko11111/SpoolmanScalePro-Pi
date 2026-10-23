@@ -187,8 +187,9 @@ def check_catalogs(js_files: list[Path], add) -> None:
         if "/i18n/" in rel(path):
             continue
         for key in re.findall(r'\bt\(\s*"([a-z0-9_.]+)"', path.read_text(encoding="utf-8")):
-            # "lang." + code: a key put together at run time, not checkable here.
-            if key not in en and not key.endswith("."):
+            # "lang." + code or "job.title_" + kind: put together at run
+            # time, not checkable here.
+            if key not in en and not key.endswith((".", "_")):
                 add("i18n_unknown_key", f"{rel(path)}: {key}")
 
 

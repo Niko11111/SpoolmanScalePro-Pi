@@ -1,9 +1,12 @@
 /* SpoolmanScale Pro - start-up, login gate and page switching.
  *
  * A page is an object in SSPro.pages with
- *   nav:    the i18n key of its tab
- *   render: function (container) that draws it and returns a cleanup
- *           function (stops its timers) or nothing.
+ *   nav:     the i18n key of its tab
+ *   render:  function (container) that draws it and returns a cleanup
+ *            function (stops its timers) or nothing.
+ *   visible: optional, function (system) deciding from /api/system
+ *            whether the page is offered at all (the demo page only
+ *            where demo mode is enabled).
  * The order of PAGE_ORDER is the order of the tabs. A page file only
  * registers itself; this file decides when it is shown.
  */
@@ -11,7 +14,7 @@
   "use strict";
   const { t, el, $, api, errorText } = SSPro;
 
-  const PAGE_ORDER = ["overview", "scale", "system"];
+  const PAGE_ORDER = ["overview", "demo", "backup", "scale", "system"];
   const DEFAULT_PAGE = "overview";
   let cleanup = null;
 
@@ -26,24 +29,35 @@
         el("i", { text: "v" + document.documentElement.dataset.version })));
   }
 
-  function currentPage() {
-    const name = location.hash.replace("#", "");
-    return PAGE_ORDER.includes(name) && SSPro.pages[name] ? name : DEFAULT_PAGE;
+  function offered(system) {
+    return PAGE_ORDER.filter((n) => SSPro.pages[n] && (!SSPro.pages[n].visible || SSPro.pages[n].visible(system)));
   }
 
-  function nav(active) {
-    const links = PAGE_ORDER.filter((n) => SSPro.pages[n]).map((name) =>
+  function currentPage(pages) {
+    const name = location.hash.replace("#", "");
+    return pages.includes(name) ? name : DEFAULT_PAGE;
+  }
+
+  function nav(pages, active) {
+    const links = pages.map((name) =>
       el("a", { href: "#" + name, class: name === active ? "on" : "" }, t(SSPro.pages[name].nav)));
     const logout = el("a", { href: "#", onclick: (e) => { e.preventDefault(); logOut(); } }, t("nav.logout"));
     return el("nav", { class: "nav" }, links, el("span", { class: "spacer" }), logout);
   }
 
-  function showPage() {
+  async function showPage() {
     if (cleanup) { cleanup(); cleanup = null; }
-    const name = currentPage();
+    let system = {};
+    try {
+      system = await api("/api/system");
+    } catch (e) {
+      if (e.code === "login_required") return;  // the gate is already up
+    }
+    const pages = offered(system);
+    const name = currentPage(pages);
     const main = el("main", { class: "wrap" });
     const app = $("#app");
-    app.replaceChildren(el("div", { class: "wrap" }, header(t("app.tagline")), nav(name)), main,
+    app.replaceChildren(el("div", { class: "wrap" }, header(t("app.tagline")), nav(pages, name)), main,
       el("footer", { class: "foot" }, t("app.footer")));
     cleanup = SSPro.pages[name].render(main) || null;
   }

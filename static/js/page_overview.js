@@ -32,8 +32,7 @@
     function drawJob(job, backends) {
       const show = job && (job.running || job.id !== dismissedJob);
       if (!show) { slots.job.replaceChildren(); return; }
-      const target = backends.find((b) => b.key === job.target);
-      slots.job.replaceChildren(views.jobCard(job, target ? target.label : job.target, () => {
+      slots.job.replaceChildren(views.jobCard(job, views.labelsFrom(backends), () => {
         dismissedJob = job.id;
         slots.job.replaceChildren();
       }));

@@ -3,6 +3,22 @@
 One section per version, newest first. VERSION names the current one;
 scripts/check.sh fails when it has no section here.
 
+## 2.0.0-beta.2
+
+- Backups per backend: the backend is stopped for the few seconds its data
+  are packed, then started again. Download, delete, restore from the list or
+  from a file. A file is checked before anything is replaced (its backend,
+  only plain files and folders, size limits). Before each restore the data
+  it replaces are saved as a backup of their own, and put back if the
+  restore fails. The newest 10 per backend are kept; Spoolman's and
+  BamBuddy's own backup folders are left out of the archive.
+- Demo mode for trade fairs, off unless enabled on the Pi itself: a demo
+  state per backend and one button that resets every saved backend to it,
+  the active one first, then waits until the scale has reached it again. It
+  restores files, so FilaMan's device token and BamBuddy's API key survive a
+  reset.
+- The progress of a job is shown on every page that starts one.
+
 ## 2.0.0-beta.1
 
 A rebuild from scratch. Version 0.1 was a Flask app in a privileged Docker

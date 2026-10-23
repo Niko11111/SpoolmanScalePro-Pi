@@ -24,6 +24,10 @@ class Backend:
     # state. A backup archives exactly this, a restore replaces it.
     data_dir: str
     homepage: str
+    # Top-level entries of data_dir a backup leaves out and a restore leaves
+    # alone: the backend's own backups, which would otherwise ride along in
+    # every archive and make each one larger than the last.
+    archive_skip: tuple[str, ...] = ()
 
 
 BACKENDS = (
@@ -36,6 +40,7 @@ BACKENDS = (
         health_path="/api/v1/health",
         data_dir="/home/app/.local/share/spoolman",
         homepage="https://github.com/Donkie/Spoolman",
+        archive_skip=("backups",),
     ),
     Backend(
         key="filaman",
@@ -56,6 +61,7 @@ BACKENDS = (
         health_path="/health",
         data_dir="/app/data",
         homepage="https://github.com/maziggy/bambuddy",
+        archive_skip=("backups",),
     ),
 )
 
