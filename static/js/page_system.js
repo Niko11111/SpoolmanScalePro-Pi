@@ -36,27 +36,62 @@
       el("p", { class: "note", text: t("look.note") }));
   }
 
-  function passwordCard() {
-    const current = el("input", { type: "password", autocomplete: "current-password" });
-    const next = el("input", { type: "password", autocomplete: "new-password" });
-    const message = el("div", { class: "msg", role: "status" });
-    const save = el("button", { type: "button" }, t("password.change"));
-    save.addEventListener("click", () => busy(save, async () => {
-      try {
-        await api("/api/auth/password", { method: "POST", body: { current: current.value, new: next.value } });
-        current.value = next.value = "";
-        message.className = "msg";
-        message.textContent = t("password.changed");
-      } catch (e) {
-        message.className = "msg bad";
-        message.textContent = errorText(e);
-      }
-    }));
-    return el("section", { class: "card" }, el("h2", { text: t("password.title") }),
-      el("div", { class: "field" }, el("label", { text: t("password.current") }), current),
-      el("div", { class: "field" }, el("label", { text: t("password.new") }), next,
-        el("p", { class: "hint", text: t("password.hint") })),
-      el("div", { class: "btnrow" }, save), message);
+  function input(type, autocomplete, value) {
+    return el("input", { type: type, autocomplete: autocomplete, value: value || "" });
+  }
+
+  function labelled(labelKey, node, hintKey) {
+    return el("div", { class: "field" }, el("label", { text: t(labelKey) }), node,
+      hintKey ? el("p", { class: "hint", text: t(hintKey) }) : null);
+  }
+
+  async function post(path, body, message) {
+    try {
+      await api(path, { method: "POST", body: body });
+      toast(t("account.saved"));
+      SSPro.restart();
+    } catch (e) {
+      message.textContent = errorText(e);
+    }
+  }
+
+  // Password mode: change name and password, or switch the login off.
+  function protectedAccount(account) {
+    const current = input("password", "current-password");
+    const user = input("text", "username", account.username);
+    const next = input("password", "new-password");
+    const message = el("div", { class: "msg bad", role: "alert" });
+    const save = el("button", { type: "button" }, t("account.save"));
+    save.addEventListener("click", () => busy(save, () =>
+      post("/api/auth/account", { current: current.value, username: user.value, password: next.value }, message)));
+    const off = el("button", { type: "button", class: "danger" }, t("account.switch_off"));
+    off.addEventListener("click", async () => {
+      if (!(await ask(t("gate.open_title"), t("gate.open_text"), t("account.switch_off"), true))) return;
+      await busy(off, () => post("/api/auth/open", { current: current.value }, message));
+    });
+    return [el("p", { class: "hint", text: t("account.signed_in", { name: account.username }) }),
+      labelled("account.current", current, "account.current_hint"),
+      labelled("gate.username", user), labelled("account.new_password", next, "account.password_hint"),
+      el("div", { class: "btnrow" }, save, off), message];
+  }
+
+  // Open mode: the warning, and the way back to a login.
+  function openAccount() {
+    const user = input("text", "username", "admin");
+    const next = input("password", "new-password");
+    const message = el("div", { class: "msg bad", role: "alert" });
+    const save = el("button", { type: "button" }, t("account.switch_on"));
+    save.addEventListener("click", () => busy(save, () =>
+      post("/api/auth/account", { username: user.value, password: next.value }, message)));
+    return [el("div", { class: "callout bd", text: t("account.open_warning") }),
+      labelled("gate.username", user), labelled("gate.password", next, "account.password_hint"),
+      el("div", { class: "btnrow" }, save), message];
+  }
+
+  function accountCard() {
+    const account = SSPro.account || { mode: "password", username: "" };
+    return el("section", { class: "card" }, el("h2", { text: t("account.title") }),
+      account.mode === "open" ? openAccount() : protectedAccount(account));
   }
 
   function powerButton(labelKey, path, danger) {
@@ -85,7 +120,7 @@
     const grid = el("div", { class: "grid" });
     main.append(grid);
     api("/api/system").then((system) => {
-      grid.replaceChildren(lookCard(), passwordCard(), powerCard(system));
+      grid.replaceChildren(lookCard(), accountCard(), powerCard(system));
     }).catch((e) => { if (e.code !== "login_required") toast(errorText(e), true); });
   }
 

@@ -10,11 +10,11 @@ window.SSPRO_I18N.de = {
   "nav.system": "System",
   "nav.logout": "Abmelden",
 
-  "gate.setup_title": "Passwort festlegen",
-  "gate.setup_hint": "Dieses Passwort schützt diese Seite. Wer es im Netz kennt, kann Backends umschalten und den Pi neu starten. Mindestens 8 Zeichen.",
+  "gate.setup_title": "Anmeldung anlegen",
+  "gate.setup_hint": "Benutzername und Passwort schützen diese Seite; dein Passwortmanager kann sie speichern. Wer sie im Netz kennt, kann Backends umschalten und den Pi neu starten. Passwort mindestens 8 Zeichen.",
   "gate.login_title": "Anmelden",
   "gate.password": "Passwort",
-  "gate.set": "Passwort festlegen",
+  "gate.set": "Anmeldung anlegen",
   "gate.login": "Anmelden",
 
   "common.cancel": "Abbrechen",
@@ -124,12 +124,6 @@ window.SSPRO_I18N.de = {
   "theme.dark": "Dunkel",
   "theme.light": "Hell",
 
-  "password.title": "Passwort",
-  "password.current": "Aktuelles Passwort",
-  "password.new": "Neues Passwort",
-  "password.hint": "Mindestens 8 Zeichen. Meldet alle anderen Browser ab.",
-  "password.change": "Passwort ändern",
-  "password.changed": "Passwort geändert.",
 
   "power.title": "Pi",
   "power.version": "Version",
@@ -151,7 +145,6 @@ window.SSPRO_I18N.de = {
   "err.not_found": "Nicht gefunden.",
   "err.method_not_allowed": "Nicht erlaubt.",
   "err.too_large": "Die Datei ist zu groß.",
-  "err.password_already_set": "Es ist schon ein Passwort gesetzt. Lade die Seite neu und melde dich an.",
   "err.password_too_short": "Das Passwort braucht mindestens 8 Zeichen.",
   "err.login_wrong": "Falsches Passwort.",
   "err.login_wait": "Zu viele Fehlversuche. Warte 30 Sekunden.",
@@ -228,5 +221,25 @@ window.SSPRO_I18N.de = {
   "err.archive_unsafe": "Das Backup enthält Einträge, die nicht eingespielt werden dürfen (Links oder Pfade außerhalb seines Ordners).",
   "err.archive_too_big": "Das Backup ist größer, als die Daten eines Backends sein können.",
   "err.demo_off": "Der Demo-Modus ist auf diesem Pi nicht freigeschaltet.",
-  "err.demo_nothing_saved": "Noch kein Demo-Stand gespeichert."
+  "err.demo_nothing_saved": "Noch kein Demo-Stand gespeichert.",
+
+  "gate.username": "Benutzername",
+  "gate.open_button": "Ohne Passwort weiter",
+  "gate.open_title": "Ohne Passwort betreiben?",
+  "gate.open_text": "Dann kann jeder in deinem Netz diese Seite benutzen: Backends umschalten und löschen, Backups einspielen, den Pi neu starten. Weil die Seite Docker steuern darf, ist das die volle Kontrolle über den Pi. Nur in einem Netz machen, dem du vertraust. Ein Passwort lässt sich unter System jederzeit wieder setzen.",
+  "gate.open_confirm": "Ohne Passwort",
+  "account.title": "Anmeldung",
+  "account.signed_in": "Angemeldet als {name}.",
+  "account.current": "Aktuelles Passwort",
+  "account.current_hint": "Nötig, um hier etwas zu ändern.",
+  "account.new_password": "Neues Passwort",
+  "account.password_hint": "Mindestens 8 Zeichen. Meldet alle anderen Browser ab.",
+  "account.save": "Speichern",
+  "account.saved": "Anmeldung gespeichert.",
+  "account.switch_off": "Passwort abschalten",
+  "account.switch_on": "Passwort einschalten",
+  "account.open_warning": "Diese Seite hat kein Passwort: Jeder im Netz kann darüber den Pi steuern. Lege Benutzername und Passwort fest, um sie zu schützen.",
+  "links.kofi": "Kaffee ausgeben",
+  "err.username_invalid": "Gib einen Benutzernamen ein (bis 64 Zeichen).",
+  "err.account_already_set": "Es ist schon eine Anmeldung eingerichtet. Lade die Seite neu."
 };

@@ -22,7 +22,9 @@ it.
 - **The Pi at a glance:** RAM, compressed swap, SD card, CPU temperature,
   uptime and clock. A Pi has no battery-backed clock; when it is off, the
   page sets it from the browser's time.
-- **Protected** by a password from the first visit on.
+- **Protected** by a user name and password from the first visit on, which
+  password managers can store. Running without a password is possible
+  after a clear warning, for networks you trust.
 - **Works without internet** once the backends are downloaded, for example as
   a hotspot of its own (see below).
 - English and German.
@@ -48,8 +50,8 @@ sudo scripts/install.sh --pull-all
 ```
 
 `--pull-all` downloads all three backends right away, so each one can later
-start without internet. Then open `http://<hostname>.local` and choose a
-password.
+start without internet. Then open `http://<hostname>.local` and create the
+login.
 
 To update, `git pull` and run `sudo scripts/install.sh` again. Your data is
 not touched.
@@ -95,7 +97,7 @@ which amounts to root, so the page's password is what guards the Pi: choose
 a real one.
 
 Forgot the password? On the Pi: `sudo rm /var/lib/spoolmanscale-pro/auth.json`,
-then reload the page and choose a new one.
+then reload the page and create the login again.
 
 ## Development
 

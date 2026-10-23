@@ -12,11 +12,11 @@ window.SSPRO_I18N.en = {
   "nav.system": "System",
   "nav.logout": "Log out",
 
-  "gate.setup_title": "Choose a password",
-  "gate.setup_hint": "This password protects this page. Anyone on your network who has it can switch backends and restart the Pi. At least 8 characters.",
+  "gate.setup_title": "Create the login",
+  "gate.setup_hint": "User name and password protect this page; your password manager can store them. Anyone on your network who has them can switch backends and restart the Pi. Password at least 8 characters.",
   "gate.login_title": "Log in",
   "gate.password": "Password",
-  "gate.set": "Set password",
+  "gate.set": "Create login",
   "gate.login": "Log in",
 
   "common.cancel": "Cancel",
@@ -126,12 +126,6 @@ window.SSPRO_I18N.en = {
   "theme.dark": "Dark",
   "theme.light": "Light",
 
-  "password.title": "Password",
-  "password.current": "Current password",
-  "password.new": "New password",
-  "password.hint": "At least 8 characters. Logs out every other browser.",
-  "password.change": "Change password",
-  "password.changed": "Password changed.",
 
   "power.title": "Pi",
   "power.version": "Version",
@@ -153,7 +147,6 @@ window.SSPRO_I18N.en = {
   "err.not_found": "Not found.",
   "err.method_not_allowed": "Not allowed.",
   "err.too_large": "The file is too large.",
-  "err.password_already_set": "A password is already set. Reload the page and log in.",
   "err.password_too_short": "The password needs at least 8 characters.",
   "err.login_wrong": "Wrong password.",
   "err.login_wait": "Too many wrong tries. Wait 30 seconds.",
@@ -230,5 +223,25 @@ window.SSPRO_I18N.en = {
   "err.archive_unsafe": "The backup contains entries that may not be restored (links or paths outside its folder).",
   "err.archive_too_big": "The backup is larger than any backend's data can be.",
   "err.demo_off": "Demo mode is not enabled on this Pi.",
-  "err.demo_nothing_saved": "No demo state saved yet."
+  "err.demo_nothing_saved": "No demo state saved yet.",
+
+  "gate.username": "User name",
+  "gate.open_button": "Continue without a password",
+  "gate.open_title": "Run without a password?",
+  "gate.open_text": "Anyone on your network can then use this page: switch and delete backends, restore backups, restart the Pi. Because the page can control Docker, that amounts to full control of the Pi. Only do this on a network you trust. A password can be set again under System at any time.",
+  "gate.open_confirm": "Without password",
+  "account.title": "Login",
+  "account.signed_in": "Logged in as {name}.",
+  "account.current": "Current password",
+  "account.current_hint": "Needed to change anything here.",
+  "account.new_password": "New password",
+  "account.password_hint": "At least 8 characters. Logs out every other browser.",
+  "account.save": "Save",
+  "account.saved": "Login saved.",
+  "account.switch_off": "Switch off password",
+  "account.switch_on": "Switch on password",
+  "account.open_warning": "This page has no password: anyone on the network can control the Pi through it. Set a user name and password to protect it.",
+  "links.kofi": "Buy me a coffee",
+  "err.username_invalid": "Enter a user name (up to 64 characters).",
+  "err.account_already_set": "A login is already set. Reload the page."
 };

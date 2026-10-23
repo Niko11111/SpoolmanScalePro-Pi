@@ -3,12 +3,29 @@ import secrets
 from spoolmanscale_pro import auth
 
 
-def test_hash_and_verify():
+def test_verify_needs_name_and_password():
     salt = secrets.token_bytes(16)
-    record = {"salt": salt.hex(), "hash": auth.hash_password("correct horse", salt)}
-    assert auth.verify_password("correct horse", record)
-    assert not auth.verify_password("wrong horse", record)
-    assert not auth.verify_password("x", {"salt": "zz"})
+    record = {"user": "Nikolai", "salt": salt.hex(), "hash": auth.hash_password("correct horse", salt)}
+    assert auth.verify("Nikolai", "correct horse", record)
+    assert auth.verify(" nikolai ", "correct horse", record)   # as a password manager may send it
+    assert not auth.verify("admin", "correct horse", record)
+    assert not auth.verify("Nikolai", "wrong horse", record)
+    assert not auth.verify("x", "x", {"salt": "zz"})
+
+
+def test_usernames():
+    assert auth.clean_username("  admin ") == "admin"
+    assert auth.clean_username("me@example.com") == "me@example.com"
+    for bad in ("", "   ", None, "a\nb", "x" * 65):
+        assert auth.clean_username(bad) is None, repr(bad)
+
+
+def test_modes():
+    assert auth.mode_of(None) == "unset"
+    assert auth.mode_of({"open": True}) == "open"
+    assert auth.mode_of({"user": "a", "salt": "00", "hash": "00"}) == "password"
+    # A broken file is a locked door, never an open one.
+    assert auth.mode_of({"broken": True}) == "password"
 
 
 def test_password_length():

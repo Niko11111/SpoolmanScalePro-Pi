@@ -27,7 +27,10 @@ SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
 
 
 def logged_in() -> bool:
-    return auth.password_is_set() and session.get("gen") == auth.generation()
+    current = auth.mode()
+    if current == auth.MODE_OPEN:
+        return True
+    return current == auth.MODE_PASSWORD and session.get("gen") == auth.generation()
 
 
 def guard():

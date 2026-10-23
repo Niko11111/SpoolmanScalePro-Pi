@@ -32,16 +32,39 @@ def test_change_from_a_foreign_origin_is_refused(client):
     assert r.status_code == 403
 
 
+LOGIN = {"username": "admin", "password": "longenough"}
+
+
 def test_setup_then_logged_in_then_setup_closed(client):
-    assert client.get("/api/auth/state").json["password_set"] is False
-    assert client.post("/api/auth/setup", json={"password": "short"}, headers=H).status_code == 400
-    assert client.post("/api/auth/setup", json={"password": "longenough"}, headers=H).json["ok"]
-    assert client.get("/api/auth/state").json["logged_in"] is True
-    r = client.post("/api/auth/setup", json={"password": "another one"}, headers=H)
+    assert client.get("/api/auth/state").json["mode"] == "unset"
+    assert client.post("/api/auth/setup", json={"username": "admin", "password": "short"},
+                       headers=H).status_code == 400
+    assert client.post("/api/auth/setup", json={"username": " ", "password": "longenough"},
+                       headers=H).json["error"] == "username_invalid"
+    assert client.post("/api/auth/setup", json=LOGIN, headers=H).json["ok"]
+    state = client.get("/api/auth/state").json
+    assert state["mode"] == "password" and state["logged_in"] and state["username"] == "admin"
+    r = client.post("/api/auth/setup", json={"open": True}, headers=H)
     assert r.status_code == 409
     client.post("/api/auth/logout", headers=H)
-    assert client.post("/api/auth/login", json={"password": "wrong pass"}, headers=H).status_code == 401
-    assert client.post("/api/auth/login", json={"password": "longenough"}, headers=H).json["ok"]
+    assert client.get("/api/auth/state").json["username"] == ""
+    wrong_name = {"username": "root", "password": "longenough"}
+    assert client.post("/api/auth/login", json=wrong_name, headers=H).status_code == 401
+    assert client.post("/api/auth/login", json=LOGIN, headers=H).json["ok"]
+
+
+def test_open_mode_needs_the_password_and_lets_everyone_in(client):
+    client.post("/api/auth/login", json=LOGIN, headers=H)
+    assert client.post("/api/auth/open", json={"current": "wrong one"}, headers=H).status_code == 401
+    assert client.post("/api/auth/open", json={"current": "longenough"}, headers=H).json["ok"]
+    app = client.application
+    with app.test_client() as stranger:
+        assert stranger.get("/api/backends").status_code != 401
+        # Still no requests from foreign pages, open or not.
+        assert stranger.post("/api/auth/logout").status_code == 403
+        # The way back needs no current password, there is none.
+        assert stranger.post("/api/auth/account", json=LOGIN, headers=H).json["ok"]
+    assert client.get("/api/auth/state").json["mode"] == "password"
 
 
 def test_security_headers(client):
@@ -70,7 +93,7 @@ def test_every_route_but_the_open_ones_refuses_a_stranger():
 
 def test_demo_is_off_until_the_flag_file_exists(client):
     from spoolmanscale_pro.paths import DEMO_FLAG_FILE
-    client.post("/api/auth/login", json={"password": "longenough"}, headers=H)
+    client.post("/api/auth/login", json=LOGIN, headers=H)
     DEMO_FLAG_FILE.unlink(missing_ok=True)
     assert client.get("/api/system").json["demo_enabled"] is False
     r = client.post("/api/demo/reset", headers=H)

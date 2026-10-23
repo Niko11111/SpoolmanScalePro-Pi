@@ -3,6 +3,17 @@
 One section per version, newest first. VERSION names the current one;
 scripts/check.sh fails when it has no section here.
 
+## 2.0.0-beta.3
+
+- The login has a user name next to the password, chosen on the first
+  visit (suggested: admin), so password managers store and fill it. Name
+  and password can be changed under System.
+- The password can be switched off, on the first visit or later under
+  System, after a warning that anyone on the network can then control the
+  Pi. Requests from foreign pages stay blocked either way.
+- The project links of the scale's web interface (GitHub, Ko-fi, Discord,
+  MakerWorld) close every page.
+
 ## 2.0.0-beta.2
 
 - Backups per backend: the backend is stopped for the few seconds its data

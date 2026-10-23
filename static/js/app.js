@@ -41,7 +41,9 @@
   function nav(pages, active) {
     const links = pages.map((name) =>
       el("a", { href: "#" + name, class: name === active ? "on" : "" }, t(SSPro.pages[name].nav)));
-    const logout = el("a", { href: "#", onclick: (e) => { e.preventDefault(); logOut(); } }, t("nav.logout"));
+    // Nothing to log out of without a password.
+    const logout = authMode !== "password" ? null
+      : el("a", { href: "#", onclick: (e) => { e.preventDefault(); logOut(); } }, t("nav.logout"));
     return el("nav", { class: "nav" }, links, el("span", { class: "spacer" }), logout);
   }
 
@@ -58,51 +60,39 @@
     const main = el("main", { class: "wrap" });
     const app = $("#app");
     app.replaceChildren(el("div", { class: "wrap" }, header(t("app.tagline")), nav(pages, name)), main,
-      el("footer", { class: "foot" }, t("app.footer")));
+      el("footer", { class: "wrap" }, SSPro.views.linksRow(), el("p", { class: "foot", text: t("app.footer") })));
     cleanup = SSPro.pages[name].render(main) || null;
   }
 
   async function logOut() {
     try { await api("/api/auth/logout", { method: "POST" }); } catch (e) { /* gone either way */ }
-    showGate(true);
+    showGate(false);
   }
 
-  // First visit sets the password; later visits log in with it.
-  function showGate(passwordSet) {
+  // The account mode from /api/auth/state ("unset", "password", "open").
+  let authMode = "password";
+
+  function showGate(firstVisit) {
     if (cleanup) { cleanup(); cleanup = null; }
-    const input = el("input", { type: "password", autocomplete: passwordSet ? "current-password" : "new-password", required: true });
-    const message = el("div", { class: "msg bad", role: "alert" });
-    const submit = el("button", { class: "block", type: "submit" }, t(passwordSet ? "gate.login" : "gate.set"));
-    const form = el("form", { class: "card" },
-      el("h2", { text: t(passwordSet ? "gate.login_title" : "gate.setup_title") }),
-      passwordSet ? null : el("p", { class: "hint", text: t("gate.setup_hint") }),
-      el("div", { class: "field" }, el("label", { text: t("gate.password") }), input),
-      message, submit);
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      submit.disabled = true;
-      try {
-        await api(passwordSet ? "/api/auth/login" : "/api/auth/setup", { method: "POST", body: { password: input.value } });
-        showPage();
-      } catch (err) {
-        message.textContent = errorText(err);
-        submit.disabled = false;
-      }
-    });
-    $("#app").replaceChildren(el("div", { class: "gate" }, header(t("app.tagline")), form));
-    input.focus();
+    const gate = SSPro.views.gateForm(firstVisit, start);
+    $("#app").replaceChildren(el("div", { class: "gate" }, header(t("app.tagline")), gate.form));
+    gate.focus.focus();
   }
 
   async function start() {
     try {
       const state = await api("/api/auth/state");
-      if (state.logged_in) showPage(); else showGate(state.password_set);
+      authMode = state.mode;
+      SSPro.account = { mode: state.mode, username: state.username };
+      if (state.logged_in) showPage(); else showGate(state.mode === "unset");
     } catch (e) {
       $("#app").replaceChildren(el("div", { class: "card gate" }, el("p", { class: "msg bad", text: errorText(e) })));
     }
   }
 
   window.addEventListener("hashchange", showPage);
-  document.addEventListener("sspro:logout", () => showGate(true));
+  document.addEventListener("sspro:logout", () => showGate(false));
+  // For a page that changes the account mode (System).
+  SSPro.restart = start;
   start();
 })();
