@@ -9,6 +9,10 @@ The order is the point of this module:
 A scale that cannot be told is a warning, not a failure: the backend is up
 and usable, and the page says what is wrong with the scale.
 
+With several backends at once (backend_plan.py), start_one, stop_one and
+use_for_scale do the same steps one at a time; "active_backend" in the
+settings is then the one the scale uses.
+
 Nothing here runs at boot. The compose file says restart: unless-stopped,
 so Docker brings back the backend that was running and leaves the stopped
 ones stopped.
@@ -72,3 +76,30 @@ def switch_to(target: Backend, progress: Progress) -> None:
 def stop_all(progress: Progress) -> None:
     _stop_others(None, progress)
     settings.update({"active_backend": None})
+
+
+# Several backends at once (backend_plan.py decides whether that is allowed).
+
+def start_one(target: Backend, progress: Progress) -> None:
+    """Starts a backend next to the running ones. When the scale has none
+    yet, this one becomes the scale's."""
+    _start(target, progress)
+    if not settings.load()["active_backend"]:
+        use_for_scale(target, progress)
+
+
+def stop_one(target: Backend, progress: Progress) -> None:
+    progress.step("stopping")
+    if not docker_compose.stop(target.key).ok:
+        raise JobFailed("stop_failed", target.key)
+    if settings.load()["active_backend"] == target.key:
+        settings.update({"active_backend": None})
+
+
+def use_for_scale(target: Backend, progress: Progress) -> None:
+    """Makes a backend the one the scale uses, starting it if it is not."""
+    states = docker_compose.states() or {}
+    if states.get(target.key) != "running" or not health.is_ready(target):
+        _start(target, progress)
+    settings.update({"active_backend": target.key})
+    tell_scale(target, progress)

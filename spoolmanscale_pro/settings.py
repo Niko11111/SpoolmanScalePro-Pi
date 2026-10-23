@@ -44,6 +44,9 @@ DEFAULTS = {
     # The setup assistant (page_setup.js) has been finished or skipped; until
     # then the page opens it after the login.
     "setup_done": False,
+    # Several backends at once: None follows the Pi's size (hardware.py),
+    # True or False is the owner's choice. Never on a small Pi.
+    "parallel_mode": None,
 }
 
 SCALE_ADDRESS_MAX_LEN = 64
@@ -116,6 +119,11 @@ def clean_update(raw: dict) -> tuple[dict, list[str]]:
             clean["auto_backup_hour"] = hour
         else:
             refused.append("auto_backup_hour")
+    if "parallel_mode" in raw:
+        if raw["parallel_mode"] is None or isinstance(raw["parallel_mode"], bool):
+            clean["parallel_mode"] = raw["parallel_mode"]
+        else:
+            refused.append("parallel_mode")
     if "setup_done" in raw:
         if isinstance(raw["setup_done"], bool):
             clean["setup_done"] = raw["setup_done"]

@@ -117,13 +117,37 @@
       el("p", { class: "note", text: t("power.note") }));
   }
 
+  // Several backends at once: what this Pi is, what that means, and the
+  // owner's choice (backend_plan.py). Blocked on a small Pi.
+  function capacityCard(plan) {
+    const blocked = plan.rules.parallel === "blocked";
+    const choice = plan.parallel_choice === null ? "auto" : plan.parallel_choice ? "on" : "off";
+    const mode = el("select", { disabled: blocked }, ["auto", "on", "off"].map((v) =>
+      el("option", { value: v, selected: v === choice }, t("cap.mode_" + v))));
+    mode.addEventListener("change", async () => {
+      const value = mode.value === "auto" ? null : mode.value === "on";
+      try {
+        await api("/api/settings", { method: "POST", body: { parallel_mode: value } });
+        toast(t("account.saved"));
+      } catch (e) {
+        toast(errorText(e), true);
+      }
+    });
+    return el("section", { class: "card" }, el("h2", { text: t("cap.title") }),
+      el("div", { class: "rows" },
+        el("div", { class: "row" }, el("span", { class: "k", text: t("cap.model") }), el("span", { class: "v", text: plan.model || "-" })),
+        el("div", { class: "row" }, el("span", { class: "k", text: t("cap.ram") }), el("span", { class: "v mono", text: plan.ram_mb ? plan.ram_mb + " MB" : "-" }))),
+      el("p", { class: "hint", text: t("cap.size_" + plan.rules.size) }),
+      el("div", { class: "field" }, el("label", { text: t("cap.mode") }), mode));
+  }
+
   function render(main) {
     const grid = el("div", { class: "grid" });
     const os = SSPro.views.osCard();
     const remote = SSPro.views.tailscaleCard();
     main.append(grid, os);
-    api("/api/system").then((system) => {
-      grid.replaceChildren(powerCard(system), accountCard(), lookCard(), remote);
+    Promise.all([api("/api/system"), api("/api/backends")]).then(([system, backends]) => {
+      grid.replaceChildren(powerCard(system), capacityCard(backends.plan), accountCard(), lookCard(), remote);
     }).catch((e) => { if (e.code !== "login_required") toast(errorText(e), true); });
     return () => { os.stop(); remote.stop(); };
   }

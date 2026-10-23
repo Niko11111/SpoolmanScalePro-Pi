@@ -3,6 +3,23 @@
 One section per version, newest first. VERSION names the current one;
 scripts/check.sh fails when it has no section here.
 
+## 2.0.0-beta.15
+
+- Several backends at once, as far as the Pi allows. It is recognised by its
+  model and RAM: a Pi Zero 2 W runs one backend at a time (switching only,
+  Spoolman recommended, FilaMan and BamBuddy with a warning that they are
+  slow there); a Pi 3 runs two at once after a warning with the numbers; a
+  Pi 4 or 5 with 2 GB and more runs all three. "Several at once" follows the
+  Pi by default and can be switched on or off on the System page.
+- With several running, each tile starts and stops its backend and one of
+  them is "for the scale". Each running tile shows the RAM it uses. A card
+  shows the addresses the backends use to reach each other (BamBuddy with
+  Spoolman as inventory, FilaMan's BamBuddy plugin).
+- On a Pi Zero and a Pi 3 each backend gets a RAM limit of twice its typical
+  use, at most what the Pi can spare; swapping stays allowed, so one that
+  grows gets slow instead of freezing the Pi.
+- The daily backup covers every running backend.
+
 ## 2.0.0-beta.14
 
 - Remote access with Tailscale from the System page: install it (from

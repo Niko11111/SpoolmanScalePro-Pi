@@ -31,6 +31,9 @@ class Backend:
     image: str
     github: str
     version_env: str
+    # Typical RAM in use, measured on a busy server (23.10.2026) with some
+    # room on top. The base of the budget in hardware.py.
+    typical_ram_mb: int
     # Top-level entries of data_dir a backup leaves out and a restore leaves
     # alone: the backend's own backups, which would otherwise ride along in
     # every archive and make each one larger than the last.
@@ -50,6 +53,7 @@ BACKENDS = (
         image="donkie/spoolman",
         github="Donkie/Spoolman",
         version_env="SPOOLMAN_VERSION",
+        typical_ram_mb=180,
         archive_skip=("backups",),
     ),
     Backend(
@@ -64,6 +68,7 @@ BACKENDS = (
         image="fire-devils/filaman-system",
         github="Fire-Devils/filaman-system",
         version_env="FILAMAN_VERSION",
+        typical_ram_mb=480,
         archive_skip=("backups",),
     ),
     Backend(
@@ -78,6 +83,7 @@ BACKENDS = (
         image="maziggy/bambuddy",
         github="maziggy/bambuddy",
         version_env="BAMBUDDY_VERSION",
+        typical_ram_mb=420,
         archive_skip=("backups",),
     ),
 )

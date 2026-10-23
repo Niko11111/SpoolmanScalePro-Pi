@@ -14,11 +14,12 @@ every caller has to show them to someone.
 import json
 import logging
 import os
+import re
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-from . import backend_secrets, settings
+from . import backend_secrets, hardware, settings
 from .backends import BACKEND_KEYS, BACKENDS
 from .paths import COMPOSE_FILE, HOST_TIMEZONE_FILE
 
@@ -46,6 +47,9 @@ def _environment() -> dict:
     Updates page (SPOOLMAN_VERSION ...)."""
     env = dict(os.environ)
     env.update(backend_secrets.compose_environment())
+    found = hardware.detect()
+    for key, limit_mb in hardware.memory_limits(hardware.effective_ram_mb(found), found["model"]).items():
+        env[f"{key.upper()}_MEM_LIMIT"] = f"{limit_mb}m"
     chosen = settings.load()["backend_versions"]
     for backend in BACKENDS:
         tag = chosen.get(backend.key)
@@ -191,6 +195,47 @@ def image_of(key: str) -> str:
     except (json.JSONDecodeError, KeyError, TypeError):
         log.error("docker compose config gave no image for %s", key)
         return ""
+
+
+_UNIT_MB = {"b": 1 / 1024 / 1024, "kib": 1 / 1024, "kb": 1 / 1024, "mib": 1, "mb": 1,
+            "gib": 1024, "gb": 1024}
+
+
+def _to_mb(amount: str) -> float | None:
+    match = re.match(r"^\s*([\d.]+)\s*([A-Za-z]+)", amount)
+    if not match or match.group(2).lower() not in _UNIT_MB:
+        return None
+    return float(match.group(1)) * _UNIT_MB[match.group(2).lower()]
+
+
+def parse_stats(text: str) -> dict[str, int]:
+    """docker stats --format '{{json .}}': backend service -> RAM in MB.
+    Only this project's containers, named <project>-<service>-<n>."""
+    usage = {}
+    for line in text.splitlines():
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        name = row.get("Name", "")
+        if not name.startswith(PROJECT_NAME + "-"):
+            continue
+        service = name[len(PROJECT_NAME) + 1:].rsplit("-", 1)[0]
+        used = _to_mb(str(row.get("MemUsage", "")).split("/")[0])
+        if service in BACKEND_KEYS and used is not None:
+            usage[service] = round(used)
+    return usage
+
+
+def memory_use() -> dict[str, int]:
+    """RAM of the running backends in MB; empty when Docker does not answer."""
+    try:
+        done = subprocess.run(["docker", "stats", "--no-stream", "--format", "{{json .}}"],
+                              capture_output=True, text=True, timeout=QUERY_TIMEOUT_S)
+    except (OSError, subprocess.TimeoutExpired) as e:
+        log.warning("docker stats failed: %s", e)
+        return {}
+    return parse_stats(done.stdout) if done.returncode == 0 else {}
 
 
 def parse_ps_output(text: str) -> dict[str, str]:

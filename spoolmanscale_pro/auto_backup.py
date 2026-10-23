@@ -1,9 +1,9 @@
-"""The daily backup of the active backend.
+"""The daily backup of every running backend.
 
 A thread in the service looks once a minute whether it is time: the hour
 set on the Backup page has come and today has no automatic backup yet.
-Then it starts an ordinary backup job (reason "auto"); if another job is
-running, the next minute tries again. The day of the last run is kept in
+Then it starts one job that backs up each running backend in turn (reason
+"auto"); if another job is running, the next minute tries again. The day of the last run is kept in
 the settings, so a restart of the service does not make a second one.
 
 due() is pure and tested.
@@ -16,7 +16,7 @@ from datetime import datetime
 
 from . import backups, docker_compose, settings
 from .backends import backend_by_key
-from .jobs import RUNNER
+from .jobs import RUNNER, Progress
 
 log = logging.getLogger(__name__)
 
@@ -32,15 +32,22 @@ def tick(now: datetime) -> bool:
     current = settings.load()
     if not due(now, current["auto_backup"], current["auto_backup_hour"], current["auto_backup_last"]):
         return False
-    backend = backend_by_key(current["active_backend"] or "")
-    if backend is None or (docker_compose.states() or {}).get(backend.key) != "running":
+    running = [backend_by_key(k) for k, s in (docker_compose.states() or {}).items() if s == "running"]
+    running = [b for b in running if b is not None]
+    if not running:
         return False  # nothing runs that could change; tried again tomorrow at the latest
-    job = RUNNER.start("backup", backend.key, lambda progress: backups.create(backend, progress, reason="auto"))
+    job = RUNNER.start("backup", "all", lambda progress: _back_up_all(running, progress))
     if job is None:
         return False
     settings.update({"auto_backup_last": now.date().isoformat()})
-    log.info("Daily backup of %s started", backend.key)
+    log.info("Daily backup of %s started", ", ".join(b.key for b in running))
     return True
+
+
+def _back_up_all(running: list, progress: Progress) -> None:
+    for backend in running:
+        progress.set_result(current=backend.key)
+        backups.create(backend, progress, reason="auto")
 
 
 def _loop() -> None:

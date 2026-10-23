@@ -12,7 +12,8 @@ it.
 
 ## What it does
 
-- **One backend at a time**, started and stopped with Docker. Switching shows
+- **One backend or several**, as far as the Pi allows: a Pi Zero 2 W one at a
+  time, a Pi 3 two after a warning, a Pi 4 or 5 all three. Switching shows
   each step: stop the running backend, start the chosen one, wait until it
   answers, switch the scale. The data of each backend stays where it is.
 - **Takes the scale along.** Pair the scale once by its name or address; every
@@ -42,13 +43,14 @@ it.
 
 ## Requirements
 
-- Raspberry Pi 3B or newer, 64-bit **Raspberry Pi OS Lite** (Bookworm or Trixie)
+- Raspberry Pi Zero 2 W, 3, 4 or 5 with 64-bit **Raspberry Pi OS Lite**
+  (Bookworm or Trixie); a Pi 4 or 5 with 2 GB for several backends at once
 - A SpoolmanScale with firmware 0.7.0 or newer for the switching
 - About 3.5 GB free on the SD card for all three backends (16 GB card or larger)
 
-One backend at a time fits in 1 GB of RAM. Measured right after the first
-start on 64-bit ARM: Spoolman about 100 MB, BamBuddy about 190 MB, FilaMan
-about 370 MB.
+RAM in use, measured on 64-bit ARM: Spoolman about 100 MB, BamBuddy 190 to
+410 MB, FilaMan 370 to 470 MB. A Pi Zero 2 W (512 MB) runs Spoolman well;
+FilaMan and BamBuddy are slow there.
 
 ## Install
 

@@ -18,6 +18,10 @@
 
 x-common: &common
   restart: unless-stopped
+  # On a Pi with little RAM the service sets <KEY>_MEM_LIMIT (hardware.py):
+  # RAM only, swapping stays allowed, so a backend that grows gets slow
+  # instead of freezing the Pi. 0 is no limit.
+  memswap_limit: -1
   environment: &common-env
     TZ: ${TZ:-Etc/UTC}
   logging:
@@ -32,6 +36,7 @@ services:
     <<: *common
     profiles: ["spoolman"]
     image: ghcr.io/donkie/spoolman:${SPOOLMAN_VERSION:-0.27.0}
+    mem_limit: ${SPOOLMAN_MEM_LIMIT:-0}
     ports:
       - "7912:8000"
     volumes:
@@ -41,6 +46,7 @@ services:
     <<: *common
     profiles: ["filaman"]
     image: ghcr.io/fire-devils/filaman-system:${FILAMAN_VERSION:-v1.4.3}
+    mem_limit: ${FILAMAN_MEM_LIMIT:-0}
     environment:
       <<: *common-env
       PORT: "8000"
@@ -59,6 +65,7 @@ services:
     <<: *common
     profiles: ["bambuddy"]
     image: ghcr.io/maziggy/bambuddy:${BAMBUDDY_VERSION:-1.2.5.7}
+    mem_limit: ${BAMBUDDY_MEM_LIMIT:-0}
     ports:
       - "8000:8000"
     volumes:

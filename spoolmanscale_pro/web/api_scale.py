@@ -2,7 +2,7 @@
 
 from flask import Blueprint, request
 
-from .. import backend_secrets, scale_discovery, scale_keys, scale_setup, settings, switcher
+from .. import backend_plan, backend_secrets, scale_discovery, scale_keys, scale_setup, settings, switcher
 from ..backends import backend_by_key
 from ..jobs import RUNNER
 from ..scale_api import ScaleClient, ScaleError, own_names, summarize
@@ -55,6 +55,9 @@ def save_settings():
     clean, refused = settings.clean_update(request.get_json(silent=True) or {})
     if refused:
         return fail("invalid_fields", fields=refused)
+    # A Pi Zero runs one backend at a time, whatever a request asks for.
+    if clean.get("parallel_mode") and backend_plan.situation()["rules"]["parallel"] == "blocked":
+        return fail("parallel_blocked", 409)
     return ok(settings=settings.public_view(settings.update(clean)))
 
 
