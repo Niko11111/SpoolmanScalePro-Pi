@@ -120,11 +120,12 @@
   function render(main) {
     const grid = el("div", { class: "grid" });
     const os = SSPro.views.osCard();
+    const remote = SSPro.views.tailscaleCard();
     main.append(grid, os);
     api("/api/system").then((system) => {
-      grid.replaceChildren(powerCard(system), accountCard(), lookCard());
+      grid.replaceChildren(powerCard(system), accountCard(), lookCard(), remote);
     }).catch((e) => { if (e.code !== "login_required") toast(errorText(e), true); });
-    return os.stop;
+    return () => { os.stop(); remote.stop(); };
   }
 
   // Before the first paint of any page, not only this one.

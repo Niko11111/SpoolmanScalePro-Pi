@@ -34,6 +34,8 @@ it.
   new one does not start.
 - **Raspberry Pi OS updates** from the page: see what would change first,
   then install with the log live.
+- **Remote access** through Tailscale, installed and connected from the
+  page.
 - **Works without internet** once the backends are downloaded, for example as
   a hotspot of its own (see below).
 - English and German.

@@ -19,6 +19,9 @@
 #   os-upgrade-start               run the upgrade as its own systemd unit, log in UPGRADE_LOG
 #   self-update VERSION            install that release of SpoolmanScale Pro from GitHub
 #   self-rollback                  go back to the release installed before
+#   tailscale-install              add Tailscale's Debian repository and install it, logged
+#   tailscale-up | tailscale-down  connect to or leave the tailnet
+#   tailscale-status               print `tailscale status --json`
 set -eu
 
 HOTSPOT_CONNECTION=spoolmanscale-hotspot
@@ -46,6 +49,10 @@ RELEASE_BASE=https://github.com/Niko11111/SpoolmanScalePro-Pi/releases/download
 SELF_UPDATE_UNIT=spoolmanscale-pro-self-update
 SELF_UPDATE_LOG=$UPGRADE_LOG_DIR/self-update.log
 INSTALL_BASE=/opt/spoolmanscale-pro
+
+TAILSCALE_UNIT=spoolmanscale-pro-tailscale
+TAILSCALE_LOG=$UPGRADE_LOG_DIR/tailscale.log
+TAILSCALE_REPO=https://pkgs.tailscale.com/stable/debian
 
 die() { echo "host-helper: $*" >&2; exit 2; }
 
@@ -249,6 +256,46 @@ self_rollback() {
   later /bin/systemctl restart spoolmanscale-pro
 }
 
+# Installing and connecting run as a unit of their own, logged, so the page
+# can show the progress; connecting waits for the owner to log in. $1 is one
+# of the command lines built in this file, never anything from the caller:
+# it runs through eval.
+tailscale_unit() {
+  if systemctl is-active --quiet "$TAILSCALE_UNIT"; then
+    echo "host-helper: Tailscale is busy" >&2
+    exit 5
+  fi
+  systemctl reset-failed "$TAILSCALE_UNIT" >/dev/null 2>&1 || true
+  install -d -m 0755 "$UPGRADE_LOG_DIR"
+  : > "$TAILSCALE_LOG"
+  chmod 0644 "$TAILSCALE_LOG"
+  systemd-run --unit="$TAILSCALE_UNIT" --description="SpoolmanScale Pro: Tailscale" \
+    --setenv=LC_ALL=C --setenv=DEBIAN_FRONTEND=noninteractive \
+    /bin/sh -c '{ eval "$1"; } >> "$0" 2>&1; echo "SSPRO-EXIT:$?" >> "$0"' "$TAILSCALE_LOG" "$1" >/dev/null
+}
+
+tailscale_install() {
+  # Tailscale's own Debian repository rather than its install script: what
+  # runs as root here is apt with a signed repository, nothing downloaded.
+  codename="$(. /etc/os-release && echo "$VERSION_CODENAME")"
+  case "$codename" in bookworm|trixie) ;; *) die "no Tailscale repository for '$codename'" ;; esac
+  tailscale_unit "set -e
+    curl -fsSL $TAILSCALE_REPO/$codename.noarmor.gpg -o /usr/share/keyrings/tailscale-archive-keyring.gpg
+    curl -fsSL $TAILSCALE_REPO/$codename.tailscale-keyring.list -o /etc/apt/sources.list.d/tailscale.list
+    apt-get -o DPkg::Lock::Timeout=300 update
+    apt-get -o DPkg::Lock::Timeout=300 install -y tailscale
+    systemctl enable --now tailscaled"
+}
+
+tailscale_up() {
+  command -v tailscale >/dev/null 2>&1 || die "Tailscale is not installed"
+  # The name goes into a command line: only what set-hostname allows.
+  hostname | grep -Eqx '[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?' || die "host name not usable for Tailscale"
+  # --accept-dns=false: the Pi keeps its own name resolution. It waits up
+  # to ten minutes for the owner to open the login link.
+  tailscale_unit "tailscale up --hostname=$(hostname) --accept-dns=false --timeout=600s"
+}
+
 verb="${1:-}"
 case "$verb" in
   reboot)              later /bin/systemctl reboot ;;
@@ -264,5 +311,9 @@ case "$verb" in
   os-upgrade-start)    os_upgrade_start ;;
   self-update)         self_update "${2:-}" ;;
   self-rollback)       self_rollback ;;
+  tailscale-install)   tailscale_install ;;
+  tailscale-up)        tailscale_up ;;
+  tailscale-down)      tailscale down ;;
+  tailscale-status)    tailscale status --json ;;
   *)                   die "unknown verb '$verb'" ;;
 esac

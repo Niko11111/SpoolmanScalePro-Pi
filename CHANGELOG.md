@@ -3,6 +3,14 @@
 One section per version, newest first. VERSION names the current one;
 scripts/check.sh fails when it has no section here.
 
+## 2.0.0-beta.14
+
+- Remote access with Tailscale from the System page: install it (from
+  Tailscale's signed Debian repository, not its install script), connect
+  with the login link Tailscale gives, disconnect. Installing and
+  connecting show their log live. The Pi keeps its own name resolution, and
+  the page still asks for its login over Tailscale.
+
 ## 2.0.0-beta.13
 
 - A setup assistant opens after the first login: pick a backend (with the

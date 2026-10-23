@@ -5,7 +5,7 @@ import socket
 
 from flask import Blueprint, request
 
-from .. import demo, host_actions, os_update, system_info
+from .. import demo, host_actions, os_update, system_info, tailscale
 from ..jobs import RUNNER
 from ..version import APP_VERSION
 from .responses import fail, ok
@@ -78,3 +78,33 @@ def os_follow():
     if not os_update.upgrade_running():
         return fail("os_upgrade_not_running", 409)
     return _start("os_upgrade", os_update.follow)
+
+
+@bp.get("/tailscale")
+def tailscale_state():
+    return ok(tailscale=tailscale.status())
+
+
+def _tailscale_action(outcome: str):
+    if outcome == "failed":
+        return fail("tailscale_failed", 500)
+    if outcome == "busy":
+        return fail("busy", 409)
+    return ok(202)
+
+
+@bp.post("/tailscale/install")
+def tailscale_install():
+    return _tailscale_action(tailscale.install())
+
+
+@bp.post("/tailscale/connect")
+def tailscale_connect():
+    return _tailscale_action(tailscale.connect())
+
+
+@bp.post("/tailscale/disconnect")
+def tailscale_disconnect():
+    if not tailscale.disconnect():
+        return fail("tailscale_failed", 500)
+    return ok()

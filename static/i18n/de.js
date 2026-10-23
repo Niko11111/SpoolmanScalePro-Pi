@@ -446,5 +446,19 @@ window.SSPRO_I18N.de = {
   "setup.none_backend": "noch keins",
   "setup.none_scale": "noch keine",
   "setup.done_note": "Backups laufen täglich von selbst. Updates für Backends, diese Seite und das System findest du unter Updates und System.",
-  "setup.open": "Einrichtungsassistent"
+  "setup.open": "Einrichtungsassistent",
+
+  "ts.title": "Fernzugriff (Tailscale)",
+  "ts.hint": "Diesen Pi von überall über dein eigenes Tailscale-Netz erreichen, ohne einen Port am Router zu öffnen. Privat kostenlos; du brauchst ein Tailscale-Konto. Diese Seite fragt weiterhin nach ihrer Anmeldung.",
+  "ts.install": "Tailscale installieren",
+  "ts.install_text": "Der Pi richtet Tailscales Paketquelle ein und installiert es, etwa 30 MB. Verbunden wird noch nichts.",
+  "ts.connect": "Verbinden",
+  "ts.login": "Bei Tailscale anmelden",
+  "ts.login_hint": "Öffne den Link, melde dich bei Tailscale an und bestätige diesen Pi. Die Seite merkt von selbst, wenn er verbunden ist.",
+  "ts.disconnect": "Trennen",
+  "ts.tailnet": "Tailnet",
+  "ts.name": "Name",
+  "ts.address": "Adresse",
+  "ts.failed": "Das hat nicht geklappt; das Log unten zeigt, warum.",
+  "err.tailscale_failed": "Tailscale ließ sich nicht starten. Siehe Log des Pi."
 };
