@@ -8,7 +8,9 @@ Routes of the firmware this uses, nothing else:
   POST /api/host           body "host:port": the server address of the
                            backend the scale uses right now; then tested
   GET  /api/host           the result of that test
-                           (all three in web/pages/page_backend.cpp)
+  POST /api/filaman/register, /api/filaman/key, /api/bambuddy/key
+                           the scale's credentials for FilaMan and BamBuddy
+                           (all in web/pages/page_backend.cpp)
 
 The scale keeps one address per backend, so switching the mode is all it
 takes once each address has been entered on the scale. The second route sits
@@ -100,6 +102,23 @@ class ScaleClient:
         """Sets the server address of the backend the scale uses right now.
         The scale then tests it; {"queued": true} means a test runs."""
         return self._json("POST", "/api/host", host.encode())
+
+    def _text(self, path: str, body: str) -> str:
+        return self._request("POST", path, body.encode()).decode("utf-8", "replace").strip()
+
+    def filaman_register(self, code: str) -> None:
+        """Lets the scale register itself at its FilaMan with a device code.
+        The firmware answers 200 either way; a failure is a text starting
+        with "HTTP <code>" (web/pages/page_backend.cpp)."""
+        answer = self._text("/api/filaman/register", code)
+        if answer.startswith("HTTP "):
+            raise ScaleError("scale_register_failed", answer)
+
+    def set_filaman_key(self, key: str) -> None:
+        self._text("/api/filaman/key", key)
+
+    def set_bambuddy_key(self, key: str) -> None:
+        self._text("/api/bambuddy/key", key)
 
     def host_test(self) -> dict:
         """{"state": "running"}, {"state": "idle"} or {"state": "done",

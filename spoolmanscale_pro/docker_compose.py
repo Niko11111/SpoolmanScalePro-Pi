@@ -18,7 +18,7 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-from . import settings
+from . import backend_secrets, settings
 from .backends import BACKEND_KEYS, BACKENDS
 from .paths import COMPOSE_FILE, HOST_TIMEZONE_FILE
 
@@ -41,9 +41,11 @@ class CommandResult:
 
 
 def _environment() -> dict:
-    """The service's environment, the host time zone for ${TZ}, and the
-    backend versions chosen on the Updates page (SPOOLMAN_VERSION ...)."""
+    """The service's environment, the host time zone for ${TZ}, the
+    backends' logins (backend_secrets.py) and the versions chosen on the
+    Updates page (SPOOLMAN_VERSION ...)."""
     env = dict(os.environ)
+    env.update(backend_secrets.compose_environment())
     chosen = settings.load()["backend_versions"]
     for backend in BACKENDS:
         tag = chosen.get(backend.key)

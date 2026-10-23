@@ -3,6 +3,20 @@
 One section per version, newest first. VERSION names the current one;
 scripts/check.sh fails when it has no section here.
 
+## 2.0.0-beta.8
+
+- FilaMan gets an admin login when this Pi starts it. FilaMan creates its
+  first admin only from ADMIN_EMAIL and ADMIN_PASSWORD and has no page to
+  register one, so until now a FilaMan started here had no user at all.
+  The login is made once with a random password, kept in the data
+  directory (0600) and shown under "Login" on FilaMan's tile.
+- The Scale page registers the scale in FilaMan from here: the Pi logs in
+  to FilaMan, makes an API key and a device, and the scale registers with
+  the device code and gets the key. With a FilaMan password changed by
+  hand, the page asks for it once and does not keep it.
+- A BamBuddy API key (only needed when BamBuddy's login is on) is pasted
+  on the Scale page and sent to the scale, instead of typed on its screen.
+
 ## 2.0.0-beta.7
 
 - The Scale page finds SpoolmanScales on the network by mDNS (the scale

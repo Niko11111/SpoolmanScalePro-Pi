@@ -73,21 +73,51 @@
           el("span", { class: "pill " + (r.ok ? "ok" : "off") }, t(r.ok ? "setup.reached" : "setup.stored"))))));
   }
 
-  function setupCard(piName, labelOf, paired) {
+  // Step 3: FilaMan registration and BamBuddy key, from here instead of
+  // on the scale's screen (scale_keys.py).
+  function keysPart(filamanActive, paired, follow) {
+    const email = el("input", { type: "text", autocomplete: "off", placeholder: t("keys.email") });
+    const password = el("input", { type: "password", autocomplete: "off", placeholder: t("keys.password") });
+    const register = el("button", { type: "button", disabled: !(paired && filamanActive) }, t("keys.filaman_run"));
+    register.addEventListener("click", () => busy(register, async () => {
+      const body = email.value ? { email: email.value, password: password.value } : {};
+      await api("/api/scale/filaman", { method: "POST", body: body });
+      password.value = "";
+      follow();
+    }));
+    const key = el("input", { type: "password", autocomplete: "off", placeholder: t("keys.bambuddy_key") });
+    const send = el("button", { type: "button", class: "quiet", disabled: !paired }, t("keys.bambuddy_send"));
+    send.addEventListener("click", () => busy(send, async () => {
+      await api("/api/scale/bambuddy-key", { method: "POST", body: { key: key.value } });
+      key.value = "";
+      toast(t("keys.bambuddy_sent"));
+    }));
+    return [el("p", { class: "hint", text: t(filamanActive ? "keys.filaman_hint" : "keys.filaman_inactive") }),
+      el("details", { class: "more" }, el("summary", { text: t("keys.other_login") }),
+        el("p", { class: "hint", text: t("keys.other_login_hint") }), el("div", { class: "inrow" }, email, password)),
+      el("div", { class: "btnrow" }, register),
+      el("p", { class: "hint", text: t("keys.bambuddy_hint") }),
+      el("div", { class: "inrow" }, key, send)];
+  }
+
+  function setupCard(piName, labelOf, paired, filamanActive) {
     const jobSlot = el("div", { class: "wrap" });
     const resultSlot = el("div", { class: "wrap" });
     const useIp = el("input", { type: "checkbox" });
     const run = el("button", { type: "button", disabled: !paired }, t("setup.run"));
     let unfollow = null;
+    const follow = (onEnd) => {
+      if (unfollow) unfollow();
+      unfollow = views.followJob(jobSlot, () => t("setup.the_scale"), onEnd || null, false);
+    };
     run.addEventListener("click", async () => {
       if (!(await ask(t("setup.run"), t("setup.run_text"), t("setup.run")))) return;
       await busy(run, async () => {
         resultSlot.replaceChildren();
         await api("/api/scale/setup", { method: "POST", body: { use_ip: useIp.checked } });
-        if (unfollow) unfollow();
-        unfollow = views.followJob(jobSlot, () => t("setup.the_scale"), (job) => {
+        follow((job) => {
           if (job.ok) resultSlot.replaceChildren(addressResults(job.result.addresses, labelOf), el("p", { class: "note", text: t("setup.result_note") }));
-        }, false);
+        });
       });
     });
     return el("section", { class: "card" },
@@ -96,8 +126,9 @@
         el("li", { text: t("setup.step_share") }),
         el("li", {}, t("setup.step_auto", { name: piName }),
           el("label", { class: "check" }, el("span", { text: t("setup.use_ip") }), el("span", { class: "switch" }, useIp, el("i", {}))),
-          el("div", { class: "btnrow" }, run), jobSlot, resultSlot),
-        el("li", { text: t("setup.step_keys") })));
+          el("div", { class: "btnrow" }, run)),
+        el("li", {}, t("setup.step_keys"), keysPart(filamanActive, paired, () => follow()))),
+      jobSlot, resultSlot);
   }
 
   function render(main) {
@@ -109,7 +140,8 @@
           api("/api/settings"), api("/api/system"), api("/api/backends")]);
         const piName = system.hostname.replace(/\.local$/, "") + ".local";
         grid.replaceChildren(pairingCard(settings.settings, draw),
-          setupCard(piName, views.labelsFrom(backends.backends), !!settings.settings.scale_address));
+          setupCard(piName, views.labelsFrom(backends.backends), !!settings.settings.scale_address,
+            backends.active === "filaman"));
       } catch (e) {
         if (e.code !== "login_required") toast(errorText(e), true);
       }

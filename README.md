@@ -63,15 +63,16 @@ not touched.
 
 ## Pair the scale
 
-On the **Scale** tab, enter the scale's name or address. On the scale itself,
-once:
+1. On the scale, turn on *Settings > System > Web interface > Settings*.
+   This is the one step on the device: it lets the Pi configure the scale.
+2. On the **Scale** tab, search the network and pick the scale (or type its
+   address), then press *Enter this Pi on the scale*: the Pi sets itself as
+   the server of all three backends.
+3. With FilaMan active, *Register the scale in FilaMan*. A BamBuddy API key,
+   only needed when BamBuddy's login is on, is pasted there as well.
 
-1. Turn on *Settings > System > Web interface > Settings*. This lets the Pi
-   switch the scale's backend.
-2. Choose each backend once and enter the Pi as its server, with the port
-   from the Scale tab (Spoolman 7912, FilaMan 8002, BamBuddy 8000).
-3. Register the scale in FilaMan, and enter a BamBuddy API key on the scale,
-   while that backend is active.
+FilaMan's admin login, which the Pi creates when it first starts FilaMan,
+is under *Login* on FilaMan's tile.
 
 ## Network
 

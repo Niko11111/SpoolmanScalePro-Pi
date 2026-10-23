@@ -238,7 +238,9 @@ button.big { font-size: 16px; padding: 14px 20px; width: 100%; margin-top: 16px;
   content: counter(n); width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
   background: var(--accent-dim); color: var(--accent); font-size: 13px; font-weight: 600;
 }
-.numbered > li > .rows { grid-column: 2; margin-top: 8px; }
+/* Everything a step holds besides its number goes in the text column. */
+.numbered > li > * { grid-column: 2; }
+.numbered > li > .rows { margin-top: 8px; }
 
 /* ---- release notes (view_notes.js) ---- */
 details.release { border-top: 1px solid var(--line-soft); padding: 10px 0; }

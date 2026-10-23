@@ -2,7 +2,7 @@
 
 from flask import Blueprint, request
 
-from .. import scale_discovery, scale_setup, settings, switcher
+from .. import backend_secrets, scale_discovery, scale_keys, scale_setup, settings, switcher
 from ..backends import backend_by_key
 from ..jobs import RUNNER
 from ..scale_api import ScaleClient, ScaleError, own_names, summarize
@@ -72,3 +72,39 @@ def setup_scale():
     if job is None:
         return fail("busy", 409)
     return ok(202, job=job)
+
+
+@bp.post("/scale/filaman")
+def connect_filaman():
+    """Registers the scale at FilaMan and gives it an API key. A login may
+    come with the request when the stored one no longer works; it is used
+    once and not kept."""
+    body = request.get_json(silent=True) or {}
+    email, password = body.get("email") or None, body.get("password") or None
+    if (email is None) != (password is None):
+        return fail("filaman_login_incomplete")
+    job = RUNNER.start("scale_filaman", "filaman",
+                       lambda progress: scale_keys.connect_filaman(email, password, progress))
+    if job is None:
+        return fail("busy", 409)
+    return ok(202, job=job)
+
+
+@bp.post("/scale/bambuddy-key")
+def bambuddy_key():
+    key = (request.get_json(silent=True) or {}).get("key", "")
+    if not isinstance(key, str) or (key and not 8 <= len(key) <= 200):
+        return fail("bambuddy_key_invalid")
+    if not settings.load()["scale_address"]:
+        return fail("scale_not_paired", 409)
+    try:
+        scale_keys.send_bambuddy_key(key.strip())
+    except ScaleError as e:
+        return fail(e.code, 502)
+    return ok()
+
+
+@bp.get("/backends/filaman/login")
+def filaman_login():
+    """The FilaMan admin login this Pi made, to show its owner once asked."""
+    return ok(login=backend_secrets.filaman_admin())

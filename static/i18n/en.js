@@ -112,7 +112,7 @@ window.SSPRO_I18N.en = {
 
   "setup.title": "Set up once on the scale",
   "setup.step_share": "On the scale, turn on Settings > System > Web interface > Settings. This lets the Pi switch the scale's backend.",
-  "setup.step_keys": "FilaMan and BamBuddy also need a key: register the scale in FilaMan, and enter an API key from BamBuddy's settings on the scale. Do it while that backend is active here.",
+  "setup.step_keys": "Credentials for FilaMan and BamBuddy, sent from here:",
 
   "look.title": "Display",
   "look.language": "Language",
@@ -370,5 +370,32 @@ window.SSPRO_I18N.en = {
   "step.scale_address": "Entering the address",
   "err.discovery_unavailable": "Searching the network is only possible on the Pi (avahi).",
   "err.scale_mode_timeout": "The scale did not switch backends within 30 seconds. Is it busy, or showing a dialog?",
-  "err.scale_not_paired": "Pair a scale first."
+  "err.scale_not_paired": "Pair a scale first.",
+
+  "tile.login": "Login",
+  "login.title": "FilaMan login",
+  "login.email": "E-mail",
+  "login.password": "Password",
+  "login.note": "This Pi created FilaMan's admin with this login. Log in to FilaMan with it; you can change the password there. The Pi then asks for the new one when it registers the scale.",
+  "keys.filaman_hint": "FilaMan: the Pi registers the scale in FilaMan and gives it an API key.",
+  "keys.filaman_inactive": "FilaMan: activate FilaMan on the Overview first; the scale registers itself at the FilaMan that runs.",
+  "keys.filaman_run": "Register the scale in FilaMan",
+  "keys.other_login": "Changed the FilaMan password?",
+  "keys.other_login_hint": "Then enter FilaMan's admin login here. It is used once and not stored.",
+  "keys.email": "FilaMan e-mail",
+  "keys.password": "FilaMan password",
+  "keys.bambuddy_hint": "BamBuddy: only if its login is switched on. Create an API key in BamBuddy's settings and paste it here.",
+  "keys.bambuddy_key": "BamBuddy API key",
+  "keys.bambuddy_send": "Send to the scale",
+  "keys.bambuddy_sent": "API key sent to the scale.",
+  "job.title_scale_filaman": "Registering the scale in FilaMan",
+  "step.filaman_login": "Logging in to FilaMan",
+  "step.scale_register": "Registering the scale",
+  "err.filaman_not_active": "FilaMan has to be the active backend for this.",
+  "err.filaman_login_failed": "FilaMan refused the login. If you changed the password there, enter the new one.",
+  "err.filaman_unreachable": "FilaMan does not answer.",
+  "err.filaman_refused": "FilaMan refused the request. See the Pi's log.",
+  "err.filaman_login_incomplete": "Enter e-mail and password, or neither.",
+  "err.scale_register_failed": "The scale could not register at FilaMan. Is FilaMan's address on the scale right? Run step 2 first.",
+  "err.bambuddy_key_invalid": "That does not look like an API key."
 };

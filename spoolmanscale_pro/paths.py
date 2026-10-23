@@ -19,6 +19,8 @@ STATIC_DIR = APP_ROOT / "static"
 
 SETTINGS_FILE = DATA_DIR / "settings.json"
 AUTH_FILE = DATA_DIR / "auth.json"
+# Logins this Pi gives the backends it starts (backend_secrets.py).
+SECRETS_FILE = DATA_DIR / "backend-secrets.json"
 SESSION_KEY_FILE = DATA_DIR / "session.key"
 BACKUP_DIR = DATA_DIR / "backups"
 DEMO_SNAPSHOT_DIR = DATA_DIR / "demo-snapshot"

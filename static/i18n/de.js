@@ -110,7 +110,7 @@ window.SSPRO_I18N.de = {
 
   "setup.title": "Einmal an der Waage einrichten",
   "setup.step_share": "Schalte an der Waage Einstellungen > System > Weboberfläche > Einstellungen ein. Damit darf der Pi das Backend der Waage umstellen.",
-  "setup.step_keys": "FilaMan und BamBuddy brauchen zusätzlich einen Schlüssel: die Waage in FilaMan registrieren, und für BamBuddy einen API-Key aus dessen Einstellungen an der Waage eintragen. Das jeweils, während dieses Backend hier aktiv ist.",
+  "setup.step_keys": "Zugänge für FilaMan und BamBuddy, von hier aus übertragen:",
 
   "look.title": "Anzeige",
   "look.language": "Sprache",
@@ -368,5 +368,32 @@ window.SSPRO_I18N.de = {
   "step.scale_address": "Adresse eintragen",
   "err.discovery_unavailable": "Die Suche im Netz geht nur auf dem Pi (avahi).",
   "err.scale_mode_timeout": "Die Waage hat nicht innerhalb von 30 Sekunden umgeschaltet. Ist sie beschäftigt oder zeigt sie einen Dialog?",
-  "err.scale_not_paired": "Koppel zuerst eine Waage."
+  "err.scale_not_paired": "Koppel zuerst eine Waage.",
+
+  "tile.login": "Zugang",
+  "login.title": "FilaMan-Zugang",
+  "login.email": "E-Mail",
+  "login.password": "Passwort",
+  "login.note": "Mit diesem Zugang hat der Pi FilaMans Admin angelegt. Melde dich damit in FilaMan an; das Passwort kannst du dort ändern. Der Pi fragt dann beim Registrieren der Waage nach dem neuen.",
+  "keys.filaman_hint": "FilaMan: Der Pi registriert die Waage in FilaMan und gibt ihr einen API-Key.",
+  "keys.filaman_inactive": "FilaMan: Erst FilaMan in der Übersicht aktivieren; die Waage registriert sich bei dem FilaMan, das läuft.",
+  "keys.filaman_run": "Waage in FilaMan registrieren",
+  "keys.other_login": "FilaMan-Passwort geändert?",
+  "keys.other_login_hint": "Dann hier FilaMans Admin-Zugang eingeben. Er wird einmal benutzt und nicht gespeichert.",
+  "keys.email": "FilaMan-E-Mail",
+  "keys.password": "FilaMan-Passwort",
+  "keys.bambuddy_hint": "BamBuddy: nur nötig, wenn dort die Anmeldung eingeschaltet ist. In BamBuddys Einstellungen einen API-Key anlegen und hier einfügen.",
+  "keys.bambuddy_key": "BamBuddy-API-Key",
+  "keys.bambuddy_send": "An die Waage senden",
+  "keys.bambuddy_sent": "API-Key an die Waage gesendet.",
+  "job.title_scale_filaman": "Waage wird in FilaMan registriert",
+  "step.filaman_login": "Bei FilaMan anmelden",
+  "step.scale_register": "Waage registrieren",
+  "err.filaman_not_active": "Dafür muss FilaMan das aktive Backend sein.",
+  "err.filaman_login_failed": "FilaMan hat die Anmeldung abgelehnt. Wenn du das Passwort dort geändert hast, gib das neue ein.",
+  "err.filaman_unreachable": "FilaMan antwortet nicht.",
+  "err.filaman_refused": "FilaMan hat die Anfrage abgelehnt. Siehe Log des Pi.",
+  "err.filaman_login_incomplete": "Gib E-Mail und Passwort ein, oder keins von beiden.",
+  "err.scale_register_failed": "Die Waage konnte sich nicht bei FilaMan registrieren. Stimmt FilaMans Adresse an der Waage? Erst Schritt 2 ausführen.",
+  "err.bambuddy_key_invalid": "Das sieht nicht nach einem API-Key aus."
 };

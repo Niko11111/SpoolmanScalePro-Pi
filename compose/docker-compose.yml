@@ -45,6 +45,11 @@ services:
       <<: *common-env
       PORT: "8000"
       DEBUG: "false"
+      # FilaMan's first admin; it has no page to create one. Made and kept by
+      # spoolmanscale_pro/backend_secrets.py, never changed afterwards.
+      ADMIN_EMAIL: ${FILAMAN_ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${FILAMAN_ADMIN_PASSWORD:-}
+      ADMIN_DISPLAY_NAME: "Admin"
     ports:
       - "8002:8000"
     volumes:

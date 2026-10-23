@@ -37,6 +37,29 @@
     });
   }
 
+  // FilaMan's admin login, made by this Pi (backend_secrets.py): shown in a
+  // dialog on request, never in the page itself.
+  async function showFilamanLogin() {
+    let login;
+    try {
+      login = (await api("/api/backends/filaman/login")).login;
+    } catch (e) {
+      toast(SSPro.errorText(e), true);
+      return;
+    }
+    const dialog = el("dialog", {});
+    const close = () => { dialog.close(); dialog.remove(); };
+    dialog.append(el("h3", { text: t("login.title") }),
+      el("div", { class: "rows" },
+        el("div", { class: "row" }, el("span", { class: "k", text: t("login.email") }), el("span", { class: "v mono", text: login.email })),
+        el("div", { class: "row" }, el("span", { class: "k", text: t("login.password") }), el("span", { class: "v mono", text: login.password }))),
+      el("p", { class: "note", text: t("login.note") }),
+      el("div", { class: "btnrow" }, el("button", { type: "button", onclick: close }, t("common.close"))));
+    dialog.addEventListener("cancel", (e) => { e.preventDefault(); close(); });
+    document.body.append(dialog);
+    dialog.showModal();
+  }
+
   function tile(backend, all, jobRunning, onChange, onLog) {
     const actions = el("div", { class: "tile-actions" });
     if (backend.active && backend.ready) {
@@ -46,6 +69,9 @@
       const button = el("button", { type: "button", disabled: jobRunning }, t("tile.activate"));
       button.addEventListener("click", () => activate(button, backend, all, onChange));
       actions.append(button);
+    }
+    if (backend.key === "filaman" && backend.state !== "absent") {
+      actions.append(el("button", { class: "quiet", type: "button", onclick: showFilamanLogin }, t("tile.login")));
     }
     if (backend.state !== "absent") {
       actions.append(el("button", { class: "quiet", type: "button", onclick: () => onLog(backend) }, t("tile.log")));
