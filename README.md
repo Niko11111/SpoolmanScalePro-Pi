@@ -19,6 +19,8 @@ it.
   switch then sets the scale to the same backend through the scale's own web
   interface. The page shows whether the scale reached it and whether it
   points at this Pi.
+- **One address for everything:** the scale's own web interface shows on
+  the Pi's page too, passed through by the Pi on port 8081.
 - **The Pi at a glance:** RAM, compressed swap, SD card, CPU temperature,
   uptime and clock. A Pi has no battery-backed clock; when it is off, the
   page sets it from the browser's time.

@@ -24,6 +24,8 @@ MAX_UPLOAD_BYTES = 512 * 1024 * 1024
 CONTENT_SECURITY_POLICY = (
     "default-src 'self'; img-src 'self' data:; style-src 'self'; "
     "script-src 'self'; connect-src 'self'; frame-ancestors 'self'; "
+    # The scale's interface, served by scale_proxy.py on its own port.
+    "frame-src 'self' http://*:8081; "
     "base-uri 'none'; form-action 'self'"
 )
 

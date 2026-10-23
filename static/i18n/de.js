@@ -6,7 +6,7 @@ window.SSPRO_I18N.de = {
   "app.footer": "SpoolmanScale Pro ist Open Source unter GPL-3.0.",
 
   "nav.overview": "Übersicht",
-  "nav.scale": "Waage",
+  "nav.scale": "Kopplung",
   "nav.system": "System",
   "nav.logout": "Abmelden",
 
@@ -395,5 +395,11 @@ window.SSPRO_I18N.de = {
   "err.filaman_refused": "FilaMan hat die Anfrage abgelehnt. Siehe Log des Pi.",
   "err.filaman_login_incomplete": "Gib E-Mail und Passwort ein, oder keins von beiden.",
   "err.scale_register_failed": "Die Waage konnte sich nicht bei FilaMan registrieren. Stimmt FilaMans Adresse an der Waage? Erst Schritt 2 ausführen.",
-  "err.bambuddy_key_invalid": "Das sieht nicht nach einem API-Key aus."
+  "err.bambuddy_key_invalid": "Das sieht nicht nach einem API-Key aus.",
+
+  "nav.scaleview": "Waage",
+  "view.not_paired": "Noch keine Waage gekoppelt. Erst koppeln; dann erscheint hier ihre eigene Weboberfläche.",
+  "view.pair": "Waage koppeln",
+  "view.new_tab": "In neuem Tab öffnen",
+  "view.hint": "Die eigene Weboberfläche der Waage, über diesen Pi. Dort sind Einstellungen, Tags, Logs und Firmware; was sie zeigt, entscheiden die Freigaben an der Waage."
 };

@@ -8,7 +8,7 @@ window.SSPRO_I18N.en = {
   "app.footer": "SpoolmanScale Pro is open source under GPL-3.0.",
 
   "nav.overview": "Overview",
-  "nav.scale": "Scale",
+  "nav.scale": "Pairing",
   "nav.system": "System",
   "nav.logout": "Log out",
 
@@ -397,5 +397,11 @@ window.SSPRO_I18N.en = {
   "err.filaman_refused": "FilaMan refused the request. See the Pi's log.",
   "err.filaman_login_incomplete": "Enter e-mail and password, or neither.",
   "err.scale_register_failed": "The scale could not register at FilaMan. Is FilaMan's address on the scale right? Run step 2 first.",
-  "err.bambuddy_key_invalid": "That does not look like an API key."
+  "err.bambuddy_key_invalid": "That does not look like an API key.",
+
+  "nav.scaleview": "Scale",
+  "view.not_paired": "No scale paired yet. Pair one first; its own web interface then shows here.",
+  "view.pair": "Pair a scale",
+  "view.new_tab": "Open in a new tab",
+  "view.hint": "The scale's own web interface, through this Pi. Its settings, tags, logs and firmware are there; the scale's Settings share decides what it shows."
 };

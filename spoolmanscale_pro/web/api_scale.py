@@ -6,6 +6,7 @@ from .. import backend_secrets, scale_discovery, scale_keys, scale_setup, settin
 from ..backends import backend_by_key
 from ..jobs import RUNNER
 from ..scale_api import ScaleClient, ScaleError, own_names, summarize
+from ..ports import PROXY_PORT
 from .responses import fail, ok
 
 bp = Blueprint("api_scale", __name__, url_prefix="/api")
@@ -15,13 +16,15 @@ def _scale_view() -> dict:
     current = settings.load()
     address = current["scale_address"]
     if not address:
-        return {"paired": False}
+        return {"paired": False, "proxy_port": PROXY_PORT}
     try:
         status = ScaleClient(address, current["scale_password"]).status()
     except ScaleError as e:
-        return {"paired": True, "address": address, "reachable": False, "error": e.code}
+        return {"paired": True, "address": address, "reachable": False, "error": e.code,
+                "proxy_port": PROXY_PORT}
     active = backend_by_key(current["active_backend"] or "")
-    return {"paired": True, "address": address, **summarize(status, active, own_names(address))}
+    return {"paired": True, "address": address, "proxy_port": PROXY_PORT,
+            **summarize(status, active, own_names(address))}
 
 
 @bp.get("/scale")

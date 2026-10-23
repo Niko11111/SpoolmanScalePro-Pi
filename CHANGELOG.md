@@ -3,6 +3,16 @@
 One section per version, newest first. VERSION names the current one;
 scripts/check.sh fails when it has no section here.
 
+## 2.0.0-beta.9
+
+- The paired scale's own web interface shows on the new Scale tab, served
+  by this Pi on port 8081, so one address is enough for everything. The
+  former Scale tab is now called Pairing.
+- The proxy lets only visitors logged in to this Pi through, refuses
+  changing requests from other pages, sends the scale its own address as
+  Host and its web password if one is stored. The scale's protection
+  against foreign frames stays, with this Pi's page as the one allowed.
+
 ## 2.0.0-beta.8
 
 - FilaMan gets an admin login when this Pi starts it. FilaMan creates its

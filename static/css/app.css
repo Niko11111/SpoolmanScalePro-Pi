@@ -256,6 +256,12 @@ details.release > summary { cursor: pointer; font-size: 14px; color: var(--ink-2
 .scrollbox { max-height: 320px; overflow: auto; padding-right: 6px; border-top: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft); }
 .scrollbox .row { font-size: 12.5px; padding: 6px 0; }
 
+/* ---- the scale's interface in a frame (page_scaleview.js) ---- */
+.scaleframe {
+  width: 100%; height: max(600px, calc(100vh - 260px)); border: 1px solid var(--line-soft);
+  border-radius: var(--radius); background: var(--surface); display: block;
+}
+
 /* ---- log viewer ---- */
 .log {
   font-family: var(--mono); font-size: 11.5px; line-height: 1.5; color: var(--ink-2);
