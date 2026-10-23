@@ -95,14 +95,16 @@ def _prune(key: str) -> None:
         log.info("Old backup removed: %s", old.name)
 
 
-def create(backend: Backend, progress: Progress) -> None:
+def create(backend: Backend, progress: Progress, reason: str | None = None) -> str:
+    """Makes a backup and returns its name. reason: see archive_format.REASONS."""
     _check_space(BACKUP_DIR)
-    dest = BACKUP_DIR / archive_format.backup_name(backend.key, datetime.now())
+    dest = BACKUP_DIR / archive_format.backup_name(backend.key, datetime.now(), reason)
     with backend_stopped(backend, progress):
         progress.step("archiving")
         write_backup(backend, dest)
     _prune(backend.key)
     progress.set_result(name=dest.name)
+    return dest.name
 
 
 def check_bundle(backend: Backend, bundle: Path, work_dir: Path) -> tuple[Path, dict]:
@@ -134,7 +136,7 @@ def _replace_data(backend: Backend, data: Path, work: Path, progress: Progress,
                   keep_safety: bool) -> None:
     """With the backend stopped: optionally save what is there, then put the
     new data in, and the saved ones back if that fails."""
-    safety = BACKUP_DIR / archive_format.backup_name(backend.key, datetime.now(), True)
+    safety = BACKUP_DIR / archive_format.backup_name(backend.key, datetime.now(), "before-restore")
     if keep_safety:
         progress.step("saving_current")
         write_backup(backend, safety)

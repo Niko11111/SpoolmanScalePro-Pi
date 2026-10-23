@@ -14,7 +14,7 @@
   "use strict";
   const { t, el, $, api, errorText } = SSPro;
 
-  const PAGE_ORDER = ["overview", "demo", "backup", "scale", "network", "system"];
+  const PAGE_ORDER = ["overview", "demo", "backup", "updates", "scale", "network", "system"];
   const DEFAULT_PAGE = "overview";
   let cleanup = null;
 

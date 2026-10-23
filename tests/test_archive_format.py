@@ -30,8 +30,9 @@ def test_name_round_trip():
     name = af.backup_name("filaman", when)
     assert name == "filaman_2026-11-17_093005.tar"
     assert af.parse_backup_name(name) == {"backend": "filaman", "created": "2026-11-17T09:30:05",
-                                          "before_restore": False}
-    assert af.parse_backup_name(af.backup_name("spoolman", when, True))["before_restore"]
+                                          "reason": ""}
+    assert af.parse_backup_name(af.backup_name("spoolman", when, "before-update"))["reason"] == "before-update"
+    assert af.parse_backup_name("spoolman_2026-11-17_093005_whatever.tar") is None
 
 
 def test_names_from_outside_are_refused():

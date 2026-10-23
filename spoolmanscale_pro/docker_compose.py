@@ -18,7 +18,8 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-from .backends import BACKEND_KEYS
+from . import settings
+from .backends import BACKEND_KEYS, BACKENDS
 from .paths import COMPOSE_FILE, HOST_TIMEZONE_FILE
 
 log = logging.getLogger(__name__)
@@ -40,8 +41,14 @@ class CommandResult:
 
 
 def _environment() -> dict:
-    """The service's environment plus the host time zone for ${TZ}."""
+    """The service's environment, the host time zone for ${TZ}, and the
+    backend versions chosen on the Updates page (SPOOLMAN_VERSION ...)."""
     env = dict(os.environ)
+    chosen = settings.load()["backend_versions"]
+    for backend in BACKENDS:
+        tag = chosen.get(backend.key)
+        if isinstance(tag, str) and tag:
+            env[backend.version_env] = tag
     try:
         tz = HOST_TIMEZONE_FILE.read_text(encoding="utf-8").strip()
         if tz:

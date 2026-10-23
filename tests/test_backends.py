@@ -49,3 +49,11 @@ def test_ports_are_unique_and_published_in_compose():
 def test_backend_by_key():
     assert backend_by_key("filaman").label == "FilaMan"
     assert backend_by_key("../etc") is None
+
+
+def test_compose_pulls_from_the_registry_image_with_its_version_variable():
+    from spoolmanscale_pro.backend_updates import compose_default_version
+    text = COMPOSE_FILE.read_text()
+    for b in BACKENDS:
+        assert f"image: ghcr.io/{b.image}:${{{b.version_env}:-" in text, b.key
+        assert compose_default_version(text, b) is not None, b.key

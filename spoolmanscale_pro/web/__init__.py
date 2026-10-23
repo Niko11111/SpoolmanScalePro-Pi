@@ -11,11 +11,11 @@ from flask import Flask, request
 
 from .. import auth, paths
 from . import (access, api_auth, api_backends, api_backup, api_demo, api_network, api_scale,
-               api_system, pages)
+               api_system, api_updates, pages)
 from .responses import fail
 
 BLUEPRINTS = (pages, api_auth, api_backends, api_backup, api_demo, api_network, api_scale,
-              api_system)
+              api_system, api_updates)
 
 SESSION_DAYS = 30
 # The largest request body accepted. A backup upload is the only big one.

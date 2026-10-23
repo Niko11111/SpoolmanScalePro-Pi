@@ -5,8 +5,11 @@
 # "spoolmanscale-pro", so the named volumes below come out as
 # spoolmanscale-pro_<name> and survive any update of this file.
 #
-# Images are pinned to a version. Moving one is a change of its own, tested
-# on the Pi, with a line in CHANGELOG.md.
+# Each image is pinned to the version this release was tested with. The
+# owner can pick another on the Updates page; the service then sets the
+# variable (SPOOLMAN_VERSION and so on, see backends.py) and the default
+# after ":-" no longer applies. Moving a default is a change of its own,
+# tested on the Pi, with a line in CHANGELOG.md.
 #
 # Ports are published to the LAN on purpose: the scale and the browser talk
 # to the backend directly. BamBuddy stays on the bridge network like the
@@ -28,7 +31,7 @@ services:
   spoolman:
     <<: *common
     profiles: ["spoolman"]
-    image: ghcr.io/donkie/spoolman:0.27.0
+    image: ghcr.io/donkie/spoolman:${SPOOLMAN_VERSION:-0.27.0}
     ports:
       - "7912:8000"
     volumes:
@@ -37,7 +40,7 @@ services:
   filaman:
     <<: *common
     profiles: ["filaman"]
-    image: ghcr.io/fire-devils/filaman-system:v1.4.3
+    image: ghcr.io/fire-devils/filaman-system:${FILAMAN_VERSION:-v1.4.3}
     environment:
       <<: *common-env
       PORT: "8000"
@@ -50,7 +53,7 @@ services:
   bambuddy:
     <<: *common
     profiles: ["bambuddy"]
-    image: ghcr.io/maziggy/bambuddy:1.2.5.7
+    image: ghcr.io/maziggy/bambuddy:${BAMBUDDY_VERSION:-1.2.5.7}
     ports:
       - "8000:8000"
     volumes:

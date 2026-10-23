@@ -35,3 +35,12 @@ def test_public_view_hides_the_scale_password():
 def test_update_round_trip():
     settings.update({"scale_address": "scale.local"})
     assert settings.load()["scale_address"] == "scale.local"
+
+
+def test_include_prereleases_must_be_a_real_boolean():
+    assert settings.clean_update({"include_prereleases": True})[0] == {"include_prereleases": True}
+    assert settings.clean_update({"include_prereleases": "yes"})[1] == ["include_prereleases"]
+
+
+def test_backend_versions_cannot_be_set_through_the_settings_route():
+    assert settings.clean_update({"backend_versions": {"spoolman": "latest"}}) == ({}, [])

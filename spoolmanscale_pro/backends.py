@@ -24,6 +24,13 @@ class Backend:
     # state. A backup archives exactly this, a restore replaces it.
     data_dir: str
     homepage: str
+    # Where updates are looked for. image is the repository on ghcr.io, the
+    # same one compose/docker-compose.yml pulls from (tests/test_backends.py
+    # holds the two together); github the project whose releases carry the
+    # change notes; version_env the compose variable that picks the version.
+    image: str
+    github: str
+    version_env: str
     # Top-level entries of data_dir a backup leaves out and a restore leaves
     # alone: the backend's own backups, which would otherwise ride along in
     # every archive and make each one larger than the last.
@@ -40,6 +47,9 @@ BACKENDS = (
         health_path="/api/v1/health",
         data_dir="/home/app/.local/share/spoolman",
         homepage="https://github.com/Donkie/Spoolman",
+        image="donkie/spoolman",
+        github="Donkie/Spoolman",
+        version_env="SPOOLMAN_VERSION",
         archive_skip=("backups",),
     ),
     Backend(
@@ -51,6 +61,10 @@ BACKENDS = (
         health_path="/health",
         data_dir="/app/data",
         homepage="https://filaman.app",
+        image="fire-devils/filaman-system",
+        github="Fire-Devils/filaman-system",
+        version_env="FILAMAN_VERSION",
+        archive_skip=("backups",),
     ),
     Backend(
         key="bambuddy",
@@ -61,6 +75,9 @@ BACKENDS = (
         health_path="/health",
         data_dir="/app/data",
         homepage="https://github.com/maziggy/bambuddy",
+        image="maziggy/bambuddy",
+        github="maziggy/bambuddy",
+        version_env="BAMBUDDY_VERSION",
         archive_skip=("backups",),
     ),
 )

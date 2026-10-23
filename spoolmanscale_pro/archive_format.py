@@ -29,8 +29,10 @@ META_MAX_BYTES = 64 * 1024
 DATA_MAX_MEMBERS = 100_000
 DATA_MAX_UNPACKED_BYTES = 8 * 1024 ** 3
 
-# <backend>_<YYYY-MM-DD_HHMMSS>[_before-restore].tar
-NAME_RE = re.compile(r"^([a-z]+)_(\d{4}-\d{2}-\d{2}_\d{6})(_before-restore)?\.tar$")
+# Why a backup was made, when not by hand: it ends up in the name.
+REASONS = ("before-restore", "before-update")
+# <backend>_<YYYY-MM-DD_HHMMSS>[_<reason>].tar
+NAME_RE = re.compile(r"^([a-z]+)_(\d{4}-\d{2}-\d{2}_\d{6})(?:_(" + "|".join(REASONS) + r"))?\.tar$")
 TIME_FORMAT = "%Y-%m-%d_%H%M%S"
 
 
@@ -44,8 +46,11 @@ class ArchiveError(Exception):
         self.detail = detail
 
 
-def backup_name(key: str, when: datetime, before_restore: bool = False) -> str:
-    suffix = "_before-restore" if before_restore else ""
+def backup_name(key: str, when: datetime, reason: str | None = None) -> str:
+    """reason: one of REASONS, or None for a backup made by hand."""
+    if reason is not None and reason not in REASONS:
+        raise ValueError(f"unknown backup reason {reason}")
+    suffix = f"_{reason}" if reason else ""
     return f"{key}_{when.strftime(TIME_FORMAT)}{suffix}.tar"
 
 
@@ -60,7 +65,7 @@ def parse_backup_name(name: str) -> dict | None:
     except ValueError:
         return None
     return {"backend": match.group(1), "created": when.isoformat(timespec="seconds"),
-            "before_restore": match.group(3) is not None}
+            "reason": match.group(3) or ""}
 
 
 def make_meta(key: str, image: str, app_version: str, when: datetime) -> dict:

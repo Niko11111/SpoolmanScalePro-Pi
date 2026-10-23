@@ -57,7 +57,7 @@
     });
     return el("div", { class: "listrow" },
       el("div", {},
-        el("div", { class: "nm" }, labelOf(item.backend), item.before_restore ? el("span", { class: "pill off" }, t("backup.before_restore")) : null),
+        el("div", { class: "nm" }, labelOf(item.backend), item.reason ? el("span", { class: "pill off" }, t("backup.reason_" + item.reason.replace("-", "_"))) : null),
         el("div", { class: "sz", text: when(item.created) + " - " + size(item.size) })),
       el("div", { class: "inrow" },
         el("a", { class: "linkbtn", href: "/api/backups/file/" + encodeURIComponent(item.name), download: item.name }, t("backup.download")),

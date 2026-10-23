@@ -25,6 +25,9 @@ it.
 - **Protected** by a user name and password from the first visit on, which
   password managers can store. Running without a password is possible
   after a clear warning, for networks you trust.
+- **Backend updates** with the release notes of every version in between,
+  a backup before each one, and the old version back by itself when the
+  new one does not start.
 - **Works without internet** once the backends are downloaded, for example as
   a hotspot of its own (see below).
 - English and German.

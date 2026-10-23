@@ -31,6 +31,11 @@ DEFAULTS = {
     # is kept by NetworkManager only.
     "hotspot_ssid": "",
     "hotspot_channel": 6,
+    # Backend key -> image tag the owner chose on the Updates page. A backend
+    # not listed runs the version compose/docker-compose.yml was tested with.
+    "backend_versions": {},
+    # Whether the Updates page offers pre-releases (BamBuddy's betas).
+    "include_prereleases": False,
 }
 
 SCALE_ADDRESS_MAX_LEN = 64
@@ -92,6 +97,11 @@ def clean_update(raw: dict) -> tuple[dict, list[str]]:
             clean["scale_password"] = value
         else:
             refused.append("scale_password")
+    if "include_prereleases" in raw:
+        if isinstance(raw["include_prereleases"], bool):
+            clean["include_prereleases"] = raw["include_prereleases"]
+        else:
+            refused.append("include_prereleases")
     return clean, refused
 
 

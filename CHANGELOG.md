@@ -3,6 +3,23 @@
 One section per version, newest first. VERSION names the current one;
 scripts/check.sh fails when it has no section here.
 
+## 2.0.0-beta.5
+
+- Updates page: for each backend, the version it runs and the one this
+  release was tested with, a search for newer versions on ghcr.io, the
+  release notes from GitHub for everything in between, and installing one.
+- Installing makes a "before update" backup first, downloads the image while
+  the backend keeps running, then restarts it with the new version. When it
+  does not come up, the old version and the backup go back by themselves:
+  a database a newer FilaMan migrated cannot be read by the older one.
+- Only newer versions are offered, never older ones. Pre-releases can be
+  offered with a switch, where a backend publishes them with a version
+  number.
+- The chosen versions live in the data directory and survive updates of
+  SpoolmanScale Pro; compose/docker-compose.yml keeps the tested default.
+- FilaMan's own backup folder is left out of our archives, like
+  Spoolman's and BamBuddy's.
+
 ## 2.0.0-beta.4
 
 - Network page: the Pi's name on the network (<name>.local), the WLAN it is
