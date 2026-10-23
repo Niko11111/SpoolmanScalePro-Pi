@@ -32,7 +32,7 @@
   }
 
   async function activate(button, backend, ctx) {
-    const current = ctx.all.find((b) => b.active);
+    const current = ctx.all.find((b) => b.active && b !== backend);
     const text = (current
       ? t("switch.confirm_text", { from: current.label, to: backend.label })
       : t("switch.confirm_first", { to: backend.label })) + slowWarning(backend, ctx.plan);
@@ -69,12 +69,14 @@
     return button;
   }
 
-  // One backend at a time: Open the active one, Activate the others.
+  // One backend at a time: Open the active one, Activate the others. The
+  // active one gets Activate too once it stopped (a switch away from it that
+  // failed, a crash), or the only way back would be "Stop all".
   function singleActions(backend, ctx) {
     if (backend.active && backend.ready) {
       return [el("a", { class: "linkbtn", href: backendUrl(backend), target: "_blank", rel: "noopener" }, t("tile.open"))];
     }
-    if (backend.active) return [];
+    if (backend.active && backend.state === "running") return [];
     const button = el("button", { type: "button", disabled: ctx.jobRunning }, t("tile.activate"));
     button.addEventListener("click", () => activate(button, backend, ctx));
     return [button];

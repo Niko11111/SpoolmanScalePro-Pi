@@ -22,7 +22,7 @@
 #   tailscale-install              add Tailscale's Debian repository and install it, logged
 #   tailscale-up | tailscale-down  connect to or leave the tailnet
 #   tailscale-status               print `tailscale status --json`
-#   ip-check ADDRESS DEVICE        prints "free" or "taken" (duplicate address detection)
+#   ip-check ADDRESS DEVICE        prints "free" or "taken" (duplicate address detection), fails if it cannot tell
 #   ip-static CONNECTION CIDR GATEWAY DNS   fix the address, back to DHCP if the gateway is lost
 #   ip-dhcp CONNECTION             back to an address from the router
 set -eu
@@ -93,7 +93,10 @@ set_hostname() {
 }
 
 wifi_scan() {
-  nmcli -t -f IN-USE,SSID,SIGNAL,SECURITY,CHAN device wifi list --rescan yes ifname wlan0
+  # While wlan0 runs the hotspot or the setup WLAN, NetworkManager may refuse
+  # a new scan; then the networks it saw last (at boot) are better than none.
+  nmcli -t -f IN-USE,SSID,SIGNAL,SECURITY,CHAN device wifi list --rescan yes ifname wlan0 2>/dev/null \
+    || nmcli -t -f IN-USE,SSID,SIGNAL,SECURITY,CHAN device wifi list --rescan no ifname wlan0
 }
 
 active_wifi() {
@@ -314,8 +317,16 @@ ip_check() {
   check_ip "$address"
   case "$device" in wlan0|eth0) ;; *) die "device must be wlan0 or eth0" ;; esac
   # Duplicate address detection: anything that answers for the address
-  # owns it. Exit 1 from arping means an answer came.
-  if arping -D -q -c 2 -w 3 -I "$device" "$address"; then echo free; else echo taken; fi
+  # owns it. arping exits 0 when nobody answered, 1 when someone did; any
+  # other code is arping failing (no such device, WLAN blocked), which says
+  # nothing about the address.
+  answered=0
+  arping -D -q -c 2 -w 3 -I "$device" "$address" || answered=$?
+  case "$answered" in
+    0) echo free ;;
+    1) echo taken ;;
+    *) die "arping failed with exit code $answered" ;;
+  esac
 }
 
 ip_to_dhcp() {

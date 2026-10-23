@@ -67,6 +67,21 @@
       pick, holder);
   }
 
+  // For a network the scan does not list: a hidden one, or any network while
+  // the Pi runs its own WLAN and NetworkManager refuses to scan.
+  function manualForm(start) {
+    const ssid = el("input", { type: "text", autocomplete: "off", autocapitalize: "none", spellcheck: "false" });
+    const psk = el("input", { type: "password", autocomplete: "off", placeholder: t("net.manual_psk") });
+    const join = el("button", { type: "button" }, t("net.join"));
+    join.addEventListener("click", async () => {
+      if (!(await ask(t("net.join_title", { name: ssid.value }), t("net.join_text"), t("net.join")))) return;
+      start(join, "/api/network/wifi", { ssid: ssid.value, psk: psk.value });
+    });
+    return el("div", { class: "wrap" },
+      el("div", { class: "field" }, el("label", { text: t("net.manual_ssid") }), ssid),
+      el("div", { class: "inrow" }, psk, join));
+  }
+
   function wifiCard(net, start) {
     const list = el("div", { class: "wrap" });
     const scan = el("button", { type: "button", class: "quiet" }, t("net.scan"));
@@ -76,8 +91,10 @@
       list.replaceChildren(...(found.length ? found.map((n) => networkRow(n, start))
         : [el("p", { class: "hint", text: t("net.none_found") })]));
     }));
+    const manual = el("button", { type: "button", class: "quiet" }, t("net.manual"));
+    manual.addEventListener("click", () => list.replaceChildren(manualForm(start)));
     return el("section", { class: "card" }, el("h2", { text: t("net.wifi_title") }), statusRows(net),
-      el("div", { class: "btnrow" }, scan), list, el("p", { class: "note", text: t("net.wifi_note") }));
+      el("div", { class: "btnrow" }, scan, manual), list, el("p", { class: "note", text: t("net.wifi_note") }));
   }
 
   function hotspotCard(net, start) {

@@ -77,6 +77,25 @@ def test_what_reaches_the_scale(proxy, scale):
     assert got["headers"]["Authorization"].startswith("Basic ")
 
 
+def test_without_a_login_the_browser_brings_the_scale_pin(scale):
+    saved = AUTH_FILE.read_bytes() if AUTH_FILE.exists() else None
+    auth.set_open()
+    settings.update({"scale_address": scale, "scale_password": "1234"})
+    SEEN.clear()
+    try:
+        with create_proxy_app().test_client() as anyone:
+            assert anyone.get("/status.json").status_code == 200
+            anyone.get("/status.json", headers={"Authorization": "Basic Zm9vOmJhcg=="})
+    finally:
+        settings.update({"scale_address": "", "scale_password": ""})
+        if saved is None:
+            AUTH_FILE.unlink()
+        else:
+            AUTH_FILE.write_bytes(saved)
+    assert "Authorization" not in SEEN[0]["headers"]
+    assert SEEN[1]["headers"]["Authorization"] == "Basic Zm9vOmJhcg=="
+
+
 def test_a_foreign_origin_is_refused_before_the_scale(proxy):
     SEEN.clear()
     r = proxy.post("/api/backend/mode", data="2", headers={"Origin": "http://evil.example"})

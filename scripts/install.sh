@@ -20,15 +20,20 @@ VERSION="$(cat "$SRC/VERSION")"
 SERVICE_USER=spoolmanscale
 BASE=/opt/spoolmanscale-pro
 RELEASE="$BASE/releases/$VERSION"
+# Built here first, then moved into releases/: installing the same version
+# again must not pull the files out from under the running service.
+STAGING="$BASE/staging"
+REPLACED="$BASE/replaced"
 DATA=/var/lib/spoolmanscale-pro
 HELPER_DIR=/usr/local/libexec/spoolmanscale-pro
 LOG_DIR=/var/log/spoolmanscale-pro
 LOG="$LOG_DIR/install.log"
 # Releases kept on disk: the active one and the one before it.
 KEEP_RELEASES=2
-# What one backend at a time needs (FilaMan, the largest, about 370 MB), plus
-# the system. Below this the Pi is too small, not just slow.
-MIN_RAM_MB=900
+# The smallest Pi this runs on: one backend at a time, Spoolman (about
+# 180 MB) plus the system (about 200 MB), the "small" size of hardware.py
+# (Pi Zero 2 W). The RAM a Pi reports is less than it has, minus the GPU's.
+MIN_RAM_MB=380
 # All three images (about 3 GB) and room for backups.
 MIN_DISK_MB_PULL_ALL=4500
 MIN_DISK_MB=1500
@@ -38,6 +43,9 @@ MIN_DISK_MB=1500
 DEFAULT_HOSTNAME=spoolmanscale-pro
 IMAGER_DEFAULT_HOSTNAME=raspberrypi
 STEPS=9
+# apt and Docker's installer never stop to ask: their questions would be
+# hidden behind the log.
+export DEBIAN_FRONTEND=noninteractive
 
 PULL_ALL=0
 for arg in "$@"; do
@@ -76,7 +84,7 @@ preflight() {
     *) note "warning: '$codename' is not tested; Bookworm and Trixie are" ;;
   esac
   ram_mb=$(awk '/MemTotal/ {print int($2 / 1024)}' /proc/meminfo)
-  [ "$ram_mb" -ge "$MIN_RAM_MB" ] || die "needs about 1 GB of RAM (this Pi has $ram_mb MB)"
+  [ "$ram_mb" -ge "$MIN_RAM_MB" ] || die "needs at least $MIN_RAM_MB MB of RAM (this Pi reports $ram_mb MB)"
   free_mb=$(df -Pm / | awk 'NR == 2 {print $4}')
   need_mb=$MIN_DISK_MB
   [ "$PULL_ALL" -eq 1 ] && need_mb=$MIN_DISK_MB_PULL_ALL
@@ -84,6 +92,19 @@ preflight() {
   curl -fsS --max-time 10 -o /dev/null https://ghcr.io/ \
     || die "no internet: the install downloads packages and Docker images"
   note "RAM $ram_mb MB, SD card $free_mb MB free, internet reachable"
+  check_wifi
+}
+
+# A warning, not a stop: a Pi on a cable works without WLAN. Without a WLAN
+# country Raspberry Pi OS keeps the radio blocked, and the hotspot and the
+# setup WLAN would fail without saying why.
+check_wifi() {
+  [ -e /sys/class/net/wlan0 ] || { note "no WLAN on this Pi: hotspot and setup WLAN not available"; return 0; }
+  if command -v rfkill >/dev/null 2>&1 && rfkill list wifi | grep -q 'Soft blocked: yes'; then
+    note "warning: the WLAN is switched off, usually because no WLAN country is set."
+    note "      The hotspot and the setup WLAN need it. Set your country, then run this again:"
+    note "      sudo raspi-config nonint do_wifi_country DE   (your country code)"
+  fi
 }
 
 install_packages() {
@@ -94,8 +115,9 @@ install_packages() {
   # network-manager: the Network page and the hotspot speak nmcli.
   # unattended-upgrades: Debian's security fixes, every day.
   # iputils-arping: whether an address is free before the Pi takes it.
+  # libnss-mdns: this service reaches the scale by its .local name.
   apt-get -o DPkg::Lock::Timeout=300 install -y -qq python3-venv avahi-daemon avahi-utils \
-    fake-hwclock curl network-manager unattended-upgrades iputils-arping >/dev/null
+    libnss-mdns fake-hwclock curl network-manager unattended-upgrades iputils-arping >/dev/null
   if ! command -v docker >/dev/null 2>&1; then
     note "Docker (Docker's own installer, as its documentation advises for Raspberry Pi OS)"
     curl -fsSL https://get.docker.com | sh
@@ -156,14 +178,20 @@ create_user() {
 
 install_release() {
   step "SpoolmanScale Pro $VERSION"
-  rm -rf "$RELEASE"
-  install -d "$RELEASE"
+  rm -rf "$STAGING" "$REPLACED"
+  install -d "$STAGING"
   for part in VERSION LICENSE requirements.txt spoolmanscale_pro compose templates static system; do
-    cp -R "$SRC/$part" "$RELEASE/"
+    cp -R "$SRC/$part" "$STAGING/"
   done
-  python3 -m venv "$RELEASE/.venv"
-  "$RELEASE/.venv/bin/pip" install --quiet --no-cache-dir -r "$RELEASE/requirements.txt"
-  chown -R root:root "$RELEASE"
+  # The service starts .venv/bin/python, which finds its venv wherever the
+  # folder is: built in STAGING, it still works under releases/.
+  python3 -m venv "$STAGING/.venv"
+  "$STAGING/.venv/bin/pip" install --quiet --no-cache-dir -r "$STAGING/requirements.txt"
+  chown -R root:root "$STAGING"
+  # Two renames: the running release is gone only for the moment between them.
+  if [ -d "$RELEASE" ]; then mv -T "$RELEASE" "$REPLACED"; fi
+  mv -T "$STAGING" "$RELEASE"
+  rm -rf "$REPLACED"
   ln -sfn "$RELEASE" "$BASE/current.new"
   mv -T "$BASE/current.new" "$BASE/current"
   # Newest first; everything after the first KEEP_RELEASES goes.

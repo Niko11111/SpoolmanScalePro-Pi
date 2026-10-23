@@ -86,6 +86,9 @@ def create_proxy_app(page_port: int = PAGE_PORT) -> Flask:
         current = settings.load()
         if not current["scale_address"]:
             return Response("No scale paired.\nKeine Waage gekoppelt.\n", 503, mimetype="text/plain")
-        return _forward(path, current["scale_address"], current["scale_password"])
+        # Without a login on this Pi, anyone on the network gets this far:
+        # the stored PIN is left out and the browser asks for it itself.
+        password = "" if auth.mode() == auth.MODE_OPEN else current["scale_password"]
+        return _forward(path, current["scale_address"], password)
 
     return app

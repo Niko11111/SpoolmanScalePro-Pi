@@ -3,6 +3,27 @@
 One section per version, newest first. VERSION names the current one;
 scripts/check.sh fails when it has no section here.
 
+## 2.0.0-beta.17
+
+- The installer accepts every Pi this runs on: it asked for about 1 GB of
+  RAM, which refused a Pi Zero 2 W and could refuse a Pi 3 whose GPU takes
+  more; it now needs 380 MB, one backend at a time.
+- Installing the same version again builds it next to the running one and
+  swaps it in, instead of deleting the files the service runs from.
+- The installer warns when the WLAN is blocked (no WLAN country set), adds
+  libnss-mdns so the scale's .local name resolves, and never stops at a
+  package question hidden behind its log.
+- The Network page takes a WLAN by hand (a hidden network, or any network
+  while the Pi runs its own WLAN and cannot search). A search that the Pi
+  refuses shows the networks it saw last.
+- Checking an address says "checking failed" when arping cannot run,
+  instead of "taken".
+- When the active backend has stopped (a switch away from it that failed,
+  or a crash), its tile offers Activate again.
+- Without a login on the Pi, the scale page through the Pi asks for the
+  scale's PIN in the browser instead of adding the stored one.
+- The setup WLAN's wait at boot no longer holds up the start of the Pi.
+
 ## 2.0.0-beta.16
 
 - The Network page shows the Pi's IP address, whether it comes from the

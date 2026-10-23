@@ -10,9 +10,10 @@ After=NetworkManager.service
 Wants=NetworkManager.service
 
 [Service]
-Type=oneshot
+# simple, not oneshot: its wait of up to 90 s must not hold up the boot.
+Type=simple
 ExecStart=/usr/local/libexec/spoolmanscale-pro/host-helper setup-ap-if-offline
-TimeoutStartSec=180
+RuntimeMaxSec=180
 
 [Install]
 WantedBy=multi-user.target

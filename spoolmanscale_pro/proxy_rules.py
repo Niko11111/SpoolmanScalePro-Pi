@@ -40,8 +40,10 @@ def origin_allowed(method: str, origin: str | None, host: str, ports: set[int]) 
 
 
 def request_headers(incoming: dict, scale_address: str, scale_password: str) -> dict:
-    """The headers sent to the scale. With a scale password stored, the
-    proxy logs in itself: this Pi's login already guards the proxy."""
+    """The headers sent to the scale. With a scale password given, the
+    proxy logs in itself: this Pi's login already guards the proxy. Without
+    one (also when the Pi has no login, scale_proxy.py), the browser's own
+    Authorization goes through."""
     out = {k: v for k, v in incoming.items() if k.lower() in PASS_REQUEST}
     out["Host"] = scale_address
     if scale_password:
