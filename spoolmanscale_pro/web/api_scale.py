@@ -2,7 +2,7 @@
 
 from flask import Blueprint, request
 
-from .. import settings, switcher
+from .. import scale_discovery, scale_setup, settings, switcher
 from ..backends import backend_by_key
 from ..jobs import RUNNER
 from ..scale_api import ScaleClient, ScaleError, own_names, summarize
@@ -53,3 +53,22 @@ def save_settings():
     if refused:
         return fail("invalid_fields", fields=refused)
     return ok(settings=settings.public_view(settings.update(clean)))
+
+
+@bp.post("/scale/discover")
+def discover():
+    """The scales announcing themselves on the network (mDNS)."""
+    scales = scale_discovery.discover()
+    if scales is None:
+        return fail("discovery_unavailable", 503)
+    return ok(scales=scales)
+
+
+@bp.post("/scale/setup")
+def setup_scale():
+    """Enters this Pi as the server of every backend on the scale."""
+    use_ip = (request.get_json(silent=True) or {}).get("use_ip") is True
+    job = RUNNER.start("scale_setup", "scale", lambda progress: scale_setup.run(use_ip, progress))
+    if job is None:
+        return fail("busy", 409)
+    return ok(202, job=job)

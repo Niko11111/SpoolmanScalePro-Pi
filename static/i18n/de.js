@@ -110,9 +110,7 @@ window.SSPRO_I18N.de = {
 
   "setup.title": "Einmal an der Waage einrichten",
   "setup.step_share": "Schalte an der Waage Einstellungen > System > Weboberfläche > Einstellungen ein. Damit darf der Pi das Backend der Waage umstellen.",
-  "setup.step_addresses": "Wähle an der Waage jedes Backend einmal aus und trage diesen Pi als Server ein:",
   "setup.step_keys": "FilaMan und BamBuddy brauchen zusätzlich einen Schlüssel: die Waage in FilaMan registrieren, und für BamBuddy einen API-Key aus dessen Einstellungen an der Waage eintragen. Das jeweils, während dieses Backend hier aktiv ist.",
-  "setup.step_done": "Das war es. Ab jetzt stellt jeder Wechsel auf dieser Seite auch die Waage um.",
 
   "look.title": "Anzeige",
   "look.language": "Sprache",
@@ -352,5 +350,23 @@ window.SSPRO_I18N.de = {
   "err.os_check_failed": "Die Suche ist fehlgeschlagen. Ist der Pi mit dem Internet verbunden?",
   "err.os_upgrade_failed": "Das Update ist fehlgeschlagen. Das Log oben zeigt, wo.",
   "err.os_upgrade_interrupted": "Das Update hat vor dem Ende aufgehört. Starte es erneut, es setzt dort fort.",
-  "err.os_upgrade_not_running": "Es läuft kein Update."
+  "err.os_upgrade_not_running": "Es läuft kein Update.",
+
+  "pair.search": "Im Netz suchen",
+  "pair.searching": "Suche läuft...",
+  "pair.none_found": "Keine Waage gefunden. Ist sie eingeschaltet und im selben Netz wie der Pi? Ihre Adresse lässt sich auch unten eintippen.",
+  "pair.take": "Übernehmen",
+  "setup.step_auto": "Diesen Pi an der Waage als Server aller drei Backends eintragen. Die Waage schaltet dabei durch die Backends; die Adresse ist {name}:<Port>.",
+  "setup.use_ip": "IP-Adresse statt Name verwenden",
+  "setup.run": "Diesen Pi an der Waage eintragen",
+  "setup.run_text": "Die Waage schaltet nacheinander auf jedes Backend, bekommt dafür die Adresse dieses Pi und endet auf dem Backend, das hier läuft. Das dauert etwa eine halbe Minute; währenddessen nichts wiegen.",
+  "setup.the_scale": "die Waage",
+  "setup.reached": "erreicht",
+  "setup.stored": "gespeichert",
+  "setup.result_note": "Erreichbar ist jetzt nur das Backend, das auf diesem Pi läuft; die anderen werden getestet, sobald du auf sie umschaltest.",
+  "job.title_scale_setup": "Pi wird an der Waage eingetragen",
+  "step.scale_address": "Adresse eintragen",
+  "err.discovery_unavailable": "Die Suche im Netz geht nur auf dem Pi (avahi).",
+  "err.scale_mode_timeout": "Die Waage hat nicht innerhalb von 30 Sekunden umgeschaltet. Ist sie beschäftigt oder zeigt sie einen Dialog?",
+  "err.scale_not_paired": "Koppel zuerst eine Waage."
 };

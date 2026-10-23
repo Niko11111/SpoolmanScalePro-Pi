@@ -44,7 +44,8 @@ install_packages() {
   # back from the last shutdown instead of 1970 when there is no network.
   # network-manager: the WLAN page and the hotspot speak nmcli (the default
   # since Raspberry Pi OS Bookworm).
-  apt-get install -y -qq python3-venv avahi-daemon fake-hwclock curl network-manager >/dev/null
+  # avahi-utils: avahi-browse, with which the page finds scales on the network.
+  apt-get install -y -qq python3-venv avahi-daemon avahi-utils fake-hwclock curl network-manager >/dev/null
   if ! command -v docker >/dev/null 2>&1; then
     say "Docker (Docker's own installer, as its documentation advises for Raspberry Pi OS)"
     curl -fsSL https://get.docker.com | sh

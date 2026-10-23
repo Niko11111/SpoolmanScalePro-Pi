@@ -1,11 +1,14 @@
 """Talks to a SpoolmanScale's web interface.
 
-Two routes of the firmware are used, nothing else:
+Routes of the firmware this uses, nothing else:
 
   GET  /status.json        which backend the scale uses, at which address,
                            and whether it reached it (web/pages/page_status.cpp)
   POST /api/backend/mode   body "0", "1" or "2": switch the backend
-                           (web/pages/page_backend.cpp)
+  POST /api/host           body "host:port": the server address of the
+                           backend the scale uses right now; then tested
+  GET  /api/host           the result of that test
+                           (all three in web/pages/page_backend.cpp)
 
 The scale keeps one address per backend, so switching the mode is all it
 takes once each address has been entered on the scale. The second route sits
@@ -82,6 +85,26 @@ class ScaleClient:
 
     def set_mode(self, mode: int) -> None:
         self._request("POST", "/api/backend/mode", str(mode).encode())
+
+    def _json(self, method: str, path: str, body: bytes | None = None) -> dict:
+        raw = self._request(method, path, body)
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError as e:
+            raise ScaleError("scale_bad_answer", f"{path} is not JSON") from e
+        if not isinstance(data, dict):
+            raise ScaleError("scale_bad_answer", f"{path} is not an object")
+        return data
+
+    def set_host(self, host: str) -> dict:
+        """Sets the server address of the backend the scale uses right now.
+        The scale then tests it; {"queued": true} means a test runs."""
+        return self._json("POST", "/api/host", host.encode())
+
+    def host_test(self) -> dict:
+        """{"state": "running"}, {"state": "idle"} or {"state": "done",
+        "ok": bool, "bad": bool, "msg": str} (web/pages/page_backend.cpp)."""
+        return self._json("GET", "/api/host")
 
 
 def own_address_towards(host: str) -> str | None:

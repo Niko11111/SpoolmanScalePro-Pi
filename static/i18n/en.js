@@ -112,9 +112,7 @@ window.SSPRO_I18N.en = {
 
   "setup.title": "Set up once on the scale",
   "setup.step_share": "On the scale, turn on Settings > System > Web interface > Settings. This lets the Pi switch the scale's backend.",
-  "setup.step_addresses": "On the scale, choose each backend once and enter this Pi as its server:",
   "setup.step_keys": "FilaMan and BamBuddy also need a key: register the scale in FilaMan, and enter an API key from BamBuddy's settings on the scale. Do it while that backend is active here.",
-  "setup.step_done": "That's all. From now on, every switch on this page also switches the scale.",
 
   "look.title": "Display",
   "look.language": "Language",
@@ -354,5 +352,23 @@ window.SSPRO_I18N.en = {
   "err.os_check_failed": "Searching failed. Is the Pi connected to the internet?",
   "err.os_upgrade_failed": "The update failed. The log above shows where.",
   "err.os_upgrade_interrupted": "The update stopped before it finished. Start it again; it picks up where it stopped.",
-  "err.os_upgrade_not_running": "No update is running."
+  "err.os_upgrade_not_running": "No update is running.",
+
+  "pair.search": "Search the network",
+  "pair.searching": "Searching...",
+  "pair.none_found": "No scale found. Is it on, and in the same network as the Pi? Its address can also be typed in below.",
+  "pair.take": "Use this one",
+  "setup.step_auto": "Enter this Pi on the scale as the server of all three backends. The scale switches through the backends meanwhile; the address is {name}:<port>.",
+  "setup.use_ip": "Use the IP address instead of the name",
+  "setup.run": "Enter this Pi on the scale",
+  "setup.run_text": "The scale switches to each backend in turn, gets this Pi's address for it, and ends on the backend that runs here. That takes about half a minute; don't weigh anything meanwhile.",
+  "setup.the_scale": "the scale",
+  "setup.reached": "reached",
+  "setup.stored": "stored",
+  "setup.result_note": "Only the backend that runs on this Pi can be reached now; the others are tested when you switch to them.",
+  "job.title_scale_setup": "Entering this Pi on the scale",
+  "step.scale_address": "Entering the address",
+  "err.discovery_unavailable": "Searching the network is only possible on the Pi (avahi).",
+  "err.scale_mode_timeout": "The scale did not switch backends within 30 seconds. Is it busy, or showing a dialog?",
+  "err.scale_not_paired": "Pair a scale first."
 };

@@ -3,6 +3,18 @@
 One section per version, newest first. VERSION names the current one;
 scripts/check.sh fails when it has no section here.
 
+## 2.0.0-beta.7
+
+- The Scale page finds SpoolmanScales on the network by mDNS (the scale
+  announces model, firmware, id and backend) and pairs one with a tap,
+  instead of typing its address.
+- One button enters this Pi on the scale as the server of all three
+  backends: backend by backend the scale is switched, the address set
+  (<name>.local:<port>, or the IP if chosen) and the scale's own test
+  awaited, and it ends on the backend that runs here. The manual step of
+  typing three addresses on the device is gone.
+- The installer adds avahi-utils for the search.
+
 ## 2.0.0-beta.6
 
 - Raspberry Pi OS updates on the System page, as in TheRentalScale: a
