@@ -7,6 +7,8 @@
  *   visible: optional, function (system) deciding from /api/system
  *            whether the page is offered at all (the demo page only
  *            where demo mode is enabled).
+ *   hidden:  optional; reachable by its #name but not in the navigation
+ *            (the setup assistant).
  * The order of PAGE_ORDER is the order of the tabs. A page file only
  * registers itself; this file decides when it is shown.
  */
@@ -14,7 +16,7 @@
   "use strict";
   const { t, el, $, api, errorText } = SSPro;
 
-  const PAGE_ORDER = ["overview", "scaleview", "demo", "backup", "updates", "scale", "network", "system"];
+  const PAGE_ORDER = ["overview", "scaleview", "demo", "backup", "updates", "scale", "network", "system", "setup"];
   const DEFAULT_PAGE = "overview";
   let cleanup = null;
 
@@ -39,7 +41,7 @@
   }
 
   function nav(pages, active) {
-    const links = pages.map((name) =>
+    const links = pages.filter((name) => !SSPro.pages[name].hidden).map((name) =>
       el("a", { href: "#" + name, class: name === active ? "on" : "" }, t(SSPro.pages[name].nav)));
     // Nothing to log out of without a password.
     const logout = authMode !== "password" ? null
@@ -50,10 +52,16 @@
   async function showPage() {
     if (cleanup) { cleanup(); cleanup = null; }
     let system = {};
+    let settings = {};
     try {
-      system = await api("/api/system");
+      [system, settings] = await Promise.all([api("/api/system"), api("/api/settings")]);
     } catch (e) {
       if (e.code === "login_required") return;  // the gate is already up
+    }
+    // A Pi not set up yet starts in the assistant, once it is asked for no
+    // other page by its address.
+    if (settings.settings && !settings.settings.setup_done && !location.hash) {
+      history.replaceState(null, "", "#setup");
     }
     const pages = offered(system);
     const name = currentPage(pages);

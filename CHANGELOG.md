@@ -3,6 +3,13 @@
 One section per version, newest first. VERSION names the current one;
 scripts/check.sh fails when it has no section here.
 
+## 2.0.0-beta.13
+
+- A setup assistant opens after the first login: pick a backend (with the
+  switch's progress), find and pair the scale and enter the Pi on it, done.
+  It can be skipped and opened again from the System page; it uses the same
+  tiles and cards as the other pages.
+
 ## 2.0.0-beta.12
 
 - The installer checks the Pi first (64-bit, RAM, free space, internet),

@@ -429,5 +429,24 @@ window.SSPRO_I18N.en = {
   "system.power_ok": "OK",
   "system.power_low_now": "Too low now",
   "system.power_low_before": "Was too low",
-  "system.power_hint": "The voltage dropped too low (since the last restart). The Pi then slows down, and a write cut short can damage the SD card. Use a 5 V / 2.5 A supply (Pi 3) or 3 A (Pi 4) and a short, thick cable; on a power bank, one that holds 5 V under load."
+  "system.power_hint": "The voltage dropped too low (since the last restart). The Pi then slows down, and a write cut short can damage the SD card. Use a 5 V / 2.5 A supply (Pi 3) or 3 A (Pi 4) and a short, thick cable; on a power bank, one that holds 5 V under load.",
+
+  "nav.setup": "Setup",
+  "setup.title_assistant": "Set up SpoolmanScale Pro",
+  "setup.intro": "Three steps to a scale that works with this Pi. Everything can be changed later on the other pages.",
+  "setup.step_backend": "Backend",
+  "setup.step_scale": "Scale",
+  "setup.step_done": "Done",
+  "setup.backend_hint": "Pick the filament manager to run. The first start downloads it, which can take a few minutes. Not sure? Spoolman is the most widely used; FilaMan has apps; BamBuddy manages Bambu Lab printers too.",
+  "setup.scale_hint": "Find your scale and enter this Pi on it. No scale yet? Skip this step and come back from the Pairing page.",
+  "setup.next": "Next",
+  "setup.back": "Back",
+  "setup.skip": "Skip assistant",
+  "setup.finish": "To the overview",
+  "setup.summary_backend": "Backend",
+  "setup.summary_scale": "Scale",
+  "setup.none_backend": "none yet",
+  "setup.none_scale": "none yet",
+  "setup.done_note": "Backups run daily by themselves. Updates for the backends, this page and the system are on the Updates and System pages.",
+  "setup.open": "Setup assistant"
 };

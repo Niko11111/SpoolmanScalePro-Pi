@@ -112,7 +112,8 @@
         el("div", { class: "row" }, el("span", { class: "k", text: t("power.version") }), el("span", { class: "v mono", text: system.version })),
         el("div", { class: "row" }, el("span", { class: "k", text: t("power.hostname") }), el("span", { class: "v mono", text: system.hostname }))),
       el("div", { class: "btnrow" }, powerButton("power.reboot", "/api/system/reboot", false),
-        powerButton("power.poweroff", "/api/system/poweroff", true)),
+        powerButton("power.poweroff", "/api/system/poweroff", true),
+        el("a", { class: "linkbtn", href: "#setup" }, t("setup.open"))),
       el("p", { class: "note", text: t("power.note") }));
   }
 

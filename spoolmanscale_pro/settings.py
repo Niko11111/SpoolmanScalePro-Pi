@@ -41,6 +41,9 @@ DEFAULTS = {
     "auto_backup": True,
     "auto_backup_hour": 3,
     "auto_backup_last": "",
+    # The setup assistant (page_setup.js) has been finished or skipped; until
+    # then the page opens it after the login.
+    "setup_done": False,
 }
 
 SCALE_ADDRESS_MAX_LEN = 64
@@ -113,6 +116,11 @@ def clean_update(raw: dict) -> tuple[dict, list[str]]:
             clean["auto_backup_hour"] = hour
         else:
             refused.append("auto_backup_hour")
+    if "setup_done" in raw:
+        if isinstance(raw["setup_done"], bool):
+            clean["setup_done"] = raw["setup_done"]
+        else:
+            refused.append("setup_done")
     if "include_prereleases" in raw:
         if isinstance(raw["include_prereleases"], bool):
             clean["include_prereleases"] = raw["include_prereleases"]

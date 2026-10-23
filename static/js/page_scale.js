@@ -150,4 +150,6 @@
   }
 
   SSPro.pages.scale = { nav: "nav.scale", render };
+  // The setup assistant shows the same two cards (page_setup.js).
+  SSPro.views = Object.assign(SSPro.views || {}, { pairingCard, setupCard });
 })();

@@ -427,5 +427,24 @@ window.SSPRO_I18N.de = {
   "system.power_ok": "OK",
   "system.power_low_now": "Gerade zu niedrig",
   "system.power_low_before": "War zu niedrig",
-  "system.power_hint": "Die Spannung war zu niedrig (seit dem letzten Neustart). Der Pi bremst dann, und ein abgebrochener Schreibvorgang kann die SD-Karte beschädigen. Nimm ein Netzteil mit 5 V / 2,5 A (Pi 3) oder 3 A (Pi 4) und ein kurzes, dickes Kabel; an der Powerbank eine, die unter Last 5 V hält."
+  "system.power_hint": "Die Spannung war zu niedrig (seit dem letzten Neustart). Der Pi bremst dann, und ein abgebrochener Schreibvorgang kann die SD-Karte beschädigen. Nimm ein Netzteil mit 5 V / 2,5 A (Pi 3) oder 3 A (Pi 4) und ein kurzes, dickes Kabel; an der Powerbank eine, die unter Last 5 V hält.",
+
+  "nav.setup": "Einrichtung",
+  "setup.title_assistant": "SpoolmanScale Pro einrichten",
+  "setup.intro": "Drei Schritte bis zur Waage, die mit diesem Pi arbeitet. Alles lässt sich später auf den anderen Seiten ändern.",
+  "setup.step_backend": "Backend",
+  "setup.step_scale": "Waage",
+  "setup.step_done": "Fertig",
+  "setup.backend_hint": "Wähle die Filamentverwaltung, die laufen soll. Der erste Start lädt sie herunter, das kann ein paar Minuten dauern. Unsicher? Spoolman ist am weitesten verbreitet; FilaMan hat Apps; BamBuddy verwaltet auch Bambu-Lab-Drucker.",
+  "setup.scale_hint": "Finde deine Waage und trage diesen Pi an ihr ein. Noch keine Waage? Überspringe den Schritt und komm über die Seite Kopplung zurück.",
+  "setup.next": "Weiter",
+  "setup.back": "Zurück",
+  "setup.skip": "Assistent überspringen",
+  "setup.finish": "Zur Übersicht",
+  "setup.summary_backend": "Backend",
+  "setup.summary_scale": "Waage",
+  "setup.none_backend": "noch keins",
+  "setup.none_scale": "noch keine",
+  "setup.done_note": "Backups laufen täglich von selbst. Updates für Backends, diese Seite und das System findest du unter Updates und System.",
+  "setup.open": "Einrichtungsassistent"
 };

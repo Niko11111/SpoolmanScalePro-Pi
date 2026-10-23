@@ -262,6 +262,18 @@ details.release > summary { cursor: pointer; font-size: 14px; color: var(--ink-2
   border-radius: var(--radius); background: var(--surface); display: block;
 }
 
+/* ---- the setup assistant's steps (page_setup.js) ---- */
+.wizard { list-style: none; counter-reset: w; display: flex; gap: 8px; flex-wrap: wrap; }
+.wizard li {
+  counter-increment: w; flex: 1; min-width: 120px; padding: 10px 12px; border-radius: var(--radius-sm);
+  background: var(--surface-2); border: 1px solid var(--line-soft); color: var(--ink-3); font-size: 13.5px;
+}
+.wizard li::before { content: counter(w) ". "; font-weight: 600; }
+.wizard li.now { color: var(--ink); border-color: var(--accent-line); background: var(--accent-dim); }
+.wizard li.done { color: var(--ink-2); }
+.wizard-nav { align-items: center; }
+.wizard-nav .spacer { flex: 1; }
+
 /* ---- log viewer ---- */
 .log {
   font-family: var(--mono); font-size: 11.5px; line-height: 1.5; color: var(--ink-2);
