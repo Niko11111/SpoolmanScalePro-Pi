@@ -99,7 +99,8 @@ def _fetch_releases(repo: str) -> list[dict]:
         raise SourceError("source_bad_answer", "releases is not a list")
     return [{"tag": r.get("tag_name", ""), "name": r.get("name") or r.get("tag_name", ""),
              "body": r.get("body") or "", "prerelease": bool(r.get("prerelease")),
-             "published": (r.get("published_at") or "")[:10], "url": r.get("html_url", "")}
+             "published": (r.get("published_at") or "")[:10], "url": r.get("html_url", ""),
+             "assets": [a.get("name", "") for a in r.get("assets") or []]}
             for r in rows if not r.get("draft")]
 
 

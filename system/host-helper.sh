@@ -17,6 +17,8 @@
 #   setup-ap-if-offline            at boot: open the setup WLAN if nothing connected
 #   apt-check                      refresh the package lists, print a simulated upgrade
 #   os-upgrade-start               run the upgrade as its own systemd unit, log in UPGRADE_LOG
+#   self-update VERSION            install that release of SpoolmanScale Pro from GitHub
+#   self-rollback                  go back to the release installed before
 set -eu
 
 HOTSPOT_CONNECTION=spoolmanscale-hotspot
@@ -37,6 +39,13 @@ OFFLINE_POLL_S=5
 UPGRADE_UNIT=spoolmanscale-pro-os-upgrade
 UPGRADE_LOG_DIR=/var/log/spoolmanscale-pro
 UPGRADE_LOG=$UPGRADE_LOG_DIR/os-upgrade.log
+
+# Self-update: the release archives the release workflow publishes. The
+# repository is fixed here; only the version comes from the caller.
+RELEASE_BASE=https://github.com/Niko11111/SpoolmanScalePro-Pi/releases/download
+SELF_UPDATE_UNIT=spoolmanscale-pro-self-update
+SELF_UPDATE_LOG=$UPGRADE_LOG_DIR/self-update.log
+INSTALL_BASE=/opt/spoolmanscale-pro
 
 die() { echo "host-helper: $*" >&2; exit 2; }
 
@@ -195,6 +204,50 @@ os_upgrade_start() {
     /bin/sh -c '{ dpkg --configure -a && apt-get update && apt-get -y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold full-upgrade; } >> "$0" 2>&1; echo "SSPRO-EXIT:$?" >> "$0"' "$UPGRADE_LOG" >/dev/null
 }
 
+self_update() {
+  version="${1:-}"
+  # The same form as VERSION; check_conventions.py checks VERSION for it.
+  echo "$version" | grep -Eqx '[0-9]+\.[0-9]+\.[0-9]+(-beta\.[0-9]+)?' || die "invalid version"
+  if systemctl is-active --quiet "$SELF_UPDATE_UNIT"; then
+    echo "host-helper: an update is already running" >&2
+    exit 5
+  fi
+  systemctl reset-failed "$SELF_UPDATE_UNIT" >/dev/null 2>&1 || true
+  install -d -m 0755 "$UPGRADE_LOG_DIR"
+  : > "$SELF_UPDATE_LOG"
+  chmod 0644 "$SELF_UPDATE_LOG"
+  # A unit of its own: the release's install.sh restarts the service, which
+  # would end anything the service started itself. The checksum guards
+  # against a broken download, not against a forged release.
+  systemd-run --unit="$SELF_UPDATE_UNIT" --description="SpoolmanScale Pro: update to $version" \
+    /bin/sh -c '
+      v="$1"; log="$2"; base="$3"
+      exec >>"$log" 2>&1
+      trap "echo SSPRO-EXIT:\$?" EXIT
+      set -e
+      tmp="$(mktemp -d)"
+      name="spoolmanscale-pro-$v.tar.gz"
+      curl -fsSL -o "$tmp/$name" "$base/v$v/$name"
+      curl -fsSL -o "$tmp/$name.sha256" "$base/v$v/$name.sha256"
+      (cd "$tmp" && sha256sum -c "$name.sha256")
+      mkdir "$tmp/src"
+      tar -xzf "$tmp/$name" -C "$tmp/src"
+      "$tmp/src/scripts/install.sh"
+      rm -rf "$tmp"
+    ' sh "$version" "$SELF_UPDATE_LOG" "$RELEASE_BASE" >/dev/null
+}
+
+self_rollback() {
+  current="$(readlink -f "$INSTALL_BASE/current")"
+  previous="$(ls -1dt "$INSTALL_BASE"/releases/* | grep -vxF "$current" | head -n 1)"
+  [ -n "$previous" ] || die "no earlier release on this Pi"
+  ln -sfn "$previous" "$INSTALL_BASE/current.new"
+  mv -T "$INSTALL_BASE/current.new" "$INSTALL_BASE/current"
+  # Touched, so the release just left counts as the older one from now on.
+  touch "$previous"
+  later /bin/systemctl restart spoolmanscale-pro
+}
+
 verb="${1:-}"
 case "$verb" in
   reboot)              later /bin/systemctl reboot ;;
@@ -208,5 +261,7 @@ case "$verb" in
   setup-ap-if-offline) setup_ap_if_offline ;;
   apt-check)           apt_check ;;
   os-upgrade-start)    os_upgrade_start ;;
+  self-update)         self_update "${2:-}" ;;
+  self-rollback)       self_rollback ;;
   *)                   die "unknown verb '$verb'" ;;
 esac

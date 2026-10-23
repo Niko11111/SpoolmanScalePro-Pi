@@ -409,5 +409,17 @@ window.SSPRO_I18N.de = {
   "backup.auto_hour": "Ab",
   "backup.auto_saved": "Gespeichert.",
   "backup.auto_never": "noch keins",
-  "backup.auto_note": "Das Backend wird dafür ein paar Sekunden gestoppt. Ist der Pi zu der Stunde aus, holt er es am selben Tag nach. Die neuesten 7 bleiben, getrennt von den anderen. Letztes: {last}."
+  "backup.auto_note": "Das Backend wird dafür ein paar Sekunden gestoppt. Ist der Pi zu der Stunde aus, holt er es am selben Tag nach. Die neuesten 7 bleiben, getrennt von den anderen. Letztes: {last}.",
+
+  "app.note": "Updates dieser Seite und dieses Dienstes kommen aus den GitHub-Releases des Projekts. Daten, Backends und deren Versionen bleiben, wie sie sind.",
+  "app.install_title": "SpoolmanScale Pro auf {version} aktualisieren?",
+  "app.install_text": "Der Pi lädt das Release, prüft und installiert es; die Seite startet neu und lädt sich selbst neu, meist innerhalb von zwei Minuten. Die Backends laufen weiter. Die vorherige Version bleibt auf dem Pi, um zu ihr zurückzukehren.",
+  "app.updating": "Wird aktualisiert. Die Seite lädt sich selbst neu, sobald die neue Version läuft.",
+  "app.failed": "Das Update ist fehlgeschlagen; das Log unten zeigt, wo. Die vorherige Version läuft weiter.",
+  "app.timeout": "Die neue Version hat nach zehn Minuten nicht geantwortet. Lade die Seite neu; das Log unten zeigt, wie weit das Update kam.",
+  "app.rollback": "Zurück zu {version}",
+  "app.rollback_text": "Der Pi schaltet auf die vorher installierte Version zurück und startet die Seite neu. Die Daten bleiben, wie sie sind.",
+  "app.rollback_go": "Zurückgehen",
+  "err.app_update_failed": "Das Update ließ sich nicht starten. Siehe Log des Pi.",
+  "err.no_previous_release": "Auf diesem Pi gibt es keine frühere Version."
 };

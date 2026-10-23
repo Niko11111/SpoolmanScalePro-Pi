@@ -97,7 +97,7 @@
         const [backends, settings] = await Promise.all([api("/api/backends"), api("/api/settings")]);
         labelOf = views.labelsFrom(backends.backends);
         const cards = backends.backends.map((b) => backendCard(b, start));
-        body.replaceChildren(optionsCard(settings.settings, cards), ...cards);
+        body.replaceChildren(views.appCard(), optionsCard(settings.settings, cards), ...cards);
       } catch (e) {
         if (e.code !== "login_required") toast(errorText(e), true);
       }

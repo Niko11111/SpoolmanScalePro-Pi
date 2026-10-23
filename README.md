@@ -62,8 +62,9 @@ sudo scripts/install.sh --pull-all
 start without internet. Then open `http://<hostname>.local` and create the
 login.
 
-To update, `git pull` and run `sudo scripts/install.sh` again. Your data is
-not touched.
+Later versions install from the **Updates** page (or by `git pull` and
+`sudo scripts/install.sh` again). Your data is not touched, and the version
+before stays on the Pi to go back to.
 
 ## Pair the scale
 

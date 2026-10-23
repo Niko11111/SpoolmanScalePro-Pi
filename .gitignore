@@ -7,3 +7,5 @@ __pycache__/
 .devdata/
 # local working notes
 Notes/
+# release archives (scripts/build_release.sh)
+dist/

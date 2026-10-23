@@ -1,0 +1,11 @@
+# What a release archive leaves out (scripts/build_release.sh runs git
+# archive, which honours export-ignore): the tests, CI and the house-rule
+# checks are for working on the code, not for running it on a Pi.
+tests/ export-ignore
+.github/ export-ignore
+scripts/check.sh export-ignore
+scripts/check_conventions.py export-ignore
+scripts/build_release.sh export-ignore
+requirements-dev.txt export-ignore
+.gitattributes export-ignore
+.gitignore export-ignore

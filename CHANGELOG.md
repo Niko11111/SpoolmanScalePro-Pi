@@ -3,6 +3,19 @@
 One section per version, newest first. VERSION names the current one;
 scripts/check.sh fails when it has no section here.
 
+## 2.0.0-beta.11
+
+- SpoolmanScale Pro updates itself from its GitHub releases, on the
+  Updates page: newer releases with their notes, install, and back to the
+  version installed before. The download is checked against the release's
+  checksum and installed by the release's own install.sh, as a systemd unit
+  of its own, since it restarts the service; the page reloads once the new
+  version answers. A Pi running a beta is offered betas.
+- A tag v<VERSION> builds the release archive (everything Git tracks
+  except tests, CI and the house-rule checks) and publishes the GitHub
+  release with this file's section as its notes; betas become
+  pre-releases. scripts/build_release.sh builds the same archive locally.
+
 ## 2.0.0-beta.10
 
 - A daily backup of the active backend, on by default, from a chosen hour
