@@ -3,6 +3,16 @@
 One section per version, newest first. VERSION names the current one;
 scripts/check.sh fails when it has no section here.
 
+## 2.0.0-beta.10
+
+- A daily backup of the active backend, on by default, from a chosen hour
+  (03:00 unless set otherwise on the Backup page). A Pi that is off at that
+  hour catches up later the same day; a restart of the service does not
+  make a second one.
+- Automatic backups are marked as such and kept apart: the newest 7 of
+  them, and as before the newest 10 of all others, so a week of automatic
+  ones never pushes out a backup made by hand or before an update.
+
 ## 2.0.0-beta.9
 
 - The paired scale's own web interface shows on the new Scale tab, served

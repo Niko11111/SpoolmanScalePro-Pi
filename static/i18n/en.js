@@ -403,5 +403,13 @@ window.SSPRO_I18N.en = {
   "view.not_paired": "No scale paired yet. Pair one first; its own web interface then shows here.",
   "view.pair": "Pair a scale",
   "view.new_tab": "Open in a new tab",
-  "view.hint": "The scale's own web interface, through this Pi. Its settings, tags, logs and firmware are there; the scale's Settings share decides what it shows."
+  "view.hint": "The scale's own web interface, through this Pi. Its settings, tags, logs and firmware are there; the scale's Settings share decides what it shows.",
+
+  "backup.reason_auto": "automatic",
+  "backup.auto_title": "Daily backup",
+  "backup.auto_label": "Back up the active backend every day",
+  "backup.auto_hour": "From",
+  "backup.auto_saved": "Saved.",
+  "backup.auto_never": "not yet",
+  "backup.auto_note": "The backend is stopped for a few seconds. If the Pi is off at that hour, it catches up later that day. The newest 7 are kept, apart from the others. Last one: {last}."
 };

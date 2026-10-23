@@ -401,5 +401,13 @@ window.SSPRO_I18N.de = {
   "view.not_paired": "Noch keine Waage gekoppelt. Erst koppeln; dann erscheint hier ihre eigene Weboberfläche.",
   "view.pair": "Waage koppeln",
   "view.new_tab": "In neuem Tab öffnen",
-  "view.hint": "Die eigene Weboberfläche der Waage, über diesen Pi. Dort sind Einstellungen, Tags, Logs und Firmware; was sie zeigt, entscheiden die Freigaben an der Waage."
+  "view.hint": "Die eigene Weboberfläche der Waage, über diesen Pi. Dort sind Einstellungen, Tags, Logs und Firmware; was sie zeigt, entscheiden die Freigaben an der Waage.",
+
+  "backup.reason_auto": "automatisch",
+  "backup.auto_title": "Tägliches Backup",
+  "backup.auto_label": "Aktives Backend jeden Tag sichern",
+  "backup.auto_hour": "Ab",
+  "backup.auto_saved": "Gespeichert.",
+  "backup.auto_never": "noch keins",
+  "backup.auto_note": "Das Backend wird dafür ein paar Sekunden gestoppt. Ist der Pi zu der Stunde aus, holt er es am selben Tag nach. Die neuesten 7 bleiben, getrennt von den anderen. Letztes: {last}."
 };

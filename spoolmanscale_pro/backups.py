@@ -27,6 +27,9 @@ from .version import APP_VERSION
 log = logging.getLogger(__name__)
 
 BACKUPS_KEPT = 10
+# The daily automatic ones count separately, so a week of them never
+# pushes out a backup made by hand or before an update.
+AUTO_BACKUPS_KEPT = 7
 # Below this, a backup is not started: a full SD card stops the backends too.
 MIN_FREE_BYTES = 300 * 1024 * 1024
 
@@ -89,8 +92,13 @@ def write_backup(backend: Backend, dest: Path) -> None:
 
 
 def _prune(key: str) -> None:
-    mine = sorted((p for p in BACKUP_DIR.glob(f"{key}_*.tar")), key=lambda p: p.name, reverse=True)
-    for old in mine[BACKUPS_KEPT:]:
+    """Keeps the newest AUTO_BACKUPS_KEPT automatic and the newest
+    BACKUPS_KEPT other backups of a backend; names sort by time."""
+    mine = sorted((p for p in BACKUP_DIR.glob(f"{key}_*.tar")
+                   if archive_format.parse_backup_name(p.name)), key=lambda p: p.name, reverse=True)
+    auto = [p for p in mine if archive_format.parse_backup_name(p.name)["reason"] == "auto"]
+    other = [p for p in mine if p not in auto]
+    for old in auto[AUTO_BACKUPS_KEPT:] + other[BACKUPS_KEPT:]:
         old.unlink(missing_ok=True)
         log.info("Old backup removed: %s", old.name)
 

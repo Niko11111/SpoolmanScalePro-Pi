@@ -34,6 +34,8 @@ ALLOWED = {
     # The job thread is the outer boundary: a crash there must be logged and
     # turned into a failed job, whatever it was.
     ("broad_except", "spoolmanscale_pro/jobs.py"),
+    # The same for the daily backup's thread: one failed check must not end it.
+    ("broad_except", "spoolmanscale_pro/auto_backup.py"),
 }
 
 # German words written without their umlaut, the mistake rule

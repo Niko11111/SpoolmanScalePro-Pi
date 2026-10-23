@@ -64,6 +64,28 @@
         restore, remove));
   }
 
+  function autoCard(settings) {
+    const box = el("input", { type: "checkbox", checked: settings.auto_backup });
+    const hour = el("select", {}, Array.from({ length: 24 }, (_, h) =>
+      el("option", { value: h, selected: h === settings.auto_backup_hour }, String(h).padStart(2, "0") + ":00")));
+    const save = async (body) => {
+      try {
+        await api("/api/settings", { method: "POST", body: body });
+        toast(t("backup.auto_saved"));
+      } catch (e) {
+        toast(errorText(e), true);
+      }
+    };
+    box.addEventListener("change", () => save({ auto_backup: box.checked }));
+    hour.addEventListener("change", () => save({ auto_backup_hour: Number(hour.value) }));
+    const last = settings.auto_backup_last
+      ? new Date(settings.auto_backup_last).toLocaleDateString(SSPro.lang, { dateStyle: "medium" }) : t("backup.auto_never");
+    return el("section", { class: "card" }, el("h2", { text: t("backup.auto_title") }),
+      el("label", { class: "check" }, el("span", { text: t("backup.auto_label") }), el("span", { class: "switch" }, box, el("i", {}))),
+      el("div", { class: "field" }, el("label", { text: t("backup.auto_hour") }), hour),
+      el("p", { class: "note", text: t("backup.auto_note", { last: last }) }));
+  }
+
   function listCard(items, labelOf, start, redraw) {
     const card = el("section", { class: "card wide" }, el("h2", { text: t("backup.list_title") }));
     if (!items.length) card.append(el("p", { class: "hint", text: t("backup.none") }));
@@ -81,10 +103,10 @@
 
     async function draw() {
       try {
-        const [backends, list] = await Promise.all([api("/api/backends"), api("/api/backups")]);
+        const [backends, list, settings] = await Promise.all([api("/api/backends"), api("/api/backups"), api("/api/settings")]);
         labelOf = views.labelsFrom(backends.backends);
-        grid.replaceChildren(createCard(backends.backends, start), uploadCard(backends.backends, start),
-          listCard(list.backups, labelOf, start, draw));
+        grid.replaceChildren(createCard(backends.backends, start), autoCard(settings.settings),
+          uploadCard(backends.backends, start), listCard(list.backups, labelOf, start, draw));
       } catch (e) {
         if (e.code !== "login_required") toast(errorText(e), true);
       }

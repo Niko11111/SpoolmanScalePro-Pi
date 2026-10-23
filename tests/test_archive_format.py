@@ -97,3 +97,9 @@ def test_too_many_entries(tmp_path, monkeypatch):
     with pytest.raises(af.ArchiveError) as e:
         af.check_data_archive(data)
     assert e.value.code == "archive_too_big"
+
+
+def test_auto_reason():
+    name = af.backup_name("spoolman", datetime(2026, 11, 17, 3, 0, 1), "auto")
+    assert name == "spoolman_2026-11-17_030001_auto.tar"
+    assert af.parse_backup_name(name)["reason"] == "auto"

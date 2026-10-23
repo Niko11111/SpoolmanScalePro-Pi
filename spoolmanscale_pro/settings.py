@@ -36,6 +36,11 @@ DEFAULTS = {
     "backend_versions": {},
     # Whether the Updates page offers pre-releases (BamBuddy's betas).
     "include_prereleases": False,
+    # The daily backup of the active backend (auto_backup.py): on or off,
+    # the hour it runs at, and the day it last ran (ISO date).
+    "auto_backup": True,
+    "auto_backup_hour": 3,
+    "auto_backup_last": "",
 }
 
 SCALE_ADDRESS_MAX_LEN = 64
@@ -97,6 +102,17 @@ def clean_update(raw: dict) -> tuple[dict, list[str]]:
             clean["scale_password"] = value
         else:
             refused.append("scale_password")
+    if "auto_backup" in raw:
+        if isinstance(raw["auto_backup"], bool):
+            clean["auto_backup"] = raw["auto_backup"]
+        else:
+            refused.append("auto_backup")
+    if "auto_backup_hour" in raw:
+        hour = raw["auto_backup_hour"]
+        if isinstance(hour, int) and not isinstance(hour, bool) and 0 <= hour <= 23:
+            clean["auto_backup_hour"] = hour
+        else:
+            refused.append("auto_backup_hour")
     if "include_prereleases" in raw:
         if isinstance(raw["include_prereleases"], bool):
             clean["include_prereleases"] = raw["include_prereleases"]
