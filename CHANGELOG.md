@@ -3,6 +3,24 @@
 One section per version, newest first. VERSION names the current one;
 scripts/check.sh fails when it has no section here.
 
+## 2.0.0-beta.4
+
+- Network page: the Pi's name on the network (<name>.local), the WLAN it is
+  in, a search for networks and joining one, and the Pi's own WLAN
+  (hotspot) with name, password and channel 1, 6 or 11.
+- Joining a WLAN that does not work within 45 seconds puts the Pi back in
+  the network it was in. The hotspot can only be switched off while another
+  network is there to go back to.
+- When neither a WLAN nor a cable connects within 90 seconds of booting, the
+  Pi opens the setup WLAN "SpoolmanScale-Pro-Setup" (password
+  "spoolmanscale") and is reachable at 192.168.50.1. Only at boot, never
+  while running.
+- The installer renames a Pi still called "raspberrypi" to
+  "spoolmanscale-pro", so it answers as spoolmanscale-pro.local; the scale
+  keeps spoolmanscale.local.
+- WLAN passwords reach the root helper on stdin, never as arguments or in a
+  log. scripts/setup-hotspot.sh now uses the same helper.
+
 ## 2.0.0-beta.3
 
 - The login has a user name next to the password, chosen on the first

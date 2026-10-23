@@ -68,15 +68,20 @@ once:
 3. Register the scale in FilaMan, and enter a BamBuddy API key on the scale,
    while that backend is active.
 
-## Run without any network
+## Network
 
-```bash
-sudo scripts/setup-hotspot.sh --ssid SpoolmanScale --channel 6
-```
+The **Network** page sets the Pi's name (it answers as `<name>.local`,
+`spoolmanscale-pro.local` after the install), joins a WLAN, or opens the
+Pi's own WLAN for places without one: a WPA2 network on 2.4 GHz (the scale
+has no 5 GHz), with the Pi at `192.168.50.1`.
 
-The Pi opens a WPA2 network of its own (2.4 GHz, the scale has no 5 GHz) and
-is reachable at `192.168.50.1`. Join the scale and a phone or tablet to it.
-`--remove` turns it off again.
+**No network at all?** When neither a WLAN nor a cable connects within 90
+seconds of booting, the Pi opens the WLAN `SpoolmanScale-Pro-Setup`
+(password `spoolmanscale`). Join it with a phone, open `http://192.168.50.1`
+and choose a WLAN on the Network page.
+
+The same from a terminal: `sudo scripts/setup-hotspot.sh --ssid NAME --channel 6`
+(and `--remove`).
 
 ## How it is built
 

@@ -42,7 +42,9 @@ install_packages() {
   apt-get update -qq
   # avahi: the Pi answers as <hostname>.local. fake-hwclock: the clock comes
   # back from the last shutdown instead of 1970 when there is no network.
-  apt-get install -y -qq python3-venv avahi-daemon fake-hwclock curl >/dev/null
+  # network-manager: the WLAN page and the hotspot speak nmcli (the default
+  # since Raspberry Pi OS Bookworm).
+  apt-get install -y -qq python3-venv avahi-daemon fake-hwclock curl network-manager >/dev/null
   if ! command -v docker >/dev/null 2>&1; then
     say "Docker (Docker's own installer, as its documentation advises for Raspberry Pi OS)"
     curl -fsSL https://get.docker.com | sh
@@ -89,15 +91,32 @@ install_release() {
   ls -1dt "$BASE"/releases/* | tail -n +$((KEEP_RELEASES + 1)) | xargs -r rm -rf
 }
 
+# Raspberry Pi Imager's default name is replaced by the product's, so the
+# Pi answers as spoolmanscale-pro.local. A name chosen in the Imager stays.
+# Not spoolmanscale.local: that name belongs to the scale.
+DEFAULT_HOSTNAME=spoolmanscale-pro
+IMAGER_DEFAULT_HOSTNAME=raspberrypi
+
+set_default_hostname() {
+  if [ "$(hostname)" = "$IMAGER_DEFAULT_HOSTNAME" ]; then
+    say "Host name $DEFAULT_HOSTNAME"
+    "$HELPER_DIR/host-helper" set-hostname "$DEFAULT_HOSTNAME"
+  fi
+}
+
 install_system_files() {
-  say "Helper, sudoers rule, service"
+  say "Helper, sudoers rule, services"
   install -d "$HELPER_DIR"
   install -m 0755 -o root -g root "$SRC/system/host-helper.sh" "$HELPER_DIR/host-helper"
   install -m 0440 -o root -g root "$SRC/system/sudoers" /etc/sudoers.d/spoolmanscale-pro.new
   visudo -cf /etc/sudoers.d/spoolmanscale-pro.new >/dev/null || die "sudoers rule rejected by visudo"
   mv /etc/sudoers.d/spoolmanscale-pro.new /etc/sudoers.d/spoolmanscale-pro
   install -m 0644 "$SRC/system/spoolmanscale-pro.service" /etc/systemd/system/spoolmanscale-pro.service
+  install -m 0644 "$SRC/system/spoolmanscale-pro-setup-ap.service" \
+    /etc/systemd/system/spoolmanscale-pro-setup-ap.service
   systemctl daemon-reload
+  # Runs at the next boot; not now, the Pi is online while this installs.
+  systemctl enable --quiet spoolmanscale-pro-setup-ap
   systemctl enable --quiet spoolmanscale-pro
   systemctl restart spoolmanscale-pro
 }
@@ -113,6 +132,7 @@ setup_swap
 create_user
 install_release
 install_system_files
+set_default_hostname
 if [ "$PULL_ALL" -eq 1 ]; then
   pull_backends
 fi

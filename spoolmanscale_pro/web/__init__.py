@@ -10,10 +10,12 @@ from datetime import timedelta
 from flask import Flask, request
 
 from .. import auth, paths
-from . import access, api_auth, api_backends, api_backup, api_demo, api_scale, api_system, pages
+from . import (access, api_auth, api_backends, api_backup, api_demo, api_network, api_scale,
+               api_system, pages)
 from .responses import fail
 
-BLUEPRINTS = (pages, api_auth, api_backends, api_backup, api_demo, api_scale, api_system)
+BLUEPRINTS = (pages, api_auth, api_backends, api_backup, api_demo, api_network, api_scale,
+              api_system)
 
 SESSION_DAYS = 30
 # The largest request body accepted. A backup upload is the only big one.

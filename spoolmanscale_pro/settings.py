@@ -27,6 +27,10 @@ DEFAULTS = {
     # The scale's web password, if one is set there. Digits only, the way
     # the scale takes it.
     "scale_password": "",
+    # The Pi's own WLAN as last set up, to fill the form again. Its password
+    # is kept by NetworkManager only.
+    "hotspot_ssid": "",
+    "hotspot_channel": 6,
 }
 
 SCALE_ADDRESS_MAX_LEN = 64

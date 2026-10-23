@@ -104,3 +104,22 @@ def test_demo_is_off_until_the_flag_file_exists(client):
         assert client.get("/api/demo").status_code == 200
     finally:
         DEMO_FLAG_FILE.unlink()
+
+
+def test_network_input_is_checked_before_the_helper_runs(client, monkeypatch):
+    from spoolmanscale_pro import host_actions
+    called = []
+    monkeypatch.setattr(host_actions.subprocess, "run", lambda *a, **k: called.append(a))
+    client.post("/api/auth/login", json=LOGIN, headers=H)
+    cases = [
+        ("/api/network/hostname", {"hostname": "spoolmanscale_pro"}, "hostname_invalid"),
+        ("/api/network/hostname", {"hostname": "x; reboot"}, "hostname_invalid"),
+        ("/api/network/wifi", {"ssid": "", "psk": "longenough"}, "ssid_invalid"),
+        ("/api/network/wifi", {"ssid": "Home", "psk": "short"}, "psk_invalid"),
+        ("/api/network/hotspot", {"ssid": "Demo", "psk": "", "channel": 6}, "psk_invalid"),
+        ("/api/network/hotspot", {"ssid": "Demo", "psk": "longenough", "channel": 5}, "channel_invalid"),
+    ]
+    for path, body, code in cases:
+        r = client.post(path, json=body, headers=H)
+        assert r.status_code == 400 and r.json["error"] == code, (path, body)
+    assert called == []

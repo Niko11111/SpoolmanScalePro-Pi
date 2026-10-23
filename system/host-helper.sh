@@ -3,37 +3,174 @@
 #
 # Installed root-owned to /usr/local/libexec/spoolmanscale-pro/host-helper;
 # system/sudoers lets the service user run exactly this file. Every verb is
-# listed below and checks its own argument. Anything else is refused.
+# listed in the case at the bottom and checks its own input. Anything else is
+# refused. Secrets (WLAN passwords) come on stdin, never as arguments.
+#
+# Verbs:
+#   reboot | poweroff
+#   set-time EPOCH_SECONDS
+#   set-hostname NAME
+#   wifi-scan                      prints nmcli -t rows
+#   wifi-connect     (stdin: SSID, PSK)            join a WLAN, fall back if it fails
+#   hotspot-on       (stdin: SSID, PSK, CHANNEL)   the Pi's own WLAN
+#   hotspot-off                                     back to the known WLANs
+#   setup-ap-if-offline            at boot: open the setup WLAN if nothing connected
 set -eu
+
+HOTSPOT_CONNECTION=spoolmanscale-hotspot
+SETUP_CONNECTION=spoolmanscale-setup
+# The setup WLAN is only up while the Pi has no other network. Its password
+# is printed in the README: it keeps strangers from joining by accident, not
+# by intent, and the page behind it still asks for a login of its own.
+SETUP_SSID=SpoolmanScale-Pro-Setup
+SETUP_PSK=spoolmanscale
+HOTSPOT_ADDRESS=192.168.50.1/24
+CONNECT_WAIT_S=45
+OFFLINE_WAIT_S=90
+OFFLINE_POLL_S=5
 
 die() { echo "host-helper: $*" >&2; exit 2; }
 
+# Detached, so the caller gets its answer before the system goes.
+later() { systemd-run --on-active=2 --timer-property=AccuracySec=100ms "$@" >/dev/null; }
+
+set_time() {
+  epoch="${1:-}"
+  case "$epoch" in ''|*[!0-9]*) die "set-time needs epoch seconds" ;; esac
+  # 2024-01-01 .. 2100-01-01, as in host_actions.py.
+  [ "$epoch" -ge 1704067200 ] && [ "$epoch" -le 4102444800 ] || die "set-time out of range"
+  date -u -s "@$epoch" >/dev/null
+  # Keep it across a reboot without network. "force", because otherwise
+  # fake-hwclock never saves a time earlier than the one it has.
+  if command -v fake-hwclock >/dev/null 2>&1; then
+    fake-hwclock save force
+  fi
+}
+
+set_hostname() {
+  name="${1:-}"
+  # The same rule as network_rules.HOSTNAME_RE.
+  echo "$name" | grep -Eqx '[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?' || die "invalid host name"
+  hostnamectl set-hostname "$name"
+  if grep -q '^127\.0\.1\.1' /etc/hosts; then
+    sed -i "s/^127\.0\.1\.1.*/127.0.1.1\t$name/" /etc/hosts
+  else
+    printf '127.0.1.1\t%s\n' "$name" >> /etc/hosts
+  fi
+  # avahi announces the new <name>.local right away.
+  systemctl restart avahi-daemon
+}
+
+wifi_scan() {
+  nmcli -t -f IN-USE,SSID,SIGNAL,SECURITY,CHAN device wifi list --rescan yes ifname wlan0
+}
+
+active_wifi() {
+  nmcli -t -f NAME,DEVICE connection show --active | sed -n 's/^\(.*\):wlan0$/\1/p' | head -n 1
+}
+
+wifi_connect() {
+  IFS= read -r ssid || die "wifi-connect needs the network name on stdin"
+  IFS= read -r psk || psk=""
+  [ -n "$ssid" ] || die "empty network name"
+  previous="$(active_wifi)"
+  existed=0
+  nmcli -g NAME connection show | grep -Fxq -- "$ssid" && existed=1
+  # The password reaches nmcli as an argument: visible to root in the
+  # process list for the second it runs, which on this single-user Pi is
+  # the same trust as the file NetworkManager keeps it in.
+  if [ -n "$psk" ]; then
+    ok=0; nmcli --wait "$CONNECT_WAIT_S" device wifi connect "$ssid" password "$psk" ifname wlan0 >/dev/null && ok=1
+  else
+    ok=0; nmcli --wait "$CONNECT_WAIT_S" device wifi connect "$ssid" ifname wlan0 >/dev/null && ok=1
+  fi
+  if [ "$ok" = 1 ]; then
+    # A client WLAN now; the Pi's own hotspot must not take wlan0 back at boot.
+    nmcli connection modify "$HOTSPOT_CONNECTION" connection.autoconnect no 2>/dev/null || true
+    return 0
+  fi
+  # Failed: leave no half profile behind, and go back where the Pi was.
+  [ "$existed" = 1 ] || nmcli connection delete id "$ssid" >/dev/null 2>&1 || true
+  if [ -n "$previous" ]; then
+    nmcli --wait 30 connection up id "$previous" >/dev/null 2>&1 || true
+  fi
+  exit 3
+}
+
+make_ap() {
+  # $1 connection, $2 ssid, $3 psk, $4 channel, $5 autoconnect yes|no
+  nmcli connection delete id "$1" >/dev/null 2>&1 || true
+  # ipv4.method shared: NetworkManager runs DHCP for the clients itself.
+  nmcli connection add type wifi ifname wlan0 con-name "$1" \
+    autoconnect "$5" connection.autoconnect-priority 100 \
+    ssid "$2" mode ap 802-11-wireless.band bg 802-11-wireless.channel "$4" \
+    802-11-wireless.powersave 2 \
+    ipv4.method shared ipv4.addresses "$HOTSPOT_ADDRESS" ipv6.method disabled \
+    wifi-sec.key-mgmt wpa-psk wifi-sec.proto rsn wifi-sec.pairwise ccmp wifi-sec.group ccmp \
+    wifi-sec.psk "$3" >/dev/null
+}
+
+hotspot_on() {
+  IFS= read -r ssid || die "hotspot-on needs a network name"
+  IFS= read -r psk || die "hotspot-on needs a password"
+  IFS= read -r channel || die "hotspot-on needs a channel"
+  [ -n "$ssid" ] || die "empty network name"
+  [ "${#psk}" -ge 8 ] && [ "${#psk}" -le 63 ] || die "password must have 8 to 63 characters"
+  case "$channel" in 1|6|11) ;; *) die "channel must be 1, 6 or 11" ;; esac
+  make_ap "$HOTSPOT_CONNECTION" "$ssid" "$psk" "$channel" yes
+  # The setup WLAN is not needed while the Pi has its own.
+  nmcli connection down id "$SETUP_CONNECTION" >/dev/null 2>&1 || true
+  nmcli --wait 30 connection up id "$HOTSPOT_CONNECTION" >/dev/null
+}
+
+has_other_network() {
+  # A cable with a link, or a saved client WLAN to go back to.
+  nmcli -t -f TYPE,STATE device | grep -q '^ethernet:connected$' && return 0
+  nmcli -g NAME,TYPE connection show | grep ':802-11-wireless$' \
+    | grep -v -e "^$HOTSPOT_CONNECTION:" -e "^$SETUP_CONNECTION:" | grep -q .
+}
+
+hotspot_off() {
+  has_other_network || { echo "host-helper: no other network to fall back to" >&2; exit 4; }
+  nmcli connection modify "$HOTSPOT_CONNECTION" connection.autoconnect no 2>/dev/null || true
+  nmcli connection down id "$HOTSPOT_CONNECTION" >/dev/null 2>&1 || true
+  # NetworkManager now joins the best known WLAN by itself.
+}
+
+is_online() {
+  nmcli -t -f TYPE,STATE,CONNECTION device | grep -E '^(ethernet|wifi):connected:' \
+    | grep -vq -e ":$SETUP_CONNECTION\$" -e ":$HOTSPOT_CONNECTION\$"
+}
+
+hotspot_active() {
+  nmcli -t -f NAME connection show --active | grep -Fxq "$HOTSPOT_CONNECTION"
+}
+
+setup_ap_if_offline() {
+  waited=0
+  while [ "$waited" -lt "$OFFLINE_WAIT_S" ]; do
+    # Our own hotspot counts as a network: nothing to rescue. Checked in the
+    # loop, because at boot it can take a few seconds to come up.
+    is_online && return 0
+    hotspot_active && return 0
+    sleep "$OFFLINE_POLL_S"
+    waited=$((waited + OFFLINE_POLL_S))
+  done
+  echo "host-helper: no network after ${OFFLINE_WAIT_S} s, opening $SETUP_SSID"
+  make_ap "$SETUP_CONNECTION" "$SETUP_SSID" "$SETUP_PSK" 6 no
+  nmcli --wait 30 connection up id "$SETUP_CONNECTION" >/dev/null
+}
+
 verb="${1:-}"
 case "$verb" in
-  reboot)
-    # Detached, so the caller gets its answer before the system goes.
-    systemd-run --on-active=2 --timer-property=AccuracySec=100ms /bin/systemctl reboot
-    ;;
-  poweroff)
-    systemd-run --on-active=2 --timer-property=AccuracySec=100ms /bin/systemctl poweroff
-    ;;
-  set-time)
-    epoch="${2:-}"
-    case "$epoch" in
-      ''|*[!0-9]*) die "set-time needs epoch seconds" ;;
-    esac
-    # 2024-01-01 .. 2100-01-01, as in host_actions.py.
-    [ "$epoch" -ge 1704067200 ] && [ "$epoch" -le 4102444800 ] || die "set-time out of range"
-    date -u -s "@$epoch" >/dev/null
-    # Keep it across a reboot without network: fake-hwclock restores the
-    # last saved time at boot instead of 1970. "force", because without it
-    # fake-hwclock never saves a time earlier than the one it has, and a
-    # clock that ran ahead must be correctable.
-    if command -v fake-hwclock >/dev/null 2>&1; then
-      fake-hwclock save force
-    fi
-    ;;
-  *)
-    die "unknown verb '$verb'"
-    ;;
+  reboot)              later /bin/systemctl reboot ;;
+  poweroff)            later /bin/systemctl poweroff ;;
+  set-time)            set_time "${2:-}" ;;
+  set-hostname)        set_hostname "${2:-}" ;;
+  wifi-scan)           wifi_scan ;;
+  wifi-connect)        wifi_connect ;;
+  hotspot-on)          hotspot_on ;;
+  hotspot-off)         hotspot_off ;;
+  setup-ap-if-offline) setup_ap_if_offline ;;
+  *)                   die "unknown verb '$verb'" ;;
 esac
