@@ -1,0 +1,64 @@
+# The three inventory backends, one profile each. The service only ever
+# starts one of them: on a Pi with 1 GB they do not fit side by side.
+#
+# Driven by spoolmanscale_pro/docker_compose.py, always with the project name
+# "spoolmanscale-pro", so the named volumes below come out as
+# spoolmanscale-pro_<name> and survive any update of this file.
+#
+# Images are pinned to a version. Moving one is a change of its own, tested
+# on the Pi, with a line in CHANGELOG.md.
+#
+# Ports are published to the LAN on purpose: the scale and the browser talk
+# to the backend directly. BamBuddy stays on the bridge network like the
+# others; printer discovery by SSDP would need host networking, and a printer
+# can be added by its address instead.
+
+x-common: &common
+  restart: unless-stopped
+  environment: &common-env
+    TZ: ${TZ:-Etc/UTC}
+  logging:
+    driver: json-file
+    options:
+      # The SD card is the one thing a busy log can wear out.
+      max-size: "5m"
+      max-file: "2"
+
+services:
+  spoolman:
+    <<: *common
+    profiles: ["spoolman"]
+    image: ghcr.io/donkie/spoolman:0.27.0
+    ports:
+      - "7912:8000"
+    volumes:
+      - spoolman-data:/home/app/.local/share/spoolman
+
+  filaman:
+    <<: *common
+    profiles: ["filaman"]
+    image: ghcr.io/fire-devils/filaman-system:v1.4.3
+    environment:
+      <<: *common-env
+      PORT: "8000"
+      DEBUG: "false"
+    ports:
+      - "8002:8000"
+    volumes:
+      - filaman-data:/app/data
+
+  bambuddy:
+    <<: *common
+    profiles: ["bambuddy"]
+    image: ghcr.io/maziggy/bambuddy:1.2.5.7
+    ports:
+      - "8000:8000"
+    volumes:
+      - bambuddy-data:/app/data
+      - bambuddy-logs:/app/logs
+
+volumes:
+  spoolman-data:
+  filaman-data:
+  bambuddy-data:
+  bambuddy-logs:

@@ -1,139 +1,115 @@
-# SpoolmanScalePro-Pi
+# SpoolmanScale Pro
 
-> Self-hosted filament management server for SpoolmanScale Pro — runs Spoolman or FilaMan on a Raspberry Pi with a built-in web UI for setup and management.
+A Raspberry Pi as the filament server for your
+[SpoolmanScale](https://github.com/Niko11111/SpoolmanScale). It runs one
+inventory backend, [Spoolman](https://github.com/Donkie/Spoolman),
+[FilaMan](https://filaman.app) or [BamBuddy](https://github.com/maziggy/bambuddy),
+and switches between them from a web page. The scale is switched along with
+it.
 
-Part of the [SpoolmanScale](https://github.com/Niko11111/SpoolmanScale) ecosystem.
+> **Status: 2.0 beta.** A rebuild of version 0.1, which stays on the `main`
+> branch until 2.0 is released.
 
----
+## What it does
 
-## What is this?
-
-SpoolmanScalePro-Pi turns a Raspberry Pi into a self-contained filament management server. It runs either [Spoolman](https://github.com/Donkie/Spoolman) or [FilaMan](https://filaman.app) — switchable at any time — and provides a built-in web UI for setup, monitoring, backup and management.
-
-Designed to run inside the **SpoolmanScale Pro** enclosure (Pi Zero 2W), but works on any Raspberry Pi with Docker.
-
-## Features
-
-- 🔄 **Switch between Spoolman and FilaMan** — only one runs at a time for stability on Pi Zero 2W
-- 🌐 **Built-in Web UI** — setup, status, backup, WiFi, update and more
-- 💾 **Backup & Restore** — generate and download database backups with one click
-- 🔁 **Auto-start** — last active backend starts automatically on boot
-- 📡 **mDNS** — reachable via http://spoolmanscale.local
-- 🔄 **Auto-Backup** — daily scheduled backups, keeps last 7
-- ⬆️ **Self-Update** — check and install UI updates directly from the web interface
+- **One backend at a time**, started and stopped with Docker. Switching shows
+  each step: stop the running backend, start the chosen one, wait until it
+  answers, switch the scale. The data of each backend stays where it is.
+- **Takes the scale along.** Pair the scale once by its name or address; every
+  switch then sets the scale to the same backend through the scale's own web
+  interface. The page shows whether the scale reached it and whether it
+  points at this Pi.
+- **The Pi at a glance:** RAM, compressed swap, SD card, CPU temperature,
+  uptime and clock. A Pi has no battery-backed clock; when it is off, the
+  page sets it from the browser's time.
+- **Protected** by a password from the first visit on.
+- **Works without internet** once the backends are downloaded, for example as
+  a hotspot of its own (see below).
+- English and German.
 
 ## Requirements
 
-- Raspberry Pi (Zero 2W, 3, 4 or 5)
-- Raspberry Pi OS Lite (64-bit, Debian Trixie or later)
-- Docker
+- Raspberry Pi 3B or newer, 64-bit **Raspberry Pi OS Lite** (Bookworm or Trixie)
+- A SpoolmanScale with firmware 0.7.0 or newer for the switching
+- About 3.5 GB free on the SD card for all three backends (16 GB card or larger)
 
-## Installation
+One backend at a time fits in 1 GB of RAM. Measured right after the first
+start on 64-bit ARM: Spoolman about 100 MB, BamBuddy about 190 MB, FilaMan
+about 370 MB.
 
-### 1. Flash Pi OS
+## Install
 
-Flash **Raspberry Pi OS Lite (64-bit)** with Pi Imager. In the pre-configuration:
+On the Pi, with internet:
 
-| Setting | Value |
+```bash
+git clone https://github.com/Niko11111/SpoolmanScalePro-Pi.git
+cd SpoolmanScalePro-Pi
+sudo scripts/install.sh --pull-all
+```
+
+`--pull-all` downloads all three backends right away, so each one can later
+start without internet. Then open `http://<hostname>.local` and choose a
+password.
+
+To update, `git pull` and run `sudo scripts/install.sh` again. Your data is
+not touched.
+
+## Pair the scale
+
+On the **Scale** tab, enter the scale's name or address. On the scale itself,
+once:
+
+1. Turn on *Settings > System > Web interface > Settings*. This lets the Pi
+   switch the scale's backend.
+2. Choose each backend once and enter the Pi as its server, with the port
+   from the Scale tab (Spoolman 7912, FilaMan 8002, BamBuddy 8000).
+3. Register the scale in FilaMan, and enter a BamBuddy API key on the scale,
+   while that backend is active.
+
+## Run without any network
+
+```bash
+sudo scripts/setup-hotspot.sh --ssid SpoolmanScale --channel 6
+```
+
+The Pi opens a WPA2 network of its own (2.4 GHz, the scale has no 5 GHz) and
+is reachable at `192.168.50.1`. Join the scale and a phone or tablet to it.
+`--remove` turns it off again.
+
+## How it is built
+
+| Part | Where |
 |---|---|
-| Hostname | spoolmanscale |
-| SSH | Enable, public key auth |
-| WiFi | 2.4 GHz only (Pi Zero 2W has no 5 GHz) |
-| Locale | Your region |
+| Web service (Flask, served by waitress) | `spoolmanscale_pro/` |
+| The backends, one compose profile each | `compose/docker-compose.yml` |
+| Page (plain JavaScript, no build step) | `templates/`, `static/` |
+| systemd unit, sudoers rule, root helper | `system/` |
+| Install and hotspot | `scripts/` |
 
-### 2. First boot
+The service runs as its own user `spoolmanscale`, not as root and not in a
+container. It drives Docker through `docker compose` with argument lists,
+never through a shell. Restart, shutdown and setting the clock go through
+`system/host-helper.sh`, which knows exactly those verbs; sudo allows the
+service user that one file. The service user is in the `docker` group,
+which amounts to root, so the page's password is what guards the Pi: choose
+a real one.
 
-ssh pi@spoolmanscale.local
+Forgot the password? On the Pi: `sudo rm /var/lib/spoolmanscale-pro/auth.json`,
+then reload the page and choose a new one.
 
-### 3. Passwordless sudo (optional but recommended)
+## Development
 
-echo "pi ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/010_pi-nopasswd
-sudo chmod 440 /etc/sudoers.d/010_pi-nopasswd
+```bash
+python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
+SSPRO_DATA_DIR=$PWD/.devdata .venv/bin/python -m spoolmanscale_pro --port 8090
+scripts/check.sh
+```
 
-### 4. GPU RAM reduction (headless, saves ~48 MB)
+Docker Desktop on a Mac with Apple silicon runs the same arm64 images as the
+Pi. `scripts/check.sh` runs the house rules and the tests, and CI runs it on
+every push.
 
-echo "gpu_mem=16" | sudo tee -a /boot/firmware/config.txt
-sudo reboot
+## License
 
-### 5. Docker
-
-curl -fsSL https://get.docker.com | sudo sh
-sudo usermod -aG docker pi
-
-Log out and back in, then verify docker --version and docker compose version.
-
-### 6. Clone and start
-
-mkdir -p ~/spoolmanscale
-cd ~/spoolmanscale
-git clone https://github.com/Niko11111/SpoolmanScalePro-Pi.git .
-chmod +x switch-backend.sh auto-backup.sh
-docker compose pull
-docker compose up -d
-
-### 7. Auto-start on boot
-
-Create /etc/systemd/system/spoolmanscale-backend.service with:
-
-[Unit]
-Description=SpoolmanScale Backend Auto-Start
-After=docker.service network-online.target
-Requires=docker.service
-Wants=network-online.target
-
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-User=root
-WorkingDirectory=/home/pi/spoolmanscale
-ExecStart=/home/pi/spoolmanscale/switch-backend.sh auto
-
-[Install]
-WantedBy=multi-user.target
-
-Then: sudo systemctl daemon-reload && sudo systemctl enable spoolmanscale-backend.service
-
-### 8. Open Web UI
-
-http://spoolmanscale.local or use the Pi IP directly.
-From the Web UI, activate Spoolman or FilaMan — downloaded automatically on first use.
-
----
-
-## Backends
-
-| | Spoolman | FilaMan |
-|---|---|---|
-| Port | 7912 | 8002 |
-| Community | Large, established | Growing |
-| UI | Functional | Modern |
-| App | — | iOS & Android |
-| RAM usage | ~150 MB | ~250 MB |
-| Recommendation | Most users | App integration |
-
-On Pi Zero 2W (512 MB RAM), only one backend runs at a time. On Pi 4 with 2+ GB RAM, parallel mode can be enabled in the Web UI.
-
-FilaMan first login: admin@example.com / admin123 — change after first login.
-
----
-
-## Web UI
-
-| Tab | Features |
-|---|---|
-| **Backend** | Switch Spoolman/FilaMan, status, logs, update check, parallel mode |
-| **System** | RAM/SD/Temp/Uptime, Pi update, UI self-update, WiFi, reboot, shutdown |
-| **Backup** | Generate, download, restore, auto-backup, danger zone |
-
----
-
-## Part of SpoolmanScale
-
-- SpoolmanScale: https://github.com/Niko11111/SpoolmanScale — ESP32 filament scale with NFC
-- Ko-fi: https://ko-fi.com/formfollowsfunction — Support the project
-- Discord: https://discord.gg/GzQzGa5pBG — Community
-- MakerWorld: https://makerworld.com/de/@FormFollowsF — 3D printable enclosure
-
----
-
-© 2026 Niko11111. All rights reserved.
+GPL-3.0, see [LICENSE](LICENSE). Part of the
+[SpoolmanScale](https://github.com/Niko11111/SpoolmanScale) project.

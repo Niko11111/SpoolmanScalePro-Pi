@@ -1,1 +1,9 @@
 .DS_Store
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+# local development data (SSPRO_DATA_DIR during development)
+.devdata/
+# local working notes
+Notes/

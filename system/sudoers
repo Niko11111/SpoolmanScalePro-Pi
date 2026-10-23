@@ -1,0 +1,3 @@
+# Installed to /etc/sudoers.d/spoolmanscale-pro by scripts/install.sh.
+# The service user may run the host helper as root, and nothing else.
+spoolmanscale ALL=(root) NOPASSWD: /usr/local/libexec/spoolmanscale-pro/host-helper
