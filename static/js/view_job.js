@@ -45,6 +45,12 @@
     if (job.ok === true) card.append(el("div", { class: "callout ok", text: t("job.done") }));
     if (job.ok === false) card.append(el("div", { class: "callout bd", text: t("err." + job.error) }));
     for (const code of job.warnings) card.append(el("div", { class: "callout wr", text: t("warn." + code) }));
+    if (job.lines && job.lines.length) {
+      const box = el("div", { class: "log", text: job.lines.join("\n") });
+      card.append(box);
+      // After the card is in the page: the newest line in view.
+      requestAnimationFrame(() => { box.scrollTop = box.scrollHeight; });
+    }
     return card;
   }
 

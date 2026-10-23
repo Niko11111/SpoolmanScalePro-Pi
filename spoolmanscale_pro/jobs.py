@@ -18,6 +18,10 @@ from dataclasses import dataclass, field
 
 log = logging.getLogger(__name__)
 
+# Lines a job keeps of its own output (the OS upgrade's apt log). The page
+# shows them live; older ones are in the full log on the Pi.
+JOB_LOG_LINES = 300
+
 
 class JobFailed(Exception):
     def __init__(self, code: str, detail: str = ""):
@@ -37,13 +41,14 @@ class JobState:
     error: str | None = None
     warnings: list[str] = field(default_factory=list)
     result: dict = field(default_factory=dict)
+    lines: list[str] = field(default_factory=list)
 
     def as_dict(self) -> dict:
         return {
             "id": self.id, "kind": self.kind, "target": self.target,
             "step": self.step, "running": self.finished_at is None,
             "ok": self.ok, "error": self.error, "warnings": list(self.warnings),
-            "result": dict(self.result),
+            "result": dict(self.result), "lines": list(self.lines),
             "started_at": self.started_at, "finished_at": self.finished_at,
         }
 
@@ -68,6 +73,12 @@ class Progress:
     def set_result(self, **values) -> None:
         with self._lock:
             self._state.result.update(values)
+
+    def output(self, lines: list[str]) -> None:
+        """Output of the job's work, shown live under its progress."""
+        with self._lock:
+            self._state.lines.extend(lines)
+            del self._state.lines[:-JOB_LOG_LINES]
 
 
 class JobRunner:

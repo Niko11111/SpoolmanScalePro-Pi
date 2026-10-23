@@ -28,6 +28,8 @@ it.
 - **Backend updates** with the release notes of every version in between,
   a backup before each one, and the old version back by itself when the
   new one does not start.
+- **Raspberry Pi OS updates** from the page: see what would change first,
+  then install with the log live.
 - **Works without internet** once the backends are downloaded, for example as
   a hotspot of its own (see below).
 - English and German.

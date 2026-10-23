@@ -39,3 +39,11 @@ def test_a_crash_becomes_internal_error():
     runner = JobRunner()
     runner.start("switch", "x", lambda p: 1 / 0)
     assert _wait(runner)["error"] == "internal_error"
+
+
+def test_output_keeps_only_the_newest_lines():
+    from spoolmanscale_pro.jobs import JOB_LOG_LINES
+    runner = JobRunner()
+    runner.start("os_upgrade", "pi", lambda p: p.output([f"line {i}" for i in range(JOB_LOG_LINES + 5)]))
+    lines = _wait(runner)["lines"]
+    assert len(lines) == JOB_LOG_LINES and lines[-1] == f"line {JOB_LOG_LINES + 4}"

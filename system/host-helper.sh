@@ -15,6 +15,8 @@
 #   hotspot-on       (stdin: SSID, PSK, CHANNEL)   the Pi's own WLAN
 #   hotspot-off                                     back to the known WLANs
 #   setup-ap-if-offline            at boot: open the setup WLAN if nothing connected
+#   apt-check                      refresh the package lists, print a simulated upgrade
+#   os-upgrade-start               run the upgrade as its own systemd unit, log in UPGRADE_LOG
 set -eu
 
 HOTSPOT_CONNECTION=spoolmanscale-hotspot
@@ -28,6 +30,13 @@ HOTSPOT_ADDRESS=192.168.50.1/24
 CONNECT_WAIT_S=45
 OFFLINE_WAIT_S=90
 OFFLINE_POLL_S=5
+
+# The upgrade runs as a unit of its own, not as a child of the service: if
+# the service restarts meanwhile (apt may update Python), dpkg is not cut
+# off halfway. The service follows it through the log (os_update.py).
+UPGRADE_UNIT=spoolmanscale-pro-os-upgrade
+UPGRADE_LOG_DIR=/var/log/spoolmanscale-pro
+UPGRADE_LOG=$UPGRADE_LOG_DIR/os-upgrade.log
 
 die() { echo "host-helper: $*" >&2; exit 2; }
 
@@ -161,6 +170,31 @@ setup_ap_if_offline() {
   nmcli --wait 30 connection up id "$SETUP_CONNECTION" >/dev/null
 }
 
+apt_check() {
+  # English output whatever the Pi's language: os_update_rules.py parses it.
+  export LC_ALL=C DEBIAN_FRONTEND=noninteractive
+  apt-get update -qq
+  apt-get -s full-upgrade
+}
+
+os_upgrade_start() {
+  if systemctl is-active --quiet "$UPGRADE_UNIT"; then
+    echo "host-helper: an upgrade is already running" >&2
+    exit 5
+  fi
+  systemctl reset-failed "$UPGRADE_UNIT" >/dev/null 2>&1 || true
+  install -d -m 0755 "$UPGRADE_LOG_DIR"
+  : > "$UPGRADE_LOG"
+  chmod 0644 "$UPGRADE_LOG"
+  # dpkg --configure -a first: after an upgrade cut off by a power loss apt
+  # refuses everything until it ran; with nothing pending it does nothing.
+  # confdef/confold: a configuration file changed by hand is kept, and the
+  # upgrade never stops to ask. The last line carries the exit code.
+  systemd-run --unit="$UPGRADE_UNIT" --description="SpoolmanScale Pro: Raspberry Pi OS upgrade" \
+    --setenv=LC_ALL=C --setenv=DEBIAN_FRONTEND=noninteractive \
+    /bin/sh -c '{ dpkg --configure -a && apt-get update && apt-get -y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold full-upgrade; } >> "$0" 2>&1; echo "SSPRO-EXIT:$?" >> "$0"' "$UPGRADE_LOG" >/dev/null
+}
+
 verb="${1:-}"
 case "$verb" in
   reboot)              later /bin/systemctl reboot ;;
@@ -172,5 +206,7 @@ case "$verb" in
   hotspot-on)          hotspot_on ;;
   hotspot-off)         hotspot_off ;;
   setup-ap-if-offline) setup_ap_if_offline ;;
+  apt-check)           apt_check ;;
+  os-upgrade-start)    os_upgrade_start ;;
   *)                   die "unknown verb '$verb'" ;;
 esac

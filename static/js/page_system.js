@@ -118,10 +118,12 @@
 
   function render(main) {
     const grid = el("div", { class: "grid" });
-    main.append(grid);
+    const os = SSPro.views.osCard();
+    main.append(grid, os);
     api("/api/system").then((system) => {
-      grid.replaceChildren(lookCard(), accountCard(), powerCard(system));
+      grid.replaceChildren(powerCard(system), accountCard(), lookCard());
     }).catch((e) => { if (e.code !== "login_required") toast(errorText(e), true); });
+    return os.stop;
   }
 
   // Before the first paint of any page, not only this one.

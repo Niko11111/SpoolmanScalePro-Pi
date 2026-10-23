@@ -3,6 +3,18 @@
 One section per version, newest first. VERSION names the current one;
 scripts/check.sh fails when it has no section here.
 
+## 2.0.0-beta.6
+
+- Raspberry Pi OS updates on the System page, as in TheRentalScale: a
+  search that installs nothing and lists every package with its old and new
+  version (and any that would be removed), then the install with apt's log
+  live on the page, and a restart button when a new kernel needs one.
+- The upgrade runs as a systemd unit of its own, so a restart of the
+  service cannot cut dpkg off halfway; the page picks a running upgrade up
+  again after a reload. Each upgrade first finishes one a power cut left
+  open (dpkg --configure -a).
+- Jobs can show their output live under their progress.
+
 ## 2.0.0-beta.5
 
 - Updates page: for each backend, the version it runs and the one this
