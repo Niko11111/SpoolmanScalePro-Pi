@@ -105,6 +105,69 @@
       el("div", { class: "btnrow" }, startButton, stop));
   }
 
+  // The address the Pi has on its network, and three ways to keep it:
+  // a reservation in the router (recommended, by the MAC shown here), the
+  // current address made fixed, or another one checked first.
+  function ipRows(ip) {
+    const copy = el("button", { type: "button", class: "quiet" }, t("ip.copy"));
+    copy.addEventListener("click", () => {
+      navigator.clipboard.writeText(ip.mac).then(() => toast(t("ip.copied")), () => toast(ip.mac));
+    });
+    return el("div", { class: "rows" },
+      row(t("ip.connection"), ip.connection),
+      row(t("ip.address"), ip.address, true),
+      row(t("ip.kind"), t(ip.fixed ? "ip.fixed" : "ip.dhcp")),
+      row(t("ip.gateway"), ip.gateway, true),
+      row(t("ip.mac"), el("span", { class: "inrow" }, el("span", { class: "mono", text: ip.mac }), copy)));
+  }
+
+  function otherAddress(ip, start) {
+    const input = el("input", { type: "text", placeholder: ip.address.split("/")[0], inputmode: "decimal" });
+    const verdict = el("div", { class: "msg", role: "status" });
+    const fix = el("button", { type: "button", disabled: true }, t("ip.fix_other"));
+    const check = el("button", { type: "button", class: "quiet" }, t("ip.check"));
+    check.addEventListener("click", () => busy(check, async () => {
+      const result = (await api("/api/network/ip/check", { method: "POST", body: { address: input.value } })).verdict;
+      const free = result === "free";
+      verdict.className = "msg" + (free ? "" : " bad");
+      verdict.textContent = free ? t("ip.free") : errorText({ code: result === "taken" ? "ip_taken" : result });
+      fix.disabled = !free;
+    }));
+    input.addEventListener("input", () => { fix.disabled = true; verdict.textContent = ""; });
+    fix.addEventListener("click", async () => {
+      if (!(await ask(t("ip.fix_title", { address: input.value }), t("ip.fix_text", { address: input.value }), t("ip.fix_other")))) return;
+      start(fix, "/api/network/ip/static", { address: input.value });
+    });
+    return [el("div", { class: "field" }, el("label", { text: t("ip.other") }), el("div", { class: "inrow" }, input, check)),
+      verdict, el("div", { class: "btnrow" }, fix)];
+  }
+
+  function ipCard(ip, start) {
+    const card = el("section", { class: "card" }, el("h2", { text: t("ip.title") }));
+    if (!ip) {
+      card.append(el("p", { class: "hint", text: t("ip.no_uplink") }));
+      return card;
+    }
+    card.append(ipRows(ip), el("p", { class: "hint", text: t("ip.router_hint") }));
+    if (ip.fixed) {
+      const back = el("button", { type: "button", class: "quiet" }, t("ip.to_dhcp"));
+      back.addEventListener("click", async () => {
+        if (!(await ask(t("ip.to_dhcp"), t("ip.to_dhcp_text"), t("ip.to_dhcp")))) return;
+        start(back, "/api/network/ip/dhcp");
+      });
+      card.append(el("div", { class: "btnrow" }, back));
+      return card;
+    }
+    const keep = el("button", { type: "button" }, t("ip.keep"));
+    keep.addEventListener("click", async () => {
+      if (!(await ask(t("ip.keep"), t("ip.keep_text", { address: ip.address.split("/")[0] }), t("ip.keep")))) return;
+      start(keep, "/api/network/ip/static", {});
+    });
+    card.append(el("div", { class: "btnrow" }, keep), ...otherAddress(ip, start),
+      el("p", { class: "note", text: t("ip.range_note") }));
+    return card;
+  }
+
   function render(main) {
     const jobSlot = el("div", { class: "wrap" });
     const grid = el("div", { class: "grid" });
@@ -131,7 +194,7 @@
             el("div", { class: "callout wr", text: t("net.unavailable") })));
           return;
         }
-        grid.replaceChildren(nameCard(net), wifiCard(net, start), hotspotCard(net, start));
+        grid.replaceChildren(nameCard(net), wifiCard(net, start), ipCard(net.ip, start), hotspotCard(net, start));
       } catch (e) {
         if (e.code !== "login_required") toast(errorText(e), true);
       }

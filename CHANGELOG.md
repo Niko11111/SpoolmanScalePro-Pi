@@ -3,6 +3,18 @@
 One section per version, newest first. VERSION names the current one;
 scripts/check.sh fails when it has no section here.
 
+## 2.0.0-beta.16
+
+- The Network page shows the Pi's IP address, whether it comes from the
+  router or is fixed, the router and the MAC address (to copy, for a
+  reservation in the router, which is the recommended way).
+- One button keeps the current address; another address can be checked
+  first (same network, not the router's, and no device answering for it)
+  and then used. If the Pi cannot reach the router with the new address
+  within 30 seconds, it goes back to an address from the router by itself.
+  And back to automatic with one button.
+- The installer adds iputils-arping for the check.
+
 ## 2.0.0-beta.15
 
 - Several backends at once, as far as the Pi allows. It is recognised by its

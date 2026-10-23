@@ -7,13 +7,14 @@ safety rules behind them are in system/host-helper.sh:
   - the hotspot is only switched off when another network is there,
   - the setup WLAN opens at boot only when nothing else connected.
 
-Parsing and input rules: network_rules.py.
+Parsing and input rules: network_rules.py, ip_rules.py (fixed address).
 """
 
 import logging
 import socket
 import subprocess
 
+from . import ip_rules
 from . import network_rules as rules
 from . import settings
 from .host_actions import (EXIT_NO_OTHER_NETWORK, EXIT_WIFI_FAILED, NETWORK_TIMEOUT_S,
@@ -93,3 +94,72 @@ def hotspot_off(progress: Progress) -> None:
         raise JobFailed("no_other_network")
     if not result.ok:
         raise JobFailed("network_change_failed", "hotspot-off")
+
+
+# The fixed address (ip_rules.py). It applies to the connection the Pi is
+# in the network through: the cable first, else the WLAN it joined; never
+# its own hotspot, whose address is fixed anyway.
+EXIT_GATEWAY_LOST = 3
+
+
+def _uplink() -> dict | None:
+    active = _read(["nmcli", "-t", "-f", "NAME,TYPE,DEVICE", "connection", "show", "--active"])
+    if active is None:
+        return None
+    rows = [r for r in rules.parse_active(active)
+            if r["name"] not in (HOTSPOT_CONNECTION, SETUP_CONNECTION)
+            and r["type"] in ("802-3-ethernet", "802-11-wireless")]
+    rows.sort(key=lambda r: r["type"] != "802-3-ethernet")
+    return rows[0] if rows else None
+
+
+def ip_status() -> dict | None:
+    """The uplink's address, gateway, DNS, MAC and whether it is fixed."""
+    link = _uplink()
+    if link is None:
+        return None
+    shown = _read(["nmcli", "-t", "-f", "GENERAL.HWADDR,IP4.ADDRESS,IP4.GATEWAY,IP4.DNS",
+                   "device", "show", link["device"]]) or ""
+    method = _read(["nmcli", "-t", "-f", "ipv4.method", "connection", "show", link["name"]]) or ""
+    return {"connection": link["name"], "device": link["device"],
+            "fixed": method.strip().endswith(":manual"), **ip_rules.parse_device_show(shown)}
+
+
+def check_address(address: str) -> str:
+    """'free', 'taken', or a reason from ip_rules.check_static."""
+    current = ip_status()
+    if current is None or not current["address"]:
+        return "ip_no_uplink"
+    refusal = ip_rules.check_static(address, current["address"], current["gateway"])
+    if refusal:
+        return refusal
+    if address == current["address"].split("/")[0]:
+        return "free"  # its own address: nobody else answers for it
+    result = run_helper("ip-check", address, current["device"])
+    return result.output.strip() if result.ok else "ip_check_failed"
+
+
+def fix_address(address: str, progress: Progress) -> None:
+    progress.step("checking_address")
+    verdict = check_address(address)
+    if verdict != "free":
+        raise JobFailed("ip_taken" if verdict == "taken" else verdict, address)
+    current = ip_status()
+    dns = ",".join(current["dns"]) or current["gateway"]
+    progress.step("fixing_address")
+    progress.set_result(address=address)
+    result = run_helper("ip-static", current["connection"], ip_rules.with_prefix(address, current["address"]),
+                        current["gateway"], dns, timeout_s=NETWORK_TIMEOUT_S)
+    if result.code == EXIT_GATEWAY_LOST:
+        raise JobFailed("ip_reverted", address)
+    if not result.ok:
+        raise JobFailed("network_change_failed", "ip-static")
+
+
+def address_from_router(progress: Progress) -> None:
+    current = ip_status()
+    if current is None:
+        raise JobFailed("ip_no_uplink")
+    progress.step("fixing_address")
+    if not run_helper("ip-dhcp", current["connection"], timeout_s=NETWORK_TIMEOUT_S).ok:
+        raise JobFailed("network_change_failed", "ip-dhcp")

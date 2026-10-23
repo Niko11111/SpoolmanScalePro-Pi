@@ -23,7 +23,7 @@ def _start(kind: str, target: str, fn):
 
 @bp.get("")
 def overview():
-    return ok(network=network.status())
+    return ok(network={**network.status(), "ip": network.ip_status()})
 
 
 @bp.post("/scan")
@@ -71,3 +71,29 @@ def set_hostname():
     if not network.set_hostname(name):
         return fail("hostname_failed", 500)
     return ok(hostname=name)
+
+
+@bp.post("/ip/check")
+def check_address():
+    address = (request.get_json(silent=True) or {}).get("address")
+    if not isinstance(address, str):
+        return fail("ip_invalid")
+    return ok(verdict=network.check_address(address.strip()))
+
+
+@bp.post("/ip/static")
+def fix_address():
+    """Fixes the given address (or, without one, the current) on the
+    connection the Pi is in the network through."""
+    address = (request.get_json(silent=True) or {}).get("address")
+    if address is None:
+        current = network.ip_status()
+        address = current["address"].split("/")[0] if current and current["address"] else ""
+    if not isinstance(address, str) or not address:
+        return fail("ip_invalid")
+    return _start("ip_static", address.strip(), lambda progress: network.fix_address(address.strip(), progress))
+
+
+@bp.post("/ip/dhcp")
+def address_from_router():
+    return _start("ip_dhcp", "router", network.address_from_router)

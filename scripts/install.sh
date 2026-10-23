@@ -93,8 +93,9 @@ install_packages() {
   # fake-hwclock: the clock comes back from the last shutdown, not 1970.
   # network-manager: the Network page and the hotspot speak nmcli.
   # unattended-upgrades: Debian's security fixes, every day.
+  # iputils-arping: whether an address is free before the Pi takes it.
   apt-get -o DPkg::Lock::Timeout=300 install -y -qq python3-venv avahi-daemon avahi-utils \
-    fake-hwclock curl network-manager unattended-upgrades >/dev/null
+    fake-hwclock curl network-manager unattended-upgrades iputils-arping >/dev/null
   if ! command -v docker >/dev/null 2>&1; then
     note "Docker (Docker's own installer, as its documentation advises for Raspberry Pi OS)"
     curl -fsSL https://get.docker.com | sh

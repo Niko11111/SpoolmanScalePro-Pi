@@ -22,6 +22,9 @@
 #   tailscale-install              add Tailscale's Debian repository and install it, logged
 #   tailscale-up | tailscale-down  connect to or leave the tailnet
 #   tailscale-status               print `tailscale status --json`
+#   ip-check ADDRESS DEVICE        prints "free" or "taken" (duplicate address detection)
+#   ip-static CONNECTION CIDR GATEWAY DNS   fix the address, back to DHCP if the gateway is lost
+#   ip-dhcp CONNECTION             back to an address from the router
 set -eu
 
 HOTSPOT_CONNECTION=spoolmanscale-hotspot
@@ -53,6 +56,9 @@ INSTALL_BASE=/opt/spoolmanscale-pro
 TAILSCALE_UNIT=spoolmanscale-pro-tailscale
 TAILSCALE_LOG=$UPGRADE_LOG_DIR/tailscale.log
 TAILSCALE_REPO=https://pkgs.tailscale.com/stable/debian
+
+IP_RE='([0-9]{1,3}\.){3}[0-9]{1,3}'
+GATEWAY_WAIT_S=30
 
 die() { echo "host-helper: $*" >&2; exit 2; }
 
@@ -296,6 +302,55 @@ tailscale_up() {
   tailscale_unit "tailscale up --hostname=$(hostname) --accept-dns=false --timeout=600s"
 }
 
+check_ip() { echo "$1" | grep -Eqx "$IP_RE" || die "not an IPv4 address: $1"; }
+
+check_connection() {
+  nmcli -g NAME connection show | grep -Fxq -- "$1" || die "no connection named '$1'"
+  case "$1" in "$HOTSPOT_CONNECTION"|"$SETUP_CONNECTION") die "the Pi's own WLAN keeps its address" ;; esac
+}
+
+ip_check() {
+  address="${1:-}"; device="${2:-}"
+  check_ip "$address"
+  case "$device" in wlan0|eth0) ;; *) die "device must be wlan0 or eth0" ;; esac
+  # Duplicate address detection: anything that answers for the address
+  # owns it. Exit 1 from arping means an answer came.
+  if arping -D -q -c 2 -w 3 -I "$device" "$address"; then echo free; else echo taken; fi
+}
+
+ip_to_dhcp() {
+  nmcli connection modify "$1" ipv4.method auto ipv4.addresses "" ipv4.gateway "" ipv4.dns ""
+  nmcli --wait 30 connection up "$1" >/dev/null 2>&1 || true
+}
+
+ip_static() {
+  connection="${1:-}"; cidr="${2:-}"; gateway="${3:-}"; dns="${4:-}"
+  check_connection "$connection"
+  echo "$cidr" | grep -Eqx "$IP_RE/[0-9]{1,2}" || die "address must be a.b.c.d/prefix"
+  check_ip "$gateway"
+  echo "$dns" | grep -Eqx "$IP_RE(,$IP_RE)*" || die "DNS must be addresses separated by commas"
+  nmcli connection modify "$connection" ipv4.method manual ipv4.addresses "$cidr" \
+    ipv4.gateway "$gateway" ipv4.dns "$dns"
+  nmcli --wait 30 connection up "$connection" >/dev/null 2>&1 || true
+  # Kept only if the Pi still reaches its gateway; otherwise back to DHCP,
+  # so a wrong address cannot leave the Pi unreachable.
+  waited=0
+  while [ "$waited" -lt "$GATEWAY_WAIT_S" ]; do
+    ping -c 1 -W 1 "$gateway" >/dev/null 2>&1 && return 0
+    # A ping that fails at once (no route yet) must not use up the wait.
+    sleep 1
+    waited=$((waited + 2))
+  done
+  echo "host-helper: gateway $gateway not reachable with $cidr, back to DHCP" >&2
+  ip_to_dhcp "$connection"
+  exit 3
+}
+
+ip_dhcp() {
+  check_connection "${1:-}"
+  ip_to_dhcp "$1"
+}
+
 verb="${1:-}"
 case "$verb" in
   reboot)              later /bin/systemctl reboot ;;
@@ -315,5 +370,8 @@ case "$verb" in
   tailscale-up)        tailscale_up ;;
   tailscale-down)      tailscale down ;;
   tailscale-status)    tailscale status --json ;;
+  ip-check)            ip_check "${2:-}" "${3:-}" ;;
+  ip-static)           ip_static "${2:-}" "${3:-}" "${4:-}" "${5:-}" ;;
+  ip-dhcp)             ip_dhcp "${2:-}" ;;
   *)                   die "unknown verb '$verb'" ;;
 esac
