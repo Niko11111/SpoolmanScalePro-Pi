@@ -83,6 +83,18 @@
     return [el("div", { class: "callout wr", text: t("system.clock_off", { min: Math.round(Math.abs(drift) / 60) }) }), take];
   }
 
+  // The power supply from vcgencmd: red while the voltage is too low right
+  // now, yellow when it was since boot, green otherwise. Nothing on a laptop.
+  function powerRows(power) {
+    if (!power) return [];
+    const now = power.now.includes("under_voltage");
+    const earlier = power.since_boot.includes("under_voltage");
+    const state = now ? ["bd", "system.power_low_now"] : earlier ? ["wr", "system.power_low_before"] : ["ok", "system.power_ok"];
+    const rows = [row(t("system.power"), el("span", { class: "pill " + state[0] }, t(state[1])))];
+    if (now || earlier) rows.push(el("div", { class: "callout " + state[0], text: t("system.power_hint") }));
+    return rows;
+  }
+
   function systemCard(system, onChange) {
     const memory = system.memory;
     const disk = system.disk;
@@ -97,7 +109,8 @@
       row(t("system.temp"), system.cpu_temp_c === null ? "-" : system.cpu_temp_c + " °C"),
       row(t("system.uptime"), formatDuration(system.uptime_s)),
       row(t("system.clock"), formatClock(system.clock_epoch_s)));
-    return el("section", { class: "card" }, el("h2", { text: t("system.title_short") }), rows, clockFix(system, onChange));
+    return el("section", { class: "card" }, el("h2", { text: t("system.title_short") }), rows,
+      powerRows(system.power), clockFix(system, onChange));
   }
 
   SSPro.views = Object.assign(SSPro.views || {}, { scaleCard, systemCard });

@@ -8,6 +8,7 @@ shows a dash.
 
 import logging
 import shutil
+import subprocess
 import time
 from pathlib import Path
 
@@ -23,6 +24,13 @@ MILLIDEGREES_PER_DEGREE = 1000
 BYTES_PER_MIB = 1024 * 1024
 # Where the backends' volumes live, which is what fills up.
 DISK_PATH = "/"
+VCGENCMD_TIMEOUT_S = 5
+
+# Bits of `vcgencmd get_throttled` (Raspberry Pi documentation, "vcgencmd").
+# The low ones say what is happening now, the same ones 16 higher whether
+# it happened since boot.
+THROTTLE_BITS = {"under_voltage": 0, "freq_capped": 1, "throttled": 2, "soft_temp_limit": 3}
+SINCE_BOOT_SHIFT = 16
 
 
 def parse_meminfo(text: str) -> dict | None:
@@ -58,6 +66,29 @@ def parse_millidegrees(text: str) -> float | None:
         return None
 
 
+def parse_throttled(text: str) -> dict | None:
+    """'throttled=0x50005' -> {"now": [...], "since_boot": [...]}, the names
+    of THROTTLE_BITS that are set. An under-voltage means the power supply
+    or cable is too weak: the Pi slows down and the SD card can suffer."""
+    _, _, value = text.strip().partition("=")
+    try:
+        bits = int(value, 16)
+    except ValueError:
+        return None
+    return {"now": [n for n, b in THROTTLE_BITS.items() if bits >> b & 1],
+            "since_boot": [n for n, b in THROTTLE_BITS.items() if bits >> (b + SINCE_BOOT_SHIFT) & 1]}
+
+
+def _throttled() -> dict | None:
+    """None where there is no vcgencmd (a laptop)."""
+    try:
+        done = subprocess.run(["vcgencmd", "get_throttled"], capture_output=True, text=True,
+                              timeout=VCGENCMD_TIMEOUT_S)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return parse_throttled(done.stdout) if done.returncode == 0 else None
+
+
 def _read(path: Path) -> str | None:
     try:
         return path.read_text(encoding="ascii")
@@ -85,6 +116,7 @@ def snapshot() -> dict:
         "cpu_temp_c": parse_millidegrees(thermal) if thermal else None,
         "uptime_s": parse_uptime(uptime) if uptime else None,
         "zram": ZRAM_DISKSIZE_FILE.exists(),
+        "power": _throttled(),
         # Epoch seconds. The page compares it with the browser's clock and
         # offers to set the Pi's time when they are far apart: a Pi has no
         # battery-backed clock, and at a fair there is no network time.

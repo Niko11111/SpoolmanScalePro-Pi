@@ -36,6 +36,10 @@ def fake(monkeypatch):
     monkeypatch.setattr(bu.docker_compose, "pull", lambda key: CommandResult(calls["pull_ok"], ""))
     monkeypatch.setattr(bu.docker_compose, "up", lambda key: CommandResult(calls["up_ok"], ""))
     monkeypatch.setattr(bu.health, "wait_until_ready", lambda backend: calls["ready"])
+    calls["removed"] = []
+    monkeypatch.setattr(bu.docker_compose, "image_of",
+                        lambda key: "ghcr.io/x:" + bu.current_version(FILAMAN))
+    monkeypatch.setattr(bu.docker_compose, "remove_image", lambda ref: calls["removed"].append(ref))
     monkeypatch.setattr(bu.backups, "create", lambda backend, progress, reason: f"filaman_x_{reason}.tar")
     monkeypatch.setattr(bu.backups, "restore",
                         lambda backend, path, progress, keep_safety: calls["restored"].append(path.name))
@@ -55,6 +59,7 @@ def test_successful_update_keeps_the_new_version(fake):
     assert bu.current_version(FILAMAN) == "v1.5.0"
     assert progress.result == {"version": "v1.5.0", "backup": "filaman_x_before-update.tar"}
     assert fake["restored"] == []
+    assert fake["removed"] == ["ghcr.io/x:v1.4.3"]
 
 
 def test_backend_that_does_not_come_up_gets_old_version_and_data_back(fake):
@@ -64,6 +69,7 @@ def test_backend_that_does_not_come_up_gets_old_version_and_data_back(fake):
     assert e.value.code == "update_rolled_back"
     assert bu.current_version(FILAMAN) == "v1.4.3"
     assert fake["restored"] == ["filaman_x_before-update.tar"]
+    assert fake["removed"] == ["ghcr.io/x:v1.5.0"]
 
 
 def test_failed_pull_changes_nothing(fake):

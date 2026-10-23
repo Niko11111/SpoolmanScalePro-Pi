@@ -421,5 +421,11 @@ window.SSPRO_I18N.de = {
   "app.rollback_text": "Der Pi schaltet auf die vorher installierte Version zurück und startet die Seite neu. Die Daten bleiben, wie sie sind.",
   "app.rollback_go": "Zurückgehen",
   "err.app_update_failed": "Das Update ließ sich nicht starten. Siehe Log des Pi.",
-  "err.no_previous_release": "Auf diesem Pi gibt es keine frühere Version."
+  "err.no_previous_release": "Auf diesem Pi gibt es keine frühere Version.",
+
+  "system.power": "Stromversorgung",
+  "system.power_ok": "OK",
+  "system.power_low_now": "Gerade zu niedrig",
+  "system.power_low_before": "War zu niedrig",
+  "system.power_hint": "Die Spannung war zu niedrig (seit dem letzten Neustart). Der Pi bremst dann, und ein abgebrochener Schreibvorgang kann die SD-Karte beschädigen. Nimm ein Netzteil mit 5 V / 2,5 A (Pi 3) oder 3 A (Pi 4) und ein kurzes, dickes Kabel; an der Powerbank eine, die unter Last 5 V hält."
 };

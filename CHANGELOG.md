@@ -3,6 +3,23 @@
 One section per version, newest first. VERSION names the current one;
 scripts/check.sh fails when it has no section here.
 
+## 2.0.0-beta.12
+
+- The installer checks the Pi first (64-bit, RAM, free space, internet),
+  numbers its steps, writes everything to
+  /var/log/spoolmanscale-pro/install.log, says which step failed if one
+  does, and ends with the address and what to do next.
+- It also sets up what a Pi running unattended needs: the hardware watchdog
+  (a hung Pi restarts by itself), a capped system log, Debian's security
+  updates every day without automatic restarts, and SSH without root login;
+  passwords for SSH are switched off once a key is on the Pi.
+- The overview shows the power supply: too low now, too low since the last
+  restart, or fine, with what to do about it.
+- A backend update removes the image it replaced (up to 1.8 GB), and a
+  failed one the image it brought.
+- The OS update waits for the daily security updates instead of failing on
+  apt's lock.
+
 ## 2.0.0-beta.11
 
 - SpoolmanScale Pro updates itself from its GitHub releases, on the

@@ -59,7 +59,10 @@ sudo scripts/install.sh --pull-all
 ```
 
 `--pull-all` downloads all three backends right away, so each one can later
-start without internet. Then open `http://<hostname>.local` and create the
+start without internet. The installer checks the Pi first, numbers its
+steps and logs to `/var/log/spoolmanscale-pro/install.log`. It also turns
+on the hardware watchdog, Debian's daily security updates and SSH without
+root login (and without passwords once an SSH key is on the Pi). Then open `http://<hostname>.local` and create the
 login.
 
 Later versions install from the **Updates** page (or by `git pull` and

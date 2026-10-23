@@ -423,5 +423,11 @@ window.SSPRO_I18N.en = {
   "app.rollback_text": "The Pi switches back to the version installed before and restarts the page. The data stay as they are.",
   "app.rollback_go": "Go back",
   "err.app_update_failed": "The update could not be started. See the Pi's log.",
-  "err.no_previous_release": "There is no earlier version on this Pi."
+  "err.no_previous_release": "There is no earlier version on this Pi.",
+
+  "system.power": "Power supply",
+  "system.power_ok": "OK",
+  "system.power_low_now": "Too low now",
+  "system.power_low_before": "Was too low",
+  "system.power_hint": "The voltage dropped too low (since the last restart). The Pi then slows down, and a write cut short can damage the SD card. Use a 5 V / 2.5 A supply (Pi 3) or 3 A (Pi 4) and a short, thick cable; on a power bank, one that holds 5 V under load."
 };

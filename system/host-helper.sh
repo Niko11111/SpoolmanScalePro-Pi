@@ -182,8 +182,9 @@ setup_ap_if_offline() {
 apt_check() {
   # English output whatever the Pi's language: os_update_rules.py parses it.
   export LC_ALL=C DEBIAN_FRONTEND=noninteractive
-  apt-get update -qq
-  apt-get -s full-upgrade
+  # Waits for unattended-upgrades instead of failing on its lock.
+  apt-get -o DPkg::Lock::Timeout=300 update -qq
+  apt-get -o DPkg::Lock::Timeout=300 -s full-upgrade
 }
 
 os_upgrade_start() {
@@ -201,7 +202,7 @@ os_upgrade_start() {
   # upgrade never stops to ask. The last line carries the exit code.
   systemd-run --unit="$UPGRADE_UNIT" --description="SpoolmanScale Pro: Raspberry Pi OS upgrade" \
     --setenv=LC_ALL=C --setenv=DEBIAN_FRONTEND=noninteractive \
-    /bin/sh -c '{ dpkg --configure -a && apt-get update && apt-get -y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold full-upgrade; } >> "$0" 2>&1; echo "SSPRO-EXIT:$?" >> "$0"' "$UPGRADE_LOG" >/dev/null
+    /bin/sh -c '{ dpkg --configure -a && apt-get -o DPkg::Lock::Timeout=300 update && apt-get -y -o DPkg::Lock::Timeout=300 -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold full-upgrade; } >> "$0" 2>&1; echo "SSPRO-EXIT:$?" >> "$0"' "$UPGRADE_LOG" >/dev/null
 }
 
 self_update() {

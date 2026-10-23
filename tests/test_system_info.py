@@ -1,4 +1,5 @@
-from spoolmanscale_pro.system_info import parse_meminfo, parse_millidegrees, parse_uptime
+from spoolmanscale_pro.system_info import (parse_meminfo, parse_millidegrees, parse_throttled,
+                                           parse_uptime)
 
 MEMINFO = """MemTotal:         921616 kB
 MemFree:          120000 kB
@@ -24,3 +25,12 @@ def test_temperature_and_uptime():
     assert parse_millidegrees("n/a") is None
     assert parse_uptime("3725.42 9000.1\n") == 3725
     assert parse_uptime("") is None
+
+
+def test_throttled_bits():
+    assert parse_throttled("throttled=0x0") == {"now": [], "since_boot": []}
+    # Under-voltage now and since boot, and throttled now: a weak power supply.
+    assert parse_throttled("throttled=0x50005") == {
+        "now": ["under_voltage", "throttled"], "since_boot": ["under_voltage", "throttled"]}
+    assert parse_throttled("throttled=0x10000") == {"now": [], "since_boot": ["under_voltage"]}
+    assert parse_throttled("garbage") is None

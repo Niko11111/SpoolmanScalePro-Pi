@@ -163,6 +163,23 @@ def restore_volume(key: str, data_dir: str, skip: tuple[str, ...], source: Path)
                               ["-c", _RESTORE_SCRIPT, "sh", data_dir, *skip], stdin=src)
 
 
+def remove_image(reference: str) -> bool:
+    """Deletes an image no container uses any more, to free the SD card.
+    Refused by Docker while a container still uses it; that is fine, the
+    image then stays."""
+    if not reference:
+        return False
+    try:
+        done = subprocess.run(["docker", "image", "rm", reference], capture_output=True, text=True,
+                              timeout=QUERY_TIMEOUT_S)
+    except (OSError, subprocess.TimeoutExpired) as e:
+        log.warning("Removing image %s failed: %s", reference, e)
+        return False
+    if done.returncode == 0:
+        log.info("Old image removed: %s", reference)
+    return done.returncode == 0
+
+
 def image_of(key: str) -> str:
     """The image the compose file names for a backend, e.g.
     ghcr.io/fire-devils/filaman-system:v1.4.3. Empty when unknown."""

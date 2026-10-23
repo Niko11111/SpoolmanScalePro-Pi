@@ -93,6 +93,7 @@ def install(backend: Backend, tag: str, progress: Progress) -> None:
     states = docker_compose.states() or {}
     was_running = states.get(backend.key) == "running"
     previous = current_version(backend)
+    old_image = docker_compose.image_of(backend.key)
     backup_name = None
     if states.get(backend.key, "absent") != "absent":
         backup_name = backups.create(backend, progress, reason="before-update")
@@ -106,6 +107,11 @@ def install(backend: Backend, tag: str, progress: Progress) -> None:
         return
     progress.step("starting")
     if docker_compose.up(backend.key).ok and health.wait_until_ready(backend):
+        # The old image is no longer used by anything; a backend image is
+        # up to 1.8 GB, and a few updates would fill the SD card.
+        docker_compose.remove_image(old_image)
         return
+    new_image = docker_compose.image_of(backend.key)
     _roll_back(backend, previous, backup_name, progress)
+    docker_compose.remove_image(new_image)
     raise JobFailed("update_rolled_back", f"{backend.key} {tag} -> {previous}")
