@@ -6,7 +6,9 @@ A thread in the service wakes every WAKE_S and runs a round when the next
 one is due: CHECK_EVERY_S after a round that reached GitHub, RETRY_S after
 one that reached nothing (a Pi without internet). The first look comes
 FIRST_LOOK_S after the start, and the time of the next round is kept on
-disk, so restarting the service does not ask GitHub again.
+disk, so restarting the service does not ask GitHub again. A backend
+installed since the last round has no result yet; it is checked on its own
+at the next wake rather than waiting up to CHECK_EVERY_S.
 
 A search on the Updates page goes through here as well. Each result is kept
 with the version it was found for; once that changed (an update was
@@ -14,7 +16,7 @@ installed), the result is stale and no longer shown.
 
 A round asks GitHub's API about once per item (release notes; GitHub allows
 60 an hour per address without login) and ghcr.io two or three times per
-backend. due(), fresh() and offer() are pure and tested in
+backend. due(), unchecked(), fresh() and offer() are pure and tested in
 tests/test_update_watch.py.
 """
 
@@ -44,6 +46,11 @@ _lock = threading.Lock()
 
 def due(now: float, next_at: float | None, enabled: bool) -> bool:
     return enabled and (next_at is None or now >= next_at)
+
+
+def unchecked(states: dict, items: dict) -> list[str]:
+    """Installed backends (container not absent) without any kept result."""
+    return [key for key in BACKEND_KEYS if states.get(key, "absent") != "absent" and key not in items]
 
 
 def fresh(item, current: str) -> bool:
@@ -152,12 +159,28 @@ def summary() -> dict:
     return {"auto": settings.load()["update_check"], "available": available}
 
 
+def _check_new_backends() -> None:
+    for key in unchecked(docker_compose.states() or {}, _load()["items"]):
+        try:
+            check_backend(backend_by_key(key))
+        except SourceError as e:
+            log.info("Update check of new backend %s incomplete: %s", key, e)
+
+
+def _wake() -> None:
+    if not settings.load()["update_check"]:
+        return
+    if due(time.time(), _load().get("next_at"), True):
+        run_round()
+    else:
+        _check_new_backends()
+
+
 def _loop() -> None:
     time.sleep(FIRST_LOOK_S)
     while True:
         try:
-            if due(time.time(), _load().get("next_at"), settings.load()["update_check"]):
-                run_round()
+            _wake()
         except Exception:  # outer boundary of the thread: log, and keep looking
             log.exception("Update check failed")
         time.sleep(WAKE_S)

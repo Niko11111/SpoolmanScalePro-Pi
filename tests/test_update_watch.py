@@ -15,6 +15,13 @@ def test_due():
     assert not uw.due(1000.0, None, False)
 
 
+def test_a_backend_installed_since_the_last_round_is_unchecked():
+    states = {"spoolman": "running", "filaman": "absent", "bambuddy": "exited"}
+    assert uw.unchecked(states, {"spoolman": {}}) == ["bambuddy"]
+    assert uw.unchecked(states, {"spoolman": {}, "bambuddy": {}}) == []
+    assert uw.unchecked({}, {}) == []
+
+
 def test_a_result_counts_only_for_the_version_it_was_found_for():
     item = {"current": "0.27.0", "result": {"newer": ["0.28.0"]}}
     assert uw.fresh(item, "0.27.0")
