@@ -7,8 +7,8 @@ inventory backend, [Spoolman](https://github.com/Donkie/Spoolman),
 and switches between them from a web page. The scale is switched along with
 it.
 
-> **Status: 2.0 beta.** A rebuild of version 0.1, which stays on the `main`
-> branch until 2.0 is released.
+> **Status: 0.2 beta.** A complete rewrite of version 0.1, which stays on
+> the `main` branch until 0.2.0 is released.
 
 ## What it does
 
@@ -48,8 +48,8 @@ it.
 - A SpoolmanScale with firmware 0.7.0 or newer for the switching
 - About 3.5 GB free on the SD card for all three backends (16 GB card or larger)
 
-RAM in use, measured on 64-bit ARM: Spoolman about 100 MB, BamBuddy 190 to
-410 MB, FilaMan 370 to 470 MB. A Pi Zero 2 W (512 MB) runs Spoolman well;
+RAM in use, measured: Spoolman about 100 MB, BamBuddy 240 to 420 MB, FilaMan
+about 480 MB (it starts four worker processes). A Pi Zero 2 W (512 MB) runs Spoolman well;
 FilaMan and BamBuddy are slow there.
 
 ## Install

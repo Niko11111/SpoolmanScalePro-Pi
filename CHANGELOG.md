@@ -3,13 +3,26 @@
 One section per version, newest first. VERSION names the current one;
 scripts/check.sh fails when it has no section here.
 
-## 2.0.0-beta.23
+## 0.2.0-beta.1
+
+- The version follows on from 0.1: the rewrite was built as
+  2.0.0-beta.1 to 2.0.0-beta.23 and is released as 0.2.0. Nothing else
+  changed since 2.0.0-beta.23. A Pi on one of those builds does not see
+  0.2.0 as newer; install this one once by hand (`git pull` and
+  `sudo scripts/install.sh` in the clone), the data stay as they are.
+
+## Development builds before 0.2.0
+
+The rewrite was developed under the numbers 2.0.0-beta.1 to
+2.0.0-beta.23, kept here as they were.
+
+### 2.0.0-beta.23
 
 - Demo mode can be turned on and off from the page: seven quick taps on
   the version in the header ask whether to. Nothing on the page points to
   it; before, it took a file created over SSH with sudo.
 
-## 2.0.0-beta.22
+### 2.0.0-beta.22
 
 - The browser tab shows the same icon as SpoolmanScale's own web
   interface, a transparent PNG: the JPEG logo it used before drew a black
@@ -31,7 +44,7 @@ scripts/check.sh fails when it has no section here.
   BamBuddy). Only what a backend lacks is created, so writing twice adds
   nothing.
 
-## 2.0.0-beta.21
+### 2.0.0-beta.21
 
 - The service looks for updates on its own, every 6 hours, for itself and
   every installed backend (a Pi without internet tries again after an
@@ -47,7 +60,7 @@ scripts/check.sh fails when it has no section here.
   update, or at once with the backup from before the switch, which is kept
   apart from the update backups so it is never pruned away.
 
-## 2.0.0-beta.20
+### 2.0.0-beta.20
 
 - The page header shows the Pi's IP address next to the version, the
   cable's before the WLAN's (in its own WLAN 192.168.50.1), unless the page
@@ -57,13 +70,13 @@ scripts/check.sh fails when it has no section here.
   kept for a minute, so a slow backend never holds up the overview; FilaMan
   is asked as the admin this Pi made, BamBuddy only while its login is off.
 
-## 2.0.0-beta.19
+### 2.0.0-beta.19
 
 - The overview no longer reports Docker as not answering while a backup or
   a restore runs: the throwaway container that packs the data could vanish
   while Docker listed the containers, and the list is now asked for again.
 
-## 2.0.0-beta.18
+### 2.0.0-beta.18
 
 From the first install on a Pi 3 B (Raspberry Pi OS Trixie):
 
@@ -81,7 +94,7 @@ From the first install on a Pi 3 B (Raspberry Pi OS Trixie):
   can be marked as seen: it stays quiet until the next restart. A voltage
   that is too low right now is always shown.
 
-## 2.0.0-beta.17
+### 2.0.0-beta.17
 
 - The installer accepts every Pi this runs on: it asked for about 1 GB of
   RAM, which refused a Pi Zero 2 W and could refuse a Pi 3 whose GPU takes
@@ -102,7 +115,7 @@ From the first install on a Pi 3 B (Raspberry Pi OS Trixie):
   scale's PIN in the browser instead of adding the stored one.
 - The setup WLAN's wait at boot no longer holds up the start of the Pi.
 
-## 2.0.0-beta.16
+### 2.0.0-beta.16
 
 - The Network page shows the Pi's IP address, whether it comes from the
   router or is fixed, the router and the MAC address (to copy, for a
@@ -114,7 +127,7 @@ From the first install on a Pi 3 B (Raspberry Pi OS Trixie):
   And back to automatic with one button.
 - The installer adds iputils-arping for the check.
 
-## 2.0.0-beta.15
+### 2.0.0-beta.15
 
 - Several backends at once, as far as the Pi allows. It is recognised by its
   model and RAM: a Pi Zero 2 W runs one backend at a time (switching only,
@@ -131,7 +144,7 @@ From the first install on a Pi 3 B (Raspberry Pi OS Trixie):
   grows gets slow instead of freezing the Pi.
 - The daily backup covers every running backend.
 
-## 2.0.0-beta.14
+### 2.0.0-beta.14
 
 - Remote access with Tailscale from the System page: install it (from
   Tailscale's signed Debian repository, not its install script), connect
@@ -139,14 +152,14 @@ From the first install on a Pi 3 B (Raspberry Pi OS Trixie):
   connecting show their log live. The Pi keeps its own name resolution, and
   the page still asks for its login over Tailscale.
 
-## 2.0.0-beta.13
+### 2.0.0-beta.13
 
 - A setup assistant opens after the first login: pick a backend (with the
   switch's progress), find and pair the scale and enter the Pi on it, done.
   It can be skipped and opened again from the System page; it uses the same
   tiles and cards as the other pages.
 
-## 2.0.0-beta.12
+### 2.0.0-beta.12
 
 - The installer checks the Pi first (64-bit, RAM, free space, internet),
   numbers its steps, writes everything to
@@ -163,7 +176,7 @@ From the first install on a Pi 3 B (Raspberry Pi OS Trixie):
 - The OS update waits for the daily security updates instead of failing on
   apt's lock.
 
-## 2.0.0-beta.11
+### 2.0.0-beta.11
 
 - SpoolmanScale Pro updates itself from its GitHub releases, on the
   Updates page: newer releases with their notes, install, and back to the
@@ -176,7 +189,7 @@ From the first install on a Pi 3 B (Raspberry Pi OS Trixie):
   release with this file's section as its notes; betas become
   pre-releases. scripts/build_release.sh builds the same archive locally.
 
-## 2.0.0-beta.10
+### 2.0.0-beta.10
 
 - A daily backup of the active backend, on by default, from a chosen hour
   (03:00 unless set otherwise on the Backup page). A Pi that is off at that
@@ -186,7 +199,7 @@ From the first install on a Pi 3 B (Raspberry Pi OS Trixie):
   them, and as before the newest 10 of all others, so a week of automatic
   ones never pushes out a backup made by hand or before an update.
 
-## 2.0.0-beta.9
+### 2.0.0-beta.9
 
 - The paired scale's own web interface shows on the new Scale tab, served
   by this Pi on port 8081, so one address is enough for everything. The
@@ -196,7 +209,7 @@ From the first install on a Pi 3 B (Raspberry Pi OS Trixie):
   Host and its web password if one is stored. The scale's protection
   against foreign frames stays, with this Pi's page as the one allowed.
 
-## 2.0.0-beta.8
+### 2.0.0-beta.8
 
 - FilaMan gets an admin login when this Pi starts it. FilaMan creates its
   first admin only from ADMIN_EMAIL and ADMIN_PASSWORD and has no page to
@@ -210,7 +223,7 @@ From the first install on a Pi 3 B (Raspberry Pi OS Trixie):
 - A BamBuddy API key (only needed when BamBuddy's login is on) is pasted
   on the Scale page and sent to the scale, instead of typed on its screen.
 
-## 2.0.0-beta.7
+### 2.0.0-beta.7
 
 - The Scale page finds SpoolmanScales on the network by mDNS (the scale
   announces model, firmware, id and backend) and pairs one with a tap,
@@ -222,7 +235,7 @@ From the first install on a Pi 3 B (Raspberry Pi OS Trixie):
   typing three addresses on the device is gone.
 - The installer adds avahi-utils for the search.
 
-## 2.0.0-beta.6
+### 2.0.0-beta.6
 
 - Raspberry Pi OS updates on the System page, as in TheRentalScale: a
   search that installs nothing and lists every package with its old and new
@@ -234,7 +247,7 @@ From the first install on a Pi 3 B (Raspberry Pi OS Trixie):
   open (dpkg --configure -a).
 - Jobs can show their output live under their progress.
 
-## 2.0.0-beta.5
+### 2.0.0-beta.5
 
 - Updates page: for each backend, the version it runs and the one this
   release was tested with, a search for newer versions on ghcr.io, the
@@ -251,7 +264,7 @@ From the first install on a Pi 3 B (Raspberry Pi OS Trixie):
 - FilaMan's own backup folder is left out of our archives, like
   Spoolman's and BamBuddy's.
 
-## 2.0.0-beta.4
+### 2.0.0-beta.4
 
 - Network page: the Pi's name on the network (<name>.local), the WLAN it is
   in, a search for networks and joining one, and the Pi's own WLAN
@@ -269,7 +282,7 @@ From the first install on a Pi 3 B (Raspberry Pi OS Trixie):
 - WLAN passwords reach the root helper on stdin, never as arguments or in a
   log. scripts/setup-hotspot.sh now uses the same helper.
 
-## 2.0.0-beta.3
+### 2.0.0-beta.3
 
 - The login has a user name next to the password, chosen on the first
   visit (suggested: admin), so password managers store and fill it. Name
@@ -280,7 +293,7 @@ From the first install on a Pi 3 B (Raspberry Pi OS Trixie):
 - The project links of the scale's web interface (GitHub, Ko-fi, Discord,
   MakerWorld) close every page.
 
-## 2.0.0-beta.2
+### 2.0.0-beta.2
 
 - Backups per backend: the backend is stopped for the few seconds its data
   are packed, then started again. Download, delete, restore from the list or
@@ -296,7 +309,7 @@ From the first install on a Pi 3 B (Raspberry Pi OS Trixie):
   reset.
 - The progress of a job is shown on every page that starts one.
 
-## 2.0.0-beta.1
+### 2.0.0-beta.1
 
 A rebuild from scratch. Version 0.1 was a Flask app in a privileged Docker
 container; it stays available on the `main` branch until 2.0 is released.
