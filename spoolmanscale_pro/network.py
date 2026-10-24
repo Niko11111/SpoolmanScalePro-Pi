@@ -58,6 +58,12 @@ def status() -> dict:
             "addresses": addresses}
 
 
+def primary_address() -> str | None:
+    """The address the page header shows (network_rules.primary_address)."""
+    return rules.primary_address(rules.parse_ip_addresses(
+        _read(["ip", "-4", "-o", "addr", "show", "scope", "global"]) or ""))
+
+
 def scan() -> list[dict] | None:
     result = run_helper("wifi-scan")
     return rules.parse_wifi_list(result.output) if result.ok else None

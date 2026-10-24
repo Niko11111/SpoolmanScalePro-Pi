@@ -5,7 +5,7 @@ import socket
 
 from flask import Blueprint, request
 
-from .. import demo, host_actions, os_update, settings, system_info, tailscale
+from .. import demo, host_actions, network, os_update, settings, system_info, tailscale
 from ..jobs import RUNNER
 from ..version import APP_VERSION
 from .responses import fail, ok
@@ -18,7 +18,8 @@ def overview():
     info = system_info.snapshot()
     if info["power"] is not None:
         info["power"]["seen"] = system_info.power_seen(settings.load()["power_seen_boot"], system_info.boot_id())
-    return ok(version=APP_VERSION, hostname=socket.gethostname(), demo_enabled=demo.enabled(), **info)
+    return ok(version=APP_VERSION, hostname=socket.gethostname(), address=network.primary_address(),
+              demo_enabled=demo.enabled(), **info)
 
 
 @bp.post("/power/seen")

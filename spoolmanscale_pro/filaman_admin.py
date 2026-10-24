@@ -6,6 +6,7 @@ FilaMan's own API (v1.4.3, read in its source):
   GET  /auth/me                   any logged-in request sets cookie csrf_token
   POST /api/v1/me/api-keys        {name}             -> {token: "uak...."}
   POST /api/v1/admin/devices      {name, device_type} -> {device_code}
+  GET  /api/v1/spools?page_size=1 -> {total}  (active spools, archived left out)
   POST /auth/logout
 Writing with a session needs header X-CSRF-Token equal to the csrf_token
 cookie (core/middleware.py, CsrfMiddleware).
@@ -33,8 +34,9 @@ class FilamanError(Exception):
 
 
 class FilamanAdmin:
-    def __init__(self, base_url: str):
+    def __init__(self, base_url: str, timeout_s: float = REQUEST_TIMEOUT_S):
         self.base_url = base_url.rstrip("/")
+        self.timeout_s = timeout_s
         self.jar = http.cookiejar.CookieJar()
         self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(self.jar))
 
@@ -48,7 +50,7 @@ class FilamanAdmin:
         if self._csrf():
             req.add_header("X-CSRF-Token", self._csrf())
         try:
-            with self.opener.open(req, timeout=REQUEST_TIMEOUT_S) as r:
+            with self.opener.open(req, timeout=self.timeout_s) as r:
                 raw = r.read()
         except urllib.error.HTTPError as e:
             if path == "/auth/login" and e.code == 401:
@@ -78,6 +80,12 @@ class FilamanAdmin:
         if not code:
             raise FilamanError("filaman_refused", "no device code in the answer")
         return code
+
+    def count_spools(self) -> int:
+        total = self._call("GET", "/api/v1/spools?page_size=1").get("total")
+        if not isinstance(total, int) or isinstance(total, bool):
+            raise FilamanError("filaman_refused", "no spool total in the answer")
+        return total
 
     def logout(self) -> None:
         try:

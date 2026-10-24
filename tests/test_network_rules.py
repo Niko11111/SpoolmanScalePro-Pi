@@ -70,3 +70,12 @@ def test_wlan_mode():
     home = nr.wlan_mode([{"name": "Home", "type": "x", "device": "wlan0"},
                          {"name": "Wired", "type": "y", "device": "eth0"}], hot, setup)
     assert home == {"mode": "client", "connection": "Home"}
+
+
+def test_primary_address_prefers_the_cable_and_never_shows_docker():
+    both = {"docker0": "172.17.0.1", "wlan0": "192.168.4.31", "eth0": "192.168.4.30"}
+    assert nr.primary_address(both) == "192.168.4.30"
+    assert nr.primary_address({"br-1a2b": "172.18.0.1", "wlan0": "192.168.50.1"}) == "192.168.50.1"
+    assert nr.primary_address({"end0": "10.0.0.5"}) == "10.0.0.5"
+    assert nr.primary_address({"docker0": "172.17.0.1"}) is None
+    assert nr.primary_address({}) is None

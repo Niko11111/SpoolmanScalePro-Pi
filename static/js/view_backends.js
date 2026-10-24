@@ -120,6 +120,17 @@
     dialog.showModal();
   }
 
+  // Version, spool count and RAM in one quiet line; each only once known.
+  function facts(backend) {
+    const parts = [];
+    if (backend.version && backend.state !== "absent") parts.push(backend.version);
+    if (backend.spools !== null && backend.spools !== undefined) {
+      parts.push(backend.spools === 1 ? t("tile.spools_one") : t("tile.spools", { n: backend.spools }));
+    }
+    if (backend.ram_mb) parts.push(t("tile.ram", { mb: backend.ram_mb }));
+    return parts.length ? el("span", { class: "tile-port", text: parts.join(" · ") }) : null;
+  }
+
   function tile(backend, ctx) {
     const actions = el("div", { class: "tile-actions" },
       ctx.plan.parallel ? parallelActions(backend, ctx) : singleActions(backend, ctx));
@@ -131,7 +142,7 @@
     }
     const badges = el("div", { class: "inrow" }, statePill(backend),
       ctx.plan.parallel && backend.active ? el("span", { class: "pill ok" }, t("tile.scale_uses")) : null,
-      backend.ram_mb ? el("span", { class: "tile-port", text: t("tile.ram", { mb: backend.ram_mb }) }) : null);
+      facts(backend));
     return el("div", { class: "tile" + (backend.active ? " active" : "") },
       el("div", { class: "tile-head" },
         el("img", { src: LOGOS[backend.key], alt: "" }),

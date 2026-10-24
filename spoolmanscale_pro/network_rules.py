@@ -125,3 +125,19 @@ def wlan_mode(active: list[dict], hotspot: str, setup: str) -> dict:
     if wlan["name"] == setup:
         return {"mode": "setup", "connection": wlan["name"]}
     return {"mode": "client", "connection": wlan["name"]}
+
+
+# Interface name prefixes in the order the page header prefers them: the
+# cable, then the WLAN (a joined network or the Pi's own). Docker's bridges
+# (docker0, br-...) carry global addresses too and are never shown.
+SHOWN_INTERFACE_PREFIXES = (("eth", "en"), ("wlan", "wl"))
+
+
+def primary_address(addresses: dict[str, str]) -> str | None:
+    """The one address the page header shows for this Pi, from
+    parse_ip_addresses(); None without a network."""
+    for prefixes in SHOWN_INTERFACE_PREFIXES:
+        for iface in sorted(addresses):
+            if iface.startswith(prefixes):
+                return addresses[iface]
+    return None

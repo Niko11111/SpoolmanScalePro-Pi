@@ -3,6 +3,16 @@
 One section per version, newest first. VERSION names the current one;
 scripts/check.sh fails when it has no section here.
 
+## 2.0.0-beta.20
+
+- The page header shows the Pi's IP address next to the version, the
+  cable's before the WLAN's (in its own WLAN 192.168.50.1), unless the page
+  was opened by that address anyway.
+- Each backend tile shows the version it runs and how many spools it holds
+  (archived ones left out). The count is asked for in the background and
+  kept for a minute, so a slow backend never holds up the overview; FilaMan
+  is asked as the admin this Pi made, BamBuddy only while its login is off.
+
 ## 2.0.0-beta.19
 
 - The overview no longer reports Docker as not answering while a backup or

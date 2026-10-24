@@ -72,3 +72,18 @@ def releases_between(releases: list[dict], current: str, target: str) -> list[di
     low, high = sort_key(current), sort_key(target)
     picked = [r for r in releases if parse(r["tag"]) and low < sort_key(r["tag"]) <= high]
     return sorted(picked, key=lambda r: sort_key(r["tag"]), reverse=True)
+
+
+DIGEST_PREFIX = "sha256:"
+DIGEST_SHOWN_CHARS = 7
+
+
+def display(tag: str) -> str:
+    """How a backend's version reads on its tile: v0.27.0 and v1.4.3 alike,
+    and a tag pinned to an image digest (daily@sha256:c087cbce...) as the
+    tag with the digest's first characters, which tell two dailies apart."""
+    name, _, digest = tag.partition("@")
+    shown = "v" + normalize(name) if parse(name) else name
+    if digest.startswith(DIGEST_PREFIX):
+        shown += " (" + digest[len(DIGEST_PREFIX):len(DIGEST_PREFIX) + DIGEST_SHOWN_CHARS] + ")"
+    return shown

@@ -473,6 +473,8 @@ window.SSPRO_I18N.de = {
   "tile.use": "Für die Waage",
   "tile.scale_uses": "Waage",
   "tile.ram": "RAM {mb} MB",
+  "tile.spools": "{n} Spulen",
+  "tile.spools_one": "1 Spule",
   "par.confirm_title": "{name} zusätzlich starten?",
   "par.confirm_text": "Damit sind etwa {after} von {total} MB RAM belegt.",
   "par.over": "Das ist mehr, als dieser Pi hat: Die Backends lagern aus und werden langsam.",

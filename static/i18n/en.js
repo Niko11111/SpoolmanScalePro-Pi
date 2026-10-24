@@ -475,6 +475,8 @@ window.SSPRO_I18N.en = {
   "tile.use": "For the scale",
   "tile.scale_uses": "Scale",
   "tile.ram": "RAM {mb} MB",
+  "tile.spools": "{n} spools",
+  "tile.spools_one": "1 spool",
   "par.confirm_title": "Start {name} as well?",
   "par.confirm_text": "With it, about {after} of {total} MB of RAM will be in use.",
   "par.over": "That is more than this Pi has: the backends will swap and get slow.",

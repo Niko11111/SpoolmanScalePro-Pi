@@ -44,3 +44,12 @@ def test_normalize():
     assert vr.normalize("v1.4.3") == "1.4.3"
     assert vr.normalize("0.27.0") == "0.27.0"
     assert vr.normalize("very-old") == "very-old"
+
+
+def test_display():
+    assert vr.display("0.27.0") == "v0.27.0"
+    assert vr.display("v1.4.3") == "v1.4.3"
+    assert vr.display("1.3.0b1-daily.20261023") == "v1.3.0b1-daily.20261023"
+    assert vr.display("daily@sha256:c087cbce438f4bccb59228e727d44294739bb5e202089fec2b50dbf2300b49d0") == "daily (c087cbc)"
+    assert vr.display("fix-1246-backup-lock") == "fix-1246-backup-lock"
+    assert vr.display("") == ""

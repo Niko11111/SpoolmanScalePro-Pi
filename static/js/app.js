@@ -20,7 +20,11 @@
   const DEFAULT_PAGE = "overview";
   let cleanup = null;
 
-  function header(subline) {
+  // address: the Pi's own (/api/system), shown next to the version unless
+  // the page was opened by it anyway.
+  function header(subline, address) {
+    const version = "v" + document.documentElement.dataset.version;
+    const second = address && address !== location.hostname ? address + " · " + version : version;
     return el("header", { class: "head" },
       el("div", { class: "mark" }, el("img", { src: "/static/img/logo.jpg", alt: "" })),
       el("div", {},
@@ -28,7 +32,7 @@
         el("div", { class: "subline", text: subline })),
       el("div", { class: "addr" },
         el("b", { text: location.host }),
-        el("i", { text: "v" + document.documentElement.dataset.version })));
+        el("i", { text: second })));
   }
 
   function offered(system) {
@@ -67,7 +71,7 @@
     const name = currentPage(pages);
     const main = el("main", { class: "wrap" });
     const app = $("#app");
-    app.replaceChildren(el("div", { class: "wrap" }, header(t("app.tagline")), nav(pages, name)), main,
+    app.replaceChildren(el("div", { class: "wrap" }, header(t("app.tagline"), system.address), nav(pages, name)), main,
       el("footer", { class: "wrap" }, SSPro.views.linksRow(), el("p", { class: "foot", text: t("app.footer") })));
     cleanup = SSPro.pages[name].render(main) || null;
   }
