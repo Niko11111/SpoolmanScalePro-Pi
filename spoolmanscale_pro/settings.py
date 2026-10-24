@@ -36,6 +36,12 @@ DEFAULTS = {
     "backend_versions": {},
     # Whether the Updates page offers pre-releases (BamBuddy's betas).
     "include_prereleases": False,
+    # Backend key -> the GitHub release of the daily build it was switched
+    # to ({"tag", "published"}), read only while it runs one
+    # (backend_daily.py).
+    "daily_releases": {},
+    # Whether the service looks for updates on its own (update_watch.py).
+    "update_check": True,
     # The daily backup of the active backend (auto_backup.py): on or off,
     # the hour it runs at, and the day it last ran (ISO date).
     "auto_backup": True,
@@ -137,6 +143,11 @@ def clean_update(raw: dict) -> tuple[dict, list[str]]:
             clean["include_prereleases"] = raw["include_prereleases"]
         else:
             refused.append("include_prereleases")
+    if "update_check" in raw:
+        if isinstance(raw["update_check"], bool):
+            clean["update_check"] = raw["update_check"]
+        else:
+            refused.append("update_check")
     return clean, refused
 
 

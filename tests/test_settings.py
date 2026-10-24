@@ -44,3 +44,8 @@ def test_include_prereleases_must_be_a_real_boolean():
 
 def test_backend_versions_cannot_be_set_through_the_settings_route():
     assert settings.clean_update({"backend_versions": {"spoolman": "latest"}}) == ({}, [])
+
+
+def test_update_check_must_be_a_real_boolean():
+    assert settings.clean_update({"update_check": False})[0] == {"update_check": False}
+    assert settings.clean_update({"update_check": 0})[1] == ["update_check"]

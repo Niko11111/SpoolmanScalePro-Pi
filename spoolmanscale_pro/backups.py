@@ -91,16 +91,30 @@ def write_backup(backend: Backend, dest: Path) -> None:
     log.info("Backup of %s written to %s", backend.key, dest.name)
 
 
-def _prune(key: str) -> None:
-    """Keeps the newest AUTO_BACKUPS_KEPT automatic and the newest
-    BACKUPS_KEPT other backups of a backend; names sort by time."""
-    mine = sorted((p for p in BACKUP_DIR.glob(f"{key}_*.tar")
+def _mine(key: str) -> list[Path]:
+    """A backend's backups, newest first; names sort by time."""
+    return sorted((p for p in BACKUP_DIR.glob(f"{key}_*.tar")
                    if archive_format.parse_backup_name(p.name)), key=lambda p: p.name, reverse=True)
-    auto = [p for p in mine if archive_format.parse_backup_name(p.name)["reason"] == "auto"]
-    other = [p for p in mine if p not in auto]
-    for old in auto[AUTO_BACKUPS_KEPT:] + other[BACKUPS_KEPT:]:
+
+
+def _prune(key: str) -> None:
+    """Keeps the newest AUTO_BACKUPS_KEPT automatic, the newest
+    "before-daily" and the newest BACKUPS_KEPT other backups of a backend.
+    The one before the daily build is the way back to a release
+    (backend_daily.py), so a run of daily updates must not push it out."""
+    mine = _mine(key)
+    reason = {p: archive_format.parse_backup_name(p.name)["reason"] for p in mine}
+    auto = [p for p in mine if reason[p] == "auto"]
+    daily = [p for p in mine if reason[p] == "before-daily"]
+    other = [p for p in mine if p not in auto and p not in daily]
+    for old in auto[AUTO_BACKUPS_KEPT:] + daily[1:] + other[BACKUPS_KEPT:]:
         old.unlink(missing_ok=True)
         log.info("Old backup removed: %s", old.name)
+
+
+def newest(key: str, reason: str) -> Path | None:
+    """A backend's newest backup made for reason, or None."""
+    return next((p for p in _mine(key) if archive_format.parse_backup_name(p.name)["reason"] == reason), None)
 
 
 def create(backend: Backend, progress: Progress, reason: str | None = None) -> str:

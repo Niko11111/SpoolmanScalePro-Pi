@@ -44,9 +44,13 @@
     return pages.includes(name) ? name : DEFAULT_PAGE;
   }
 
-  function nav(pages, active) {
+  // updates: how many updates the search found (update_watch.py), shown
+  // on the Updates tab.
+  function nav(pages, active, updates) {
+    const count = (name) => name === "updates" && updates
+      ? el("span", { class: "count", title: t("nav.updates_found", { n: updates }), text: String(updates) }) : null;
     const links = pages.filter((name) => !SSPro.pages[name].hidden).map((name) =>
-      el("a", { href: "#" + name, class: name === active ? "on" : "" }, t(SSPro.pages[name].nav)));
+      el("a", { href: "#" + name, class: name === active ? "on" : "" }, t(SSPro.pages[name].nav), count(name)));
     // Nothing to log out of without a password.
     const logout = authMode !== "password" ? null
       : el("a", { href: "#", onclick: (e) => { e.preventDefault(); logOut(); } }, t("nav.logout"));
@@ -57,10 +61,16 @@
     if (cleanup) { cleanup(); cleanup = null; }
     let system = {};
     let settings = {};
+    let updates = 0;
     try {
       [system, settings] = await Promise.all([api("/api/system"), api("/api/settings")]);
     } catch (e) {
       if (e.code === "login_required") return;  // the gate is already up
+    }
+    try {
+      updates = Object.keys((await api("/api/updates/summary")).available).length;
+    } catch (e) {
+      // Without the count the tab simply shows none.
     }
     // A Pi not set up yet starts in the assistant, once it is asked for no
     // other page by its address.
@@ -71,7 +81,7 @@
     const name = currentPage(pages);
     const main = el("main", { class: "wrap" });
     const app = $("#app");
-    app.replaceChildren(el("div", { class: "wrap" }, header(t("app.tagline"), system.address), nav(pages, name)), main,
+    app.replaceChildren(el("div", { class: "wrap" }, header(t("app.tagline"), system.address), nav(pages, name, updates)), main,
       el("footer", { class: "wrap" }, SSPro.views.linksRow(), el("p", { class: "foot", text: t("app.footer") })));
     cleanup = SSPro.pages[name].render(main) || null;
   }

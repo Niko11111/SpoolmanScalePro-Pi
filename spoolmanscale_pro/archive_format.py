@@ -30,7 +30,7 @@ DATA_MAX_MEMBERS = 100_000
 DATA_MAX_UNPACKED_BYTES = 8 * 1024 ** 3
 
 # Why a backup was made, when not by hand: it ends up in the name.
-REASONS = ("before-restore", "before-update", "auto")
+REASONS = ("before-restore", "before-update", "before-daily", "auto")
 # <backend>_<YYYY-MM-DD_HHMMSS>[_<reason>].tar
 NAME_RE = re.compile(r"^([a-z]+)_(\d{4}-\d{2}-\d{2}_\d{6})(?:_(" + "|".join(REASONS) + r"))?\.tar$")
 TIME_FORMAT = "%Y-%m-%d_%H%M%S"

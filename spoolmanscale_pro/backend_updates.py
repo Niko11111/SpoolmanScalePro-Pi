@@ -51,19 +51,22 @@ def _notes(backend: Backend, current: str, target: str) -> list[dict]:
         return []
 
 
-def check(backend: Backend) -> dict:
-    """What can be installed. Raises SourceError when ghcr.io is out of reach."""
+def check(backend: Backend, floor: str | None = None) -> dict:
+    """What can be installed. floor: the version newer ones are counted
+    from, when the one running is not a version itself (a daily build).
+    Raises SourceError when ghcr.io is out of reach."""
     current = current_version(backend)
+    floor = floor or current
     include_pre = settings.load()["include_prereleases"]
-    newer = vr.newer_than(release_sources.image_tags(backend.image), current, include_pre)
+    newer = vr.newer_than(release_sources.image_tags(backend.image), floor, include_pre)
     return {
-        "key": backend.key, "current": current, "default": default_version(backend),
+        "key": backend.key, "current": current, "shown": vr.display(current), "default": default_version(backend),
         "newer": newer,
-        "notes": _notes(backend, current, newer[0]) if newer else [],
+        "notes": _notes(backend, floor, newer[0]) if newer else [],
     }
 
 
-def _set_version(backend: Backend, tag: str | None) -> None:
+def set_version(backend: Backend, tag: str | None) -> None:
     """tag None goes back to the tested default."""
     versions = dict(settings.load()["backend_versions"])
     if tag is None or tag == default_version(backend):
@@ -75,7 +78,7 @@ def _set_version(backend: Backend, tag: str | None) -> None:
 
 def _roll_back(backend: Backend, previous: str, backup_name: str | None, progress: Progress) -> None:
     progress.step("rolling_back")
-    _set_version(backend, previous)
+    set_version(backend, previous)
     if backup_name:
         backups.restore(backend, BACKUP_DIR / backup_name, progress, keep_safety=False)
     elif docker_compose.up(backend.key).ok:
@@ -90,17 +93,22 @@ def install(backend: Backend, tag: str, progress: Progress) -> None:
         raise JobFailed(e.code, str(e)) from e
     if tag not in available or vr.parse(tag) is None:
         raise JobFailed("unknown_version", tag)
+    apply_version(backend, tag, progress)
+
+
+def apply_version(backend: Backend, tag: str, progress: Progress, reason: str = "before-update") -> None:
+    """Steps 2 to 4 above for a tag already checked. reason: the backup's."""
     states = docker_compose.states() or {}
     was_running = states.get(backend.key) == "running"
     previous = current_version(backend)
     old_image = docker_compose.image_of(backend.key)
     backup_name = None
     if states.get(backend.key, "absent") != "absent":
-        backup_name = backups.create(backend, progress, reason="before-update")
-    _set_version(backend, tag)
+        backup_name = backups.create(backend, progress, reason=reason)
+    set_version(backend, tag)
     progress.step("pulling")
     if not docker_compose.pull(backend.key).ok:
-        _set_version(backend, previous)
+        set_version(backend, previous)
         raise JobFailed("pull_failed", tag)
     progress.set_result(version=tag, backup=backup_name)
     if not was_running:

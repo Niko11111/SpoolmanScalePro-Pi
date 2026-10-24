@@ -53,3 +53,37 @@ def test_display():
     assert vr.display("daily@sha256:c087cbce438f4bccb59228e727d44294739bb5e202089fec2b50dbf2300b49d0") == "daily (c087cbc)"
     assert vr.display("fix-1246-backup-lock") == "fix-1246-backup-lock"
     assert vr.display("") == ""
+
+
+DIGEST = "sha256:c087cbce438f4bccb59228e727d44294739bb5e202089fec2b50dbf2300b49d0"
+
+
+def test_pinned_daily_build():
+    pinned = vr.pin("daily", DIGEST)
+    assert pinned == "daily@" + DIGEST
+    assert vr.pinned_digest(pinned) == DIGEST
+    assert vr.pinned_digest("1.2.5.7") is None
+    assert vr.is_daily(pinned, "daily")
+    assert not vr.is_daily("daily", "daily")  # never pinned: not one build
+    assert not vr.is_daily("1.2.5.7", "daily")
+    assert not vr.is_daily(pinned, "")
+
+
+def test_newest_daily_release():
+    releases = [{"tag": "v1.2.5.7"}, {"tag": "v1.3.0b1-daily.20261023"},
+                {"tag": "v1.3.0b1-daily.20261024"}, {"tag": "v1.2.6b1-daily.20261008"}]
+    assert vr.newest_daily(releases)["tag"] == "v1.3.0b1-daily.20261024"
+    assert vr.newest_daily([{"tag": "v1.2.5.7"}]) is None
+
+
+def test_a_release_after_the_daily_build_counts_as_newer():
+    tags = ["1.2.5.7", "1.3.0", "daily"]
+    assert vr.newer_than(tags, "v1.3.0b1-daily.20261024", False) == ["1.3.0"]
+    assert vr.newer_than(["1.2.5.7"], "v1.3.0b1-daily.20261024", False) == []
+
+
+def test_image_tag():
+    assert vr.image_tag("ghcr.io/maziggy/bambuddy:1.2.5.7") == "1.2.5.7"
+    assert vr.image_tag("ghcr.io/maziggy/bambuddy:daily@" + DIGEST) == "daily"
+    assert vr.image_tag("localhost:5000/bambuddy") == ""
+    assert vr.image_tag("") == ""

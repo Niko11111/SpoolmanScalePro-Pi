@@ -72,20 +72,37 @@
     return parts;
   }
 
-  function appCard() {
+  function row(key, value, mono) {
+    return el("div", { class: "row" }, el("span", { class: "k", text: t(key) }),
+      el("span", { class: mono ? "v mono" : "v", text: value }));
+  }
+
+  // kept: what the search on its own found last (update_watch.py), if it
+  // still applies. Going back is offered after a search of its own.
+  function appCard(kept) {
     const slot = el("div", { class: "wrap" });
     const search = el("button", { type: "button", class: "quiet" }, t("upd.search"));
-    const rows = el("div", { class: "rows" }, el("div", { class: "row" },
-      el("span", { class: "k", text: t("upd.installed") }),
-      el("span", { class: "v mono", text: document.documentElement.dataset.version })));
+    const current = document.documentElement.dataset.version;
+    const rows = el("div", { class: "rows" });
     const tools = el("div", { class: "btnrow" });
-    search.addEventListener("click", () => busy(search, async () => {
+    function show(info, at, error) {
+      // replaceChildren() would write a null as the text "null".
+      rows.replaceChildren(...[row("upd.installed", current, true), at ? row("upd.checked", SSPro.formatClock(at)) : null,
+        error ? row("upd.last_try", errorText({ code: error })) : null].filter(Boolean));
+      slot.replaceChildren(...result({ current, ...info }, slot));
+    }
+    if (kept) show(kept.result, kept.at, kept.error);
+    else rows.replaceChildren(row("upd.installed", current, true));
+    async function run() {
       const info = (await api("/api/updates/app")).app;
-      slot.replaceChildren(...result(info, slot));
-      tools.replaceChildren(info.previous ? rollbackButton(info, slot) : null);
-    }));
-    return el("section", { class: "card wide" }, el("h2", {}, el("span", { text: "SpoolmanScale Pro" }), search),
+      show(info, info.error ? null : info.at);
+      tools.replaceChildren(...(info.previous ? [rollbackButton(info, slot)] : []));
+    }
+    search.addEventListener("click", () => busy(search, run));
+    const card = el("section", { class: "card wide" }, el("h2", {}, el("span", { text: "SpoolmanScale Pro" }), search),
       rows, slot, tools, el("p", { class: "note", text: t("app.note") }));
+    card.search = run;
+    return card;
   }
 
   SSPro.views = Object.assign(SSPro.views || {}, { appCard });

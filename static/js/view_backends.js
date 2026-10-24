@@ -131,6 +131,14 @@
     return parts.length ? el("span", { class: "tile-port", text: parts.join(" · ") }) : null;
   }
 
+  // What the search for updates found (update_watch.offer); a link to the
+  // Updates page, where it is installed.
+  function updatePill(backend) {
+    if (!backend.update || backend.state === "absent") return null;
+    const text = backend.update.daily ? t("tile.update_daily") : t("tile.update", { version: backend.update.version });
+    return el("a", { class: "pill wr", href: "#updates", text });
+  }
+
   function tile(backend, ctx) {
     const actions = el("div", { class: "tile-actions" },
       ctx.plan.parallel ? parallelActions(backend, ctx) : singleActions(backend, ctx));
@@ -142,7 +150,7 @@
     }
     const badges = el("div", { class: "inrow" }, statePill(backend),
       ctx.plan.parallel && backend.active ? el("span", { class: "pill ok" }, t("tile.scale_uses")) : null,
-      facts(backend));
+      updatePill(backend), facts(backend));
     return el("div", { class: "tile" + (backend.active ? " active" : "") },
       el("div", { class: "tile-head" },
         el("img", { src: LOGOS[backend.key], alt: "" }),

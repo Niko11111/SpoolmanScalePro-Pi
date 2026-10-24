@@ -1,18 +1,25 @@
 /* SpoolmanScale Pro - updates of the backends: what runs, what is newer,
  * what changed (release notes from GitHub), and installing a version.
- * Searching asks ghcr.io and GitHub, so it only happens on a click.
+ * The page opens with what the search on its own found last
+ * (update_watch.py); a click searches again. A backend's daily build is
+ * drawn by view_daily.js.
  */
 (function () {
   "use strict";
   const { t, el, api, ask, busy, toast, errorText, views } = SSPro;
 
-  function versionRows(update) {
-    const rows = [el("div", { class: "row" }, el("span", { class: "k", text: t("upd.installed") }),
-      el("span", { class: "v mono", text: update.current }))];
-    if (update.current !== update.default) {
-      rows.push(el("div", { class: "row" }, el("span", { class: "k", text: t("upd.tested") }),
-        el("span", { class: "v mono", text: update.default })));
-    }
+  function row(key, value, mono) {
+    return el("div", { class: "row" }, el("span", { class: "k", text: t(key) }),
+      el("span", { class: mono ? "v mono" : "v", text: value }));
+  }
+
+  // at: when it was found (epoch seconds); error: the last search's
+  // failure since, if any.
+  function versionRows(update, at, error) {
+    const rows = [row("upd.installed", update.shown || update.current, true)];
+    if (update.current !== update.default) rows.push(row("upd.tested", update.default, true));
+    if (at) rows.push(row("upd.checked", SSPro.formatClock(at)));
+    if (error) rows.push(row("upd.last_try", errorText({ code: error })));
     return el("div", { class: "rows" }, rows);
   }
 
@@ -28,6 +35,14 @@
   }
 
   function result(backend, update, start) {
+    const daily = update.daily;
+    if (daily && daily.on) return views.dailyOn(backend, update, start, update.newer.length ? releases(backend, update, start) : []);
+    const parts = releases(backend, update, start);
+    if (daily) parts.push(views.dailyOffer(backend, daily, start));
+    return parts;
+  }
+
+  function releases(backend, update, start) {
     if (!update.newer.length) return [el("div", { class: "callout ok", text: t("upd.up_to_date") })];
     const parts = [el("div", { class: "callout wr", text: t("upd.available", { version: update.newer[0] }) }),
       installForm(backend, update, start)];
@@ -38,37 +53,47 @@
     return parts;
   }
 
-  function backendCard(backend, start) {
+  // kept: what the search found last for this backend, if it still applies.
+  function backendCard(backend, start, kept) {
     const slot = el("div", { class: "wrap" });
     const search = el("button", { type: "button", class: "quiet" }, t("upd.search"));
     const card = el("section", { class: "card wide" }, el("h2", {}, el("span", { text: backend.label }), search), slot);
+    const show = (update, at, error) => slot.replaceChildren(versionRows(update, at, error), ...result(backend, update, start));
     async function run() {
       try {
-        const update = (await api("/api/updates/" + backend.key)).update;
-        slot.replaceChildren(versionRows(update), ...result(backend, update, start));
+        const found = await api("/api/updates/" + backend.key);
+        show(found.update, found.at);
       } catch (e) {
         slot.replaceChildren(el("div", { class: "callout bd", text: errorText(e) }));
       }
     }
+    if (kept) show(kept.result, kept.at, kept.error);
     search.addEventListener("click", () => busy(search, run));
     card.search = run;
     return card;
   }
 
-  function optionsCard(settings, cards) {
-    const box = el("input", { type: "checkbox", checked: settings.include_prereleases });
+  // A switch for one boolean setting, stored as it is flipped.
+  function settingSwitch(settings, name, label) {
+    const box = el("input", { type: "checkbox", checked: settings[name] });
     box.addEventListener("change", async () => {
       try {
-        await api("/api/settings", { method: "POST", body: { include_prereleases: box.checked } });
+        await api("/api/settings", { method: "POST", body: { [name]: box.checked } });
       } catch (e) {
         box.checked = !box.checked;
         toast(errorText(e), true);
       }
     });
+    return el("label", { class: "check" }, el("span", { text: t(label) }), el("span", { class: "switch" }, box, el("i", {})));
+  }
+
+  function optionsCard(settings, cards) {
     const all = el("button", { type: "button" }, t("upd.search_all"));
     all.addEventListener("click", () => busy(all, () => Promise.all(cards.map((c) => c.search()))));
     return el("section", { class: "card wide" }, el("h2", { text: t("upd.title") }),
-      el("label", { class: "check" }, el("span", { text: t("upd.prereleases") }), el("span", { class: "switch" }, box, el("i", {}))),
+      settingSwitch(settings, "update_check", "upd.auto"),
+      el("p", { class: "hint", text: t("upd.auto_hint") }),
+      settingSwitch(settings, "include_prereleases", "upd.prereleases"),
       el("p", { class: "hint", text: t("upd.prereleases_hint") }),
       el("div", { class: "btnrow" }, all), el("p", { class: "note", text: t("upd.note") }));
   }
@@ -94,10 +119,11 @@
 
     async function draw() {
       try {
-        const [backends, settings] = await Promise.all([api("/api/backends"), api("/api/settings")]);
+        const [backends, settings, known] = await Promise.all([api("/api/backends"), api("/api/settings"), api("/api/updates/known")]);
         labelOf = views.labelsFrom(backends.backends);
-        const cards = backends.backends.map((b) => backendCard(b, start));
-        body.replaceChildren(views.appCard(), optionsCard(settings.settings, cards), ...cards);
+        const cards = backends.backends.map((b) => backendCard(b, start, known.items[b.key]));
+        const app = views.appCard(known.items.app);
+        body.replaceChildren(app, optionsCard(settings.settings, [app, ...cards]), ...cards);
       } catch (e) {
         if (e.code !== "login_required") toast(errorText(e), true);
       }

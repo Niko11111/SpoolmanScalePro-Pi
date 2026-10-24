@@ -10,7 +10,7 @@ merge() is the pure half of it and tested in tests/test_backend_status.py.
 import threading
 import time
 
-from . import backend_counts, backend_plan, backend_updates, docker_compose, health, settings
+from . import backend_counts, backend_plan, backend_updates, docker_compose, health, settings, update_watch
 from . import version_rules
 from .backends import BACKENDS
 
@@ -34,8 +34,9 @@ def merge(states: dict[str, str] | None, active: str | None, ready: dict[str, bo
           ram: dict[str, int] | None = None, details: dict[str, dict] | None = None) -> dict:
     """states None means Docker did not answer, which the page shows as
     such rather than as "every backend stopped". details: per backend its
-    "version" (as version_rules.display shows it) and "spools" (None when
-    not known); the count only counts while the backend is ready."""
+    "version" (as version_rules.display shows it), "spools" (None when
+    not known; it only counts while the backend is ready) and "update"
+    (update_watch.offer, None when there is none)."""
     rows = []
     for b in BACKENDS:
         state = (states or {}).get(b.key, "absent")
@@ -48,6 +49,7 @@ def merge(states: dict[str, str] | None, active: str | None, ready: dict[str, bo
             "ram_mb": (ram or {}).get(b.key) if state == "running" else None,
             "version": extra.get("version"),
             "spools": extra.get("spools") if is_ready else None,
+            "update": extra.get("update"),
         })
     return {"docker_ok": states is not None, "active": active, "backends": rows}
 
@@ -58,8 +60,9 @@ def describe() -> dict:
              if (states or {}).get(b.key) == "running"}
     running = [k for k, s in (states or {}).items() if s == "running"]
     counts = backend_counts.known([k for k, up in ready.items() if up])
+    offers = update_watch.summary()["available"]
     details = {b.key: {"version": version_rules.display(backend_updates.current_version(b)),
-                       "spools": counts.get(b.key)} for b in BACKENDS}
+                       "spools": counts.get(b.key), "update": offers.get(b.key)} for b in BACKENDS}
     view = merge(states, settings.load()["active_backend"], ready, _memory_use() if running else {}, details)
     view["plan"] = backend_plan.situation()
     return view

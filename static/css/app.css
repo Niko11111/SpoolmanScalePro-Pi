@@ -96,6 +96,11 @@ a { color: var(--accent); }
 .nav a:hover { color: var(--ink-2); background: var(--hover); }
 .nav a.on { background: var(--accent-dim); color: var(--ink); box-shadow: inset 0 0 0 1px var(--accent-line); }
 .nav .spacer { flex: 1; }
+.nav .count {
+  display: inline-block; min-width: 18px; margin-left: 6px; padding: 0 5px; border-radius: 9px;
+  font-size: 11.5px; font-weight: 600; line-height: 18px; text-align: center;
+  color: var(--warn); background: var(--warn-bg); box-shadow: inset 0 0 0 1px var(--warn-line);
+}
 
 /* ---- cards ---- */
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -135,6 +140,7 @@ a { color: var(--accent); }
 .pill.wr { color: var(--warn); border-color: var(--warn-line); background: var(--warn-bg); }
 .pill.bd { color: var(--bad); border-color: var(--bad-line); background: var(--bad-bg); }
 .pill.off { color: var(--ink-3); border-color: var(--line); background: var(--quiet); }
+a.pill { text-decoration: none; }
 .pill.busy::before { animation: pulse 1s ease-in-out infinite; }
 
 /* ---- meters for RAM and disk ---- */

@@ -38,6 +38,10 @@ class Backend:
     # alone: the backend's own backups, which would otherwise ride along in
     # every archive and make each one larger than the last.
     archive_skip: tuple[str, ...] = ()
+    # A moving image tag with the newest development build, which the
+    # Updates page offers as "daily builds" (backend_daily.py). Empty for a
+    # backend without one.
+    daily_tag: str = ""
 
 
 BACKENDS = (
@@ -85,6 +89,7 @@ BACKENDS = (
         version_env="BAMBUDDY_VERSION",
         typical_ram_mb=420,
         archive_skip=("backups",),
+        daily_tag="daily",
     ),
 )
 

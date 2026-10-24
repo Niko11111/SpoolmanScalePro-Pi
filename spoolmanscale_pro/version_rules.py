@@ -87,3 +87,36 @@ def display(tag: str) -> str:
     if digest.startswith(DIGEST_PREFIX):
         shown += " (" + digest[len(DIGEST_PREFIX):len(DIGEST_PREFIX) + DIGEST_SHOWN_CHARS] + ")"
     return shown
+
+
+def pin(tag: str, digest: str) -> str:
+    """A moving tag held to one image: daily@sha256:c087cbce..."""
+    return f"{tag}@{digest}"
+
+
+def pinned_digest(version: str) -> str | None:
+    """The digest of a pinned tag, None for a plain version."""
+    _, _, digest = version.partition("@")
+    return digest if digest.startswith(DIGEST_PREFIX) else None
+
+
+def is_daily(version: str, daily_tag: str) -> bool:
+    """Whether a backend runs its daily build: the daily tag, pinned."""
+    return bool(daily_tag) and version.startswith(daily_tag + "@") and pinned_digest(version) is not None
+
+
+DAILY_MARK = "-daily."
+
+
+def newest_daily(releases: list[dict]) -> dict | None:
+    """BamBuddy publishes each daily build as a GitHub pre-release named
+    v1.3.0b1-daily.20261024; the newest of them, or None."""
+    dailies = [r for r in releases if DAILY_MARK in r.get("tag", "") and parse(r["tag"])]
+    return max(dailies, key=lambda r: sort_key(r["tag"]), default=None)
+
+
+def image_tag(reference: str) -> str:
+    """The tag of an image reference (ghcr.io/maziggy/bambuddy:1.2.5.7),
+    empty when it names none. A digest after it is left out."""
+    _, colon, tag = reference.split("@", 1)[0].rpartition(":")
+    return tag if colon and "/" not in tag else ""

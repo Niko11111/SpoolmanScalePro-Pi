@@ -36,6 +36,8 @@ ALLOWED = {
     ("broad_except", "spoolmanscale_pro/jobs.py"),
     # The same for the daily backup's thread: one failed check must not end it.
     ("broad_except", "spoolmanscale_pro/auto_backup.py"),
+    # And for the update search's thread (update_watch.py).
+    ("broad_except", "spoolmanscale_pro/update_watch.py"),
 }
 
 # German words written without their umlaut, the mistake rule

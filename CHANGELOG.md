@@ -3,6 +3,22 @@
 One section per version, newest first. VERSION names the current one;
 scripts/check.sh fails when it has no section here.
 
+## 2.0.0-beta.21
+
+- The service looks for updates on its own, every 6 hours, for itself and
+  every installed backend (a Pi without internet tries again after an
+  hour). It only looks, nothing is installed by itself. What it finds shows
+  as a number on the Updates tab and as a link on the backend's tile; the
+  Updates page opens with the last result and when it was found. A switch
+  on that page turns the search off.
+- BamBuddy can run its daily builds: "Switch to daily builds" on its
+  Updates card backs it up and installs the build the daily tag points to,
+  pinned by its digest, so the Pi stays on exactly that build. A newer
+  daily build is found by the search and installed like an update. Back to
+  the releases: a release newer than the daily build is offered as a normal
+  update, or at once with the backup from before the switch, which is kept
+  apart from the update backups so it is never pruned away.
+
 ## 2.0.0-beta.20
 
 - The page header shows the Pi's IP address next to the version, the

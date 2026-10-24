@@ -23,6 +23,8 @@ AUTH_FILE = DATA_DIR / "auth.json"
 SECRETS_FILE = DATA_DIR / "backend-secrets.json"
 SESSION_KEY_FILE = DATA_DIR / "session.key"
 BACKUP_DIR = DATA_DIR / "backups"
+# The last results of the update search (update_watch.py).
+UPDATE_CHECK_FILE = DATA_DIR / "update-check.json"
 DEMO_SNAPSHOT_DIR = DATA_DIR / "demo-snapshot"
 # Demo mode is on while this file exists. Deliberately no switch on the page:
 # it is meant for one demo kit, not for every installation.

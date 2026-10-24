@@ -11,7 +11,7 @@ import threading
 
 from waitress import serve
 
-from . import auto_backup
+from . import auto_backup, update_watch
 from .ports import PAGE_PORT, PROXY_PORT
 from .scale_proxy import create_proxy_app
 from .web import create_app
@@ -37,6 +37,7 @@ def main() -> None:
                                      "ident": "spoolmanscale-pro"})
     proxy.start()
     auto_backup.start_scheduler()
+    update_watch.start_scheduler()
     serve(app, host=args.host, port=args.port, threads=SERVER_THREADS, ident="spoolmanscale-pro")
 
 
