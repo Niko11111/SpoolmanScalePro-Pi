@@ -9,6 +9,11 @@ scripts/check.sh fails when it has no section here.
   interface, a transparent PNG: the JPEG logo it used before drew a black
   box around the spool on a dark tab strip. Saved to the home screen, the
   page gets the matching 180x180 icon.
+- Each backend tile has an Info button: what the backend is, a link to its
+  project page, and what this Pi means for it. On a Pi smaller than a Pi 4
+  BamBuddy's says which of its features need a Pi 4 (the live camera view
+  of X1, H2 and P2, timelapses) and which need a service of their own
+  (slicing on the server, Obico failure detection).
 
 ## 2.0.0-beta.21
 

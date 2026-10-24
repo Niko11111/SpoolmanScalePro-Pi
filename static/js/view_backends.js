@@ -107,14 +107,34 @@
       toast(SSPro.errorText(e), true);
       return;
     }
-    const dialog = el("dialog", {});
-    const close = () => { dialog.close(); dialog.remove(); };
-    dialog.append(el("h3", { text: t("login.title") }),
+    showDialog(t("login.title"), [
       el("div", { class: "rows" },
         el("div", { class: "row" }, el("span", { class: "k", text: t("login.email") }), el("span", { class: "v mono", text: login.email })),
         el("div", { class: "row" }, el("span", { class: "k", text: t("login.password") }), el("span", { class: "v mono", text: login.password }))),
-      el("p", { class: "note", text: t("login.note") }),
-      el("div", { class: "btnrow" }, el("button", { type: "button", onclick: close }, t("common.close"))));
+      el("p", { class: "note", text: t("login.note") })]);
+  }
+
+  // What a backend is, and what this Pi means for it. Below a Pi 4
+  // (hardware.py, size small or medium) BamBuddy's camera and video
+  // features ask more than the Pi has; on a Zero FilaMan and BamBuddy are
+  // slow altogether.
+  function showInfo(backend, plan) {
+    const body = [el("p", { text: t("info." + backend.key) })];
+    if (backend.key === "bambuddy" && plan.rules.size !== "large") {
+      body.push(el("div", { class: "callout wr", text: t("info.bambuddy_below_pi4") }));
+    }
+    if (plan.rules.slow_backends.includes(backend.key)) {
+      body.push(el("div", { class: "callout wr", text: t("switch.slow", { name: backend.label }) }));
+    }
+    const homepage = el("a", { class: "linkbtn", href: backend.homepage, target: "_blank", rel: "noopener" }, t("info.homepage"));
+    showDialog(backend.label, body, [homepage]);
+  }
+
+  function showDialog(title, body, extraButtons) {
+    const dialog = el("dialog", {});
+    const close = () => { dialog.close(); dialog.remove(); };
+    dialog.append(el("h3", { text: title }), ...body,
+      el("div", { class: "btnrow" }, ...(extraButtons || []), el("button", { type: "button", onclick: close }, t("common.close"))));
     dialog.addEventListener("cancel", (e) => { e.preventDefault(); close(); });
     document.body.append(dialog);
     dialog.showModal();
@@ -148,6 +168,7 @@
     if (backend.state !== "absent") {
       actions.append(el("button", { class: "quiet", type: "button", onclick: () => ctx.onLog(backend) }, t("tile.log")));
     }
+    actions.append(el("button", { class: "quiet", type: "button", onclick: () => showInfo(backend, ctx.plan) }, t("tile.info")));
     const badges = el("div", { class: "inrow" }, statePill(backend),
       ctx.plan.parallel && backend.active ? el("span", { class: "pill ok" }, t("tile.scale_uses")) : null,
       updatePill(backend), facts(backend));
