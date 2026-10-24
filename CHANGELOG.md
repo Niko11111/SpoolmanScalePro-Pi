@@ -3,6 +3,13 @@
 One section per version, newest first. VERSION names the current one;
 scripts/check.sh fails when it has no section here.
 
+## 2.0.0-beta.22
+
+- The browser tab shows the same icon as SpoolmanScale's own web
+  interface, a transparent PNG: the JPEG logo it used before drew a black
+  box around the spool on a dark tab strip. Saved to the home screen, the
+  page gets the matching 180x180 icon.
+
 ## 2.0.0-beta.21
 
 - The service looks for updates on its own, every 6 hours, for itself and
