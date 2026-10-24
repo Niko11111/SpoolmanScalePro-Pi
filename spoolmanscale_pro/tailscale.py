@@ -54,7 +54,7 @@ def _log_tail() -> tuple[list[str], int | None]:
         text = LOG.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return [], None
-    return [line for line in text.splitlines() if line.strip()][-LOG_TAIL_LINES:], os_update_rules.exit_code(text)
+    return os_update_rules.log_lines(text)[-LOG_TAIL_LINES:], os_update_rules.exit_code(text)
 
 
 def status() -> dict:

@@ -3,6 +3,24 @@
 One section per version, newest first. VERSION names the current one;
 scripts/check.sh fails when it has no section here.
 
+## 2.0.0-beta.18
+
+From the first install on a Pi 3 B (Raspberry Pi OS Trixie):
+
+- The installer creates the releases folder on a first install (beta.17
+  stopped there), shows one line per backend download instead of Docker's
+  progress bars, and reads whether the WLAN is blocked from the system: the
+  rfkill tool is not part of Raspberry Pi OS Lite.
+- The logs of OS updates, self-updates and Tailscale no longer show the
+  internal end marker.
+- More room between text, notices, buttons and log boxes on the System
+  page.
+- The scale's weight on the overview shows its unit once ("0 g", not
+  "0 g g").
+- The warning about a power supply that was too low since the restart
+  can be marked as seen: it stays quiet until the next restart. A voltage
+  that is too low right now is always shown.
+
 ## 2.0.0-beta.17
 
 - The installer accepts every Pi this runs on: it asked for about 1 GB of

@@ -5,7 +5,7 @@ import socket
 
 from flask import Blueprint, request
 
-from .. import demo, host_actions, os_update, system_info, tailscale
+from .. import demo, host_actions, os_update, settings, system_info, tailscale
 from ..jobs import RUNNER
 from ..version import APP_VERSION
 from .responses import fail, ok
@@ -15,8 +15,19 @@ bp = Blueprint("api_system", __name__, url_prefix="/api/system")
 
 @bp.get("")
 def overview():
-    return ok(version=APP_VERSION, hostname=socket.gethostname(), demo_enabled=demo.enabled(),
-              **system_info.snapshot())
+    info = system_info.snapshot()
+    if info["power"] is not None:
+        info["power"]["seen"] = system_info.power_seen(settings.load()["power_seen_boot"], system_info.boot_id())
+    return ok(version=APP_VERSION, hostname=socket.gethostname(), demo_enabled=demo.enabled(), **info)
+
+
+@bp.post("/power/seen")
+def power_seen():
+    boot = system_info.boot_id()
+    if boot is None:
+        return fail("not_found", 404)
+    settings.update({"power_seen_boot": boot})
+    return ok()
 
 
 @bp.post("/clock")

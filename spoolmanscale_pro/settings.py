@@ -47,6 +47,9 @@ DEFAULTS = {
     # Several backends at once: None follows the Pi's size (hardware.py),
     # True or False is the owner's choice. Never on a small Pi.
     "parallel_mode": None,
+    # The boot (kernel boot id) in which the owner marked the power supply
+    # warning as seen: hidden until the next restart (system_info.py).
+    "power_seen_boot": "",
 }
 
 SCALE_ADDRESS_MAX_LEN = 64

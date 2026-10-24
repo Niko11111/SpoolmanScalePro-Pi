@@ -42,7 +42,8 @@
       row(t("scale.backend"), scale.backend),
       row(t("scale.reached"), yesNo(scale.backend_ok)),
       row(t("scale.points_here"), yesNo(scale.points_here)),
-      row(t("scale.weight"), scale.weight + " g", true),
+      // The scale sends it formatted, unit included ("0 g").
+      row(t("scale.weight"), scale.weight, true),
       row(t("scale.firmware"), scale.version, true)));
     if (!scale.on_active || !scale.points_here) {
       const sync = el("button", { type: "button", class: "block" }, t("scale.sync"));
@@ -85,13 +86,30 @@
 
   // The power supply from vcgencmd: red while the voltage is too low right
   // now, yellow when it was since boot, green otherwise. Nothing on a laptop.
-  function powerRows(power) {
+  // "Seen" quiets the yellow one until the next restart; red always shows.
+  function powerState(power, now, earlier) {
+    if (now) return ["bd", "system.power_low_now"];
+    if (earlier && power.seen) return ["off", "system.power_seen"];
+    if (earlier) return ["wr", "system.power_low_before"];
+    return ["ok", "system.power_ok"];
+  }
+
+  function powerRows(power, onChange) {
     if (!power) return [];
     const now = power.now.includes("under_voltage");
     const earlier = power.since_boot.includes("under_voltage");
-    const state = now ? ["bd", "system.power_low_now"] : earlier ? ["wr", "system.power_low_before"] : ["ok", "system.power_ok"];
+    const state = powerState(power, now, earlier);
     const rows = [row(t("system.power"), el("span", { class: "pill " + state[0] }, t(state[1])))];
-    if (now || earlier) rows.push(el("div", { class: "callout " + state[0], text: t("system.power_hint") }));
+    if (!now && (!earlier || power.seen)) return rows;
+    rows.push(el("div", { class: "callout " + state[0], text: t("system.power_hint") }));
+    if (!now) {
+      const seen = el("button", { type: "button", class: "quiet" }, t("system.power_seen_button"));
+      seen.addEventListener("click", () => busy(seen, async () => {
+        await api("/api/system/power/seen", { method: "POST" });
+        onChange();
+      }));
+      rows.push(el("div", { class: "btnrow" }, seen));
+    }
     return rows;
   }
 
@@ -110,7 +128,7 @@
       row(t("system.uptime"), formatDuration(system.uptime_s)),
       row(t("system.clock"), formatClock(system.clock_epoch_s)));
     return el("section", { class: "card" }, el("h2", { text: t("system.title_short") }), rows,
-      powerRows(system.power), clockFix(system, onChange));
+      powerRows(system.power, onChange), clockFix(system, onChange));
   }
 
   SSPro.views = Object.assign(SSPro.views || {}, { scaleCard, systemCard });

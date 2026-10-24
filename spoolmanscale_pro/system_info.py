@@ -18,6 +18,8 @@ MEMINFO_FILE = Path("/proc/meminfo")
 UPTIME_FILE = Path("/proc/uptime")
 THERMAL_FILE = Path("/sys/class/thermal/thermal_zone0/temp")
 ZRAM_DISKSIZE_FILE = Path("/sys/block/zram0/disksize")
+# New with every boot: what a "seen" on the power warning is tied to.
+BOOT_ID_FILE = Path("/proc/sys/kernel/random/boot_id")
 
 KIB_PER_MIB = 1024
 MILLIDEGREES_PER_DEGREE = 1000
@@ -77,6 +79,18 @@ def parse_throttled(text: str) -> dict | None:
         return None
     return {"now": [n for n, b in THROTTLE_BITS.items() if bits >> b & 1],
             "since_boot": [n for n, b in THROTTLE_BITS.items() if bits >> (b + SINCE_BOOT_SHIFT) & 1]}
+
+
+def power_seen(seen_boot: str, boot: str | None) -> bool:
+    """Whether the owner marked the under-voltage since boot as seen in this
+    boot. The firmware keeps that bit until a restart, so a later drop in
+    the same boot shows only while it lasts (the "now" bit)."""
+    return bool(boot) and seen_boot == boot
+
+
+def boot_id() -> str | None:
+    text = _read(BOOT_ID_FILE)
+    return text.strip() if text else None
 
 
 def _throttled() -> dict | None:

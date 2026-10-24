@@ -429,6 +429,8 @@ window.SSPRO_I18N.de = {
   "system.power": "Stromversorgung",
   "system.power_ok": "OK",
   "system.power_low_now": "Gerade zu niedrig",
+  "system.power_seen": "War zu niedrig, gesehen",
+  "system.power_seen_button": "Gesehen, bis zum Neustart ausblenden",
   "system.power_low_before": "War zu niedrig",
   "system.power_hint": "Die Spannung war zu niedrig (seit dem letzten Neustart). Der Pi bremst dann, und ein abgebrochener Schreibvorgang kann die SD-Karte beschädigen. Nimm ein Netzteil mit 5 V / 2,5 A (Pi 3) oder 3 A (Pi 4) und ein kurzes, dickes Kabel; an der Powerbank eine, die unter Last 5 V hält.",
 

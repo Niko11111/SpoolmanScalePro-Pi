@@ -1,4 +1,4 @@
-from spoolmanscale_pro.system_info import (parse_meminfo, parse_millidegrees, parse_throttled,
+from spoolmanscale_pro.system_info import (parse_meminfo, parse_millidegrees, parse_throttled, power_seen,
                                            parse_uptime)
 
 MEMINFO = """MemTotal:         921616 kB
@@ -34,3 +34,10 @@ def test_throttled_bits():
         "now": ["under_voltage", "throttled"], "since_boot": ["under_voltage", "throttled"]}
     assert parse_throttled("throttled=0x10000") == {"now": [], "since_boot": ["under_voltage"]}
     assert parse_throttled("garbage") is None
+
+
+def test_power_seen_holds_for_one_boot():
+    assert power_seen("b1", "b1") is True
+    assert power_seen("b1", "b2") is False
+    assert power_seen("", "b1") is False
+    assert power_seen("", None) is False

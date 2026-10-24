@@ -96,4 +96,4 @@ def update_state() -> dict:
     except OSError:
         text = ""
     return {"running": running, "exit": os_update_rules.exit_code(text),
-            "lines": [line for line in text.splitlines() if line.strip()][-LOG_TAIL_LINES:]}
+            "lines": os_update_rules.log_lines(text)[-LOG_TAIL_LINES:]}

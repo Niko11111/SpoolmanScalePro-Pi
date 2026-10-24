@@ -30,7 +30,9 @@
     };
 
     function parts(ts) {
-      if (!ts.installed && !ts.busy) return [action("ts.install", "/api/system/tailscale/install", "ts.install_text")];
+      if (!ts.installed && !ts.busy) {
+        return [el("div", { class: "btnrow" }, action("ts.install", "/api/system/tailscale/install", "ts.install_text"))];
+      }
       const out = [];
       if (ts.state === "Running") {
         out.push(el("div", { class: "rows" }, row(t("ts.tailnet"), ts.tailnet || "-"), row(t("ts.name"), ts.name || "-"),

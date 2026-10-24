@@ -100,7 +100,8 @@ preflight() {
 # setup WLAN would fail without saying why.
 check_wifi() {
   [ -e /sys/class/net/wlan0 ] || { note "no WLAN on this Pi: hotspot and setup WLAN not available"; return 0; }
-  if command -v rfkill >/dev/null 2>&1 && rfkill list wifi | grep -q 'Soft blocked: yes'; then
+  # Read from sysfs: the rfkill tool is not part of Raspberry Pi OS Lite.
+  if grep -qx 1 /sys/class/net/wlan0/phy80211/rfkill*/soft 2>/dev/null; then
     note "warning: the WLAN is switched off, usually because no WLAN country is set."
     note "      The hotspot and the setup WLAN need it. Set your country, then run this again:"
     note "      sudo raspi-config nonint do_wifi_country DE   (your country code)"
@@ -189,6 +190,7 @@ install_release() {
   "$STAGING/.venv/bin/pip" install --quiet --no-cache-dir -r "$STAGING/requirements.txt"
   chown -R root:root "$STAGING"
   # Two renames: the running release is gone only for the moment between them.
+  install -d "$BASE/releases"
   if [ -d "$RELEASE" ]; then mv -T "$RELEASE" "$REPLACED"; fi
   mv -T "$STAGING" "$RELEASE"
   rm -rf "$REPLACED"
@@ -231,9 +233,20 @@ pull_backends() {
     note "downloaded when first started (add --pull-all to have them for offline use)"
     return
   fi
-  note "downloading Spoolman, FilaMan and BamBuddy, about 3 GB"
-  docker compose --project-name spoolmanscale-pro --file "$BASE/current/compose/docker-compose.yml" \
-    --profile spoolman --profile filaman --profile bambuddy pull
+  note "downloading Spoolman, FilaMan and BamBuddy, about 3 GB: on a Pi this takes a while"
+  # One line per backend: Docker's progress bars, written to a log instead
+  # of a terminal, turn into hundreds of lines. Its output is shown only
+  # when the download fails.
+  for backend in spoolman:Spoolman filaman:FilaMan bambuddy:BamBuddy; do
+    started=$(date +%s)
+    printf '      %s ...' "${backend#*:}"
+    if ! output=$(docker compose --project-name spoolmanscale-pro \
+        --file "$BASE/current/compose/docker-compose.yml" --profile "${backend%%:*}" pull --quiet 2>&1); then
+      printf ' failed\n%s\n' "$output"
+      return 1
+    fi
+    printf ' done in %d s\n' $(($(date +%s) - started))
+  done
 }
 
 check_running() {

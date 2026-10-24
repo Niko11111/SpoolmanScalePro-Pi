@@ -42,6 +42,10 @@ def test_exit_code_from_the_log():
     assert r.exit_code("SSPRO-EXIT:100\n") == 100
 
 
+def test_log_lines_hide_the_exit_marker():
+    assert r.log_lines("Setting up openssl ...\n\n  \nSSPRO-EXIT:0\n") == ["Setting up openssl ..."]
+
+
 def test_kernel_restart():
     running = "6.6.51+rpt-rpi-v8"
     assert not r.kernel_restart_needed(running, [])

@@ -432,6 +432,8 @@ window.SSPRO_I18N.en = {
   "system.power_ok": "OK",
   "system.power_low_now": "Too low now",
   "system.power_low_before": "Was too low",
+  "system.power_seen": "Was too low, seen",
+  "system.power_seen_button": "Seen, hide until restart",
   "system.power_hint": "The voltage dropped too low (since the last restart). The Pi then slows down, and a write cut short can damage the SD card. Use a 5 V / 2.5 A supply (Pi 3) or 3 A (Pi 4) and a short, thick cable; on a power bank, one that holds 5 V under load.",
 
   "nav.setup": "Setup",

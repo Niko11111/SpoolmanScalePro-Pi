@@ -86,13 +86,13 @@ def follow(progress: Progress) -> None:
         chunk, offset = _read_from(offset)
         if chunk:
             text = (text + chunk)[-TAIL_BYTES:]
-            progress.output([line for line in chunk.splitlines() if line.strip()])
+            progress.output(rules.log_lines(chunk))
         if not upgrade_running() or time.monotonic() > deadline:
             break
         time.sleep(POLL_S)
     chunk, offset = _read_from(offset)
     if chunk:
-        progress.output([line for line in chunk.splitlines() if line.strip()])
+        progress.output(rules.log_lines(chunk))
     code = rules.exit_code((text + chunk)[-TAIL_BYTES:])
     if code is None:
         raise JobFailed("os_upgrade_interrupted")

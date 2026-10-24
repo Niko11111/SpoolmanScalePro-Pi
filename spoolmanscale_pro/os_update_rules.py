@@ -18,7 +18,8 @@ _REMV_RE = re.compile(r"^Remv\s+(?P<name>\S+)")
 # 3 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
 _SUMMARY_RE = re.compile(r"^(?P<upgraded>\d+)\s+upgraded,\s+(?P<installed>\d+)\s+newly installed,"
                          r"\s+(?P<removed>\d+)\s+to remove")
-# The last line the upgrade unit writes to its log (os_update.UPGRADE_SCRIPT).
+# The last line the helper's units (OS upgrade, self-update, Tailscale)
+# write to their logs.
 _EXIT_RE = re.compile(r"^SSPRO-EXIT:(\d+)$", re.M)
 # Packages whose new version only takes effect after a restart.
 _REBOOT_PACKAGE_RE = re.compile(r"^(linux-image|raspi-firmware|raspberrypi-kernel|raspberrypi-bootloader|linux-modules)")
@@ -71,6 +72,11 @@ def exit_code(log_text: str) -> int | None:
     """The upgrade's exit code from its log, None while it has not ended."""
     found = _EXIT_RE.findall(log_text or "")
     return int(found[-1]) if found else None
+
+
+def log_lines(text: str) -> list[str]:
+    """A log as the page shows it: no blank lines, no exit marker."""
+    return [line for line in (text or "").splitlines() if line.strip() and not _EXIT_RE.match(line)]
 
 
 def _flavor(release: str) -> str:
