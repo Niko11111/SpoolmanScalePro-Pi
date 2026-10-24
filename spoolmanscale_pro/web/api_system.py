@@ -1,0 +1,132 @@
+"""/api/system: the Pi itself. Its vital signs, its clock, restart and
+shutdown."""
+
+import socket
+
+from flask import Blueprint, request
+
+from .. import demo, host_actions, network, os_update, settings, system_info, tailscale
+from ..jobs import RUNNER
+from ..version import APP_VERSION
+from .responses import fail, ok
+
+bp = Blueprint("api_system", __name__, url_prefix="/api/system")
+
+
+@bp.get("")
+def overview():
+    info = system_info.snapshot()
+    if info["power"] is not None:
+        info["power"]["seen"] = system_info.power_seen(settings.load()["power_seen_boot"], system_info.boot_id())
+    return ok(version=APP_VERSION, hostname=socket.gethostname(), address=network.primary_address(),
+              demo_enabled=demo.enabled(), **info)
+
+
+@bp.post("/power/seen")
+def power_seen():
+    boot = system_info.boot_id()
+    if boot is None:
+        return fail("not_found", 404)
+    settings.update({"power_seen_boot": boot})
+    return ok()
+
+
+# Demo mode on or off: the hidden switch behind the version in the header.
+@bp.post("/demo")
+def set_demo():
+    enabled = (request.get_json(silent=True) or {}).get("enabled")
+    if not isinstance(enabled, bool):
+        return fail("invalid_fields")
+    demo.set_enabled(enabled)
+    return ok(demo_enabled=demo.enabled())
+
+
+@bp.post("/clock")
+def set_clock():
+    epoch = (request.get_json(silent=True) or {}).get("epoch_s")
+    if not host_actions.valid_epoch(epoch):
+        return fail("invalid_time")
+    if not host_actions.set_clock(epoch):
+        return fail("clock_failed", 500)
+    return ok(clock_epoch_s=epoch)
+
+
+@bp.post("/reboot")
+def reboot():
+    # Not in the middle of a switch or a backup: that would leave a backend
+    # half stopped or an archive half written.
+    if RUNNER.busy():
+        return fail("busy", 409)
+    if not host_actions.reboot():
+        return fail("reboot_failed", 500)
+    return ok()
+
+
+@bp.post("/poweroff")
+def poweroff():
+    if RUNNER.busy():
+        return fail("busy", 409)
+    if not host_actions.poweroff():
+        return fail("poweroff_failed", 500)
+    return ok()
+
+
+def _start(kind: str, fn):
+    job = RUNNER.start(kind, "pi", fn)
+    if job is None:
+        return fail("busy", 409)
+    return ok(202, job=job)
+
+
+@bp.get("/os")
+def os_state():
+    return ok(upgrade_running=os_update.upgrade_running(), restart_needed=os_update.restart_needed())
+
+
+@bp.post("/os/check")
+def os_check():
+    return _start("os_check", os_update.check)
+
+
+@bp.post("/os/upgrade")
+def os_upgrade():
+    return _start("os_upgrade", os_update.upgrade)
+
+
+@bp.post("/os/follow")
+def os_follow():
+    """Shows an upgrade that is running already, e.g. after the page or
+    this service was restarted while it ran."""
+    if not os_update.upgrade_running():
+        return fail("os_upgrade_not_running", 409)
+    return _start("os_upgrade", os_update.follow)
+
+
+@bp.get("/tailscale")
+def tailscale_state():
+    return ok(tailscale=tailscale.status())
+
+
+def _tailscale_action(outcome: str):
+    if outcome == "failed":
+        return fail("tailscale_failed", 500)
+    if outcome == "busy":
+        return fail("busy", 409)
+    return ok(202)
+
+
+@bp.post("/tailscale/install")
+def tailscale_install():
+    return _tailscale_action(tailscale.install())
+
+
+@bp.post("/tailscale/connect")
+def tailscale_connect():
+    return _tailscale_action(tailscale.connect())
+
+
+@bp.post("/tailscale/disconnect")
+def tailscale_disconnect():
+    if not tailscale.disconnect():
+        return fail("tailscale_failed", 500)
+    return ok()

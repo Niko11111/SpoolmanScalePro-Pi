@@ -1,0 +1,11 @@
+# Runtime dependencies, every one pinned, the ones Flask pulls in as well, so
+# a fresh install on the Pi gets exactly what was tested. A library update is
+# a commit of its own.
+flask==3.1.0
+waitress==3.0.2
+blinker==1.9.0
+click==8.5.0
+itsdangerous==2.2.0
+jinja2==3.1.6
+markupsafe==3.0.4
+werkzeug==3.1.9

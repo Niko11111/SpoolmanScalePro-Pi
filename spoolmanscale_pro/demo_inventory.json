@@ -1,0 +1,35 @@
+{
+  "about": "The test inventory for the demo, written the same into Spoolman, FilaMan and BamBuddy from the Demo page (inventory_import.py). remaining_g is a start value, replaced once a spool is weighed; estimated marks one set by hand. note says why a spool is in the list; comment is written into the backend.",
+  "vendors": [
+    {"name": "Bambu Lab", "empty_spool_weight_g": 250},
+    {"name": "Prusament", "empty_spool_weight_g": 201},
+    {"name": "Das Filament", "empty_spool_weight_g": 230},
+    {"name": "eSun", "empty_spool_weight_g": 160},
+    {"name": "Sunlu", "empty_spool_weight_g": 250},
+    {"name": "Fiberlogy", "empty_spool_weight_g": 210},
+    {"name": "Hatchbox", "empty_spool_weight_g": 230}
+  ],
+  "spools": [
+    {"key": "bl-pla-yellow", "vendor": "Bambu Lab", "name": "Yellow", "material": "PLA", "color_hex": "F4EE2A", "weight_g": 1000, "spool_weight_g": 250, "remaining_g": 919, "density": 1.24, "diameter_mm": 1.75, "extruder_temp": 220, "bed_temp": 60, "article_number": "10400"},
+    {"key": "bl-pla-bambu-green", "vendor": "Bambu Lab", "name": "Bambu Green", "material": "PLA", "color_hex": "00AE42", "weight_g": 1000, "spool_weight_g": 250, "remaining_g": 618, "density": 1.24, "diameter_mm": 1.75, "extruder_temp": 220, "bed_temp": 60, "article_number": "10501"},
+    {"key": "bl-pla-matte-ivory", "vendor": "Bambu Lab", "name": "Matte Ivory White", "material": "PLA", "color_hex": "FFFFFF", "weight_g": 1000, "spool_weight_g": 250, "remaining_g": 476, "density": 1.31, "diameter_mm": 1.75, "extruder_temp": 220, "bed_temp": 60, "article_number": "11100"},
+    {"key": "bl-petg-hf-black", "vendor": "Bambu Lab", "name": "HF Black", "material": "PETG", "color_hex": "000000", "weight_g": 1000, "spool_weight_g": 250, "remaining_g": 684, "density": 1.28, "diameter_mm": 1.75, "extruder_temp": 245, "bed_temp": 70, "article_number": "33102"},
+    {"key": "bl-petg-hf-white", "vendor": "Bambu Lab", "name": "HF White", "material": "PETG", "color_hex": "FFFFFF", "weight_g": 1000, "spool_weight_g": 250, "remaining_g": 188, "density": 1.28, "diameter_mm": 1.75, "extruder_temp": 245, "bed_temp": 70, "article_number": "33100"},
+    {"key": "bl-tough-cyan", "vendor": "Bambu Lab", "name": "Tough+ Cyan", "material": "PLA Tough+", "color_hex": "009BD8", "weight_g": 1000, "spool_weight_g": 250, "remaining_g": 852, "density": 1.21, "diameter_mm": 1.75, "extruder_temp": 245, "bed_temp": 55, "article_number": "12601"},
+    {"key": "bl-support-pla-petg", "vendor": "Bambu Lab", "name": "Support for PLA/PETG Nature", "material": "PLA-S", "color_hex": "00000000", "weight_g": 500, "spool_weight_g": 250, "remaining_g": 470, "density": 1.28, "diameter_mm": 1.75, "extruder_temp": 210, "bed_temp": 55, "article_number": "65102"},
+    {"key": "bl-petg-translucent-teal", "vendor": "Bambu Lab", "name": "Translucent Teal", "material": "PETG Translucent", "color_hex": "77EDD7", "weight_g": 1000, "spool_weight_g": 250, "remaining_g": 615, "density": 1.25, "diameter_mm": 1.75, "extruder_temp": 250, "bed_temp": 70, "article_number": "32501"},
+    {"key": "bl-abs-gf-black-1", "vendor": "Bambu Lab", "name": "Black", "material": "ABS-GF", "color_hex": "000000", "weight_g": 1000, "spool_weight_g": 250, "remaining_g": 27, "density": 1.08, "diameter_mm": 1.75, "extruder_temp": 250, "bed_temp": 90, "article_number": "41101", "note": "same kind as bl-abs-gf-black-2, nearly empty"},
+    {"key": "bl-abs-gf-black-2", "vendor": "Bambu Lab", "name": "Black", "material": "ABS-GF", "color_hex": "000000", "weight_g": 1000, "spool_weight_g": 250, "remaining_g": 1000, "density": 1.08, "diameter_mm": 1.75, "extruder_temp": 250, "bed_temp": 90, "article_number": "41101", "note": "same kind as bl-abs-gf-black-1, full"},
+    {"key": "bl-pla-matte-charcoal", "vendor": "Bambu Lab", "name": "Matte Charcoal", "material": "PLA", "color_hex": "000000", "weight_g": 1000, "spool_weight_g": 251, "remaining_g": 0, "density": 1.31, "diameter_mm": 1.75, "extruder_temp": 220, "bed_temp": 60, "article_number": "11101", "archived": true, "note": "used up, archived"},
+    {"key": "pr-asa-ivory", "vendor": "Prusament", "name": "ASA Ivory White", "material": "ASA", "color_hex": "EEE8D8", "weight_g": 850, "spool_weight_g": 201, "remaining_g": 220, "density": 1.07, "diameter_mm": 1.75, "extruder_temp": 250, "bed_temp": 105},
+    {"key": "pr-petg-lime", "vendor": "Prusament", "name": "PETG Lime Green", "material": "PETG", "color_hex": "88CC22", "weight_g": 1000, "spool_weight_g": 201, "remaining_g": 650, "estimated": true, "density": 1.27, "diameter_mm": 1.75, "extruder_temp": 240, "bed_temp": 85},
+    {"key": "df-pla-senf", "vendor": "Das Filament", "name": "PLA Matt Senf", "material": "PLA", "color_hex": "AA8822", "weight_g": 1000, "spool_weight_g": 230, "remaining_g": 595, "density": 1.24, "diameter_mm": 1.75, "extruder_temp": 210, "bed_temp": 60},
+    {"key": "df-pla-schiefer", "vendor": "Das Filament", "name": "PLA Matt Schiefer", "material": "PLA", "color_hex": "444444", "weight_g": 1000, "spool_weight_g": 230, "remaining_g": 40, "estimated": true, "density": 1.24, "diameter_mm": 1.75, "extruder_temp": 210, "bed_temp": 60, "note": "nearly empty"},
+    {"key": "es-tpe-black", "vendor": "eSun", "name": "Black", "material": "TPE-83A", "color_hex": "050503", "weight_g": 1000, "spool_weight_g": 160, "remaining_g": 899, "density": 1.21, "diameter_mm": 1.75, "extruder_temp": 240, "bed_temp": 60, "comment": "Print with Bambu Lab TPU 95 settings, a bit more flow."},
+    {"key": "es-pla-plus-grey", "vendor": "eSun", "name": "PLA+ Grey", "material": "PLA+", "color_hex": "888888", "weight_g": 1000, "spool_weight_g": 160, "remaining_g": 750, "estimated": true, "density": 1.24, "diameter_mm": 1.75, "extruder_temp": 215, "bed_temp": 60},
+    {"key": "su-pla-plus-yellow", "vendor": "Sunlu", "name": "PLA+ Yellow", "material": "PLA+", "color_hex": "DDCC00", "weight_g": 1000, "spool_weight_g": 250, "remaining_g": 800, "estimated": true, "density": 1.24, "diameter_mm": 1.75, "extruder_temp": 215, "bed_temp": 60},
+    {"key": "su-tpu-orange", "vendor": "Sunlu", "name": "TPU 95A Orange", "material": "TPU", "color_hex": "FF7700", "weight_g": 500, "spool_weight_g": 250, "remaining_g": 400, "estimated": true, "density": 1.21, "diameter_mm": 1.75, "extruder_temp": 230, "bed_temp": 50},
+    {"key": "fl-petg-white", "vendor": "Fiberlogy", "name": "PETG White", "material": "PETG", "color_hex": "F5F5F5", "weight_g": 850, "spool_weight_g": 210, "remaining_g": 600, "estimated": true, "density": 1.27, "diameter_mm": 1.75, "extruder_temp": 240, "bed_temp": 80},
+    {"key": "hb-pla-gold", "vendor": "Hatchbox", "name": "PLA Gold", "material": "PLA", "color_hex": "D4AA00", "weight_g": 1000, "spool_weight_g": 230, "remaining_g": 500, "estimated": true, "density": 1.24, "diameter_mm": 1.75, "extruder_temp": 200, "bed_temp": 60}
+  ]
+}

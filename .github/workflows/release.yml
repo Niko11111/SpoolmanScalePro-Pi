@@ -1,0 +1,42 @@
+name: release
+
+# A tag v<VERSION> builds the release archive and publishes the GitHub
+# release the Pi's self-update looks for. Betas become pre-releases.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Tag and VERSION agree
+        run: |
+          test "${GITHUB_REF_NAME}" = "v$(cat VERSION)" || {
+            echo "Tag ${GITHUB_REF_NAME} does not match VERSION $(cat VERSION)"; exit 1; }
+      - name: scripts/check.sh
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -r requirements-dev.txt
+          scripts/check.sh --verbose
+      - name: Build
+        run: scripts/build_release.sh
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="$(cat VERSION)"
+          PRE=""
+          case "$VERSION" in *-*) PRE="--prerelease" ;; esac
+          gh release create "v$VERSION" dist/spoolmanscale-pro-"$VERSION".tar.gz* \
+            --title "SpoolmanScale Pro $VERSION" --notes-file dist/release-notes.md $PRE

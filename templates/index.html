@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en" data-version="{{ version }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SpoolmanScale Pro</title>
+  <link rel="icon" type="image/png" href="/static/img/favicon.png">
+  <link rel="apple-touch-icon" href="/static/img/apple-touch-icon.png">
+  <link rel="stylesheet" href="/static/css/app.css?v={{ version }}">
+</head>
+<body>
+  <div id="app" class="wrap"></div>
+  <noscript>SpoolmanScale Pro needs JavaScript.</noscript>
+  <!-- Order matters: the catalogs and core first, then the views, then the
+       pages, app.js last. Every file is cached per version. -->
+  <script src="/static/i18n/en.js?v={{ version }}"></script>
+  <script src="/static/i18n/de.js?v={{ version }}"></script>
+  <script src="/static/js/core.js?v={{ version }}"></script>
+  <script src="/static/js/view_backends.js?v={{ version }}"></script>
+  <script src="/static/js/view_status.js?v={{ version }}"></script>
+  <script src="/static/js/view_job.js?v={{ version }}"></script>
+  <script src="/static/js/view_gate.js?v={{ version }}"></script>
+  <script src="/static/js/view_links.js?v={{ version }}"></script>
+  <script src="/static/js/view_notes.js?v={{ version }}"></script>
+  <script src="/static/js/view_os.js?v={{ version }}"></script>
+  <script src="/static/js/view_app_update.js?v={{ version }}"></script>
+  <script src="/static/js/view_daily.js?v={{ version }}"></script>
+  <script src="/static/js/view_tailscale.js?v={{ version }}"></script>
+  <script src="/static/js/page_overview.js?v={{ version }}"></script>
+  <script src="/static/js/page_demo.js?v={{ version }}"></script>
+  <script src="/static/js/page_backup.js?v={{ version }}"></script>
+  <script src="/static/js/page_updates.js?v={{ version }}"></script>
+  <script src="/static/js/page_scale.js?v={{ version }}"></script>
+  <script src="/static/js/page_scaleview.js?v={{ version }}"></script>
+  <script src="/static/js/page_setup.js?v={{ version }}"></script>
+  <script src="/static/js/page_network.js?v={{ version }}"></script>
+  <script src="/static/js/page_system.js?v={{ version }}"></script>
+  <script src="/static/js/app.js?v={{ version }}"></script>
+</body>
+</html>

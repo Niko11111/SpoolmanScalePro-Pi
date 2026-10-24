@@ -1,0 +1,79 @@
+# The three inventory backends, one profile each. The service only ever
+# starts one of them: on a Pi with 1 GB they do not fit side by side.
+#
+# Driven by spoolmanscale_pro/docker_compose.py, always with the project name
+# "spoolmanscale-pro", so the named volumes below come out as
+# spoolmanscale-pro_<name> and survive any update of this file.
+#
+# Each image is pinned to the version this release was tested with. The
+# owner can pick another on the Updates page; the service then sets the
+# variable (SPOOLMAN_VERSION and so on, see backends.py) and the default
+# after ":-" no longer applies. Moving a default is a change of its own,
+# tested on the Pi, with a line in CHANGELOG.md.
+#
+# Ports are published to the LAN on purpose: the scale and the browser talk
+# to the backend directly. BamBuddy stays on the bridge network like the
+# others; printer discovery by SSDP would need host networking, and a printer
+# can be added by its address instead.
+
+x-common: &common
+  restart: unless-stopped
+  # On a Pi with little RAM the service sets <KEY>_MEM_LIMIT (hardware.py):
+  # RAM only, swapping stays allowed, so a backend that grows gets slow
+  # instead of freezing the Pi. 0 is no limit.
+  memswap_limit: -1
+  environment: &common-env
+    TZ: ${TZ:-Etc/UTC}
+  logging:
+    driver: json-file
+    options:
+      # The SD card is the one thing a busy log can wear out.
+      max-size: "5m"
+      max-file: "2"
+
+services:
+  spoolman:
+    <<: *common
+    profiles: ["spoolman"]
+    image: ghcr.io/donkie/spoolman:${SPOOLMAN_VERSION:-0.27.0}
+    mem_limit: ${SPOOLMAN_MEM_LIMIT:-0}
+    ports:
+      - "7912:8000"
+    volumes:
+      - spoolman-data:/home/app/.local/share/spoolman
+
+  filaman:
+    <<: *common
+    profiles: ["filaman"]
+    image: ghcr.io/fire-devils/filaman-system:${FILAMAN_VERSION:-v1.4.3}
+    mem_limit: ${FILAMAN_MEM_LIMIT:-0}
+    environment:
+      <<: *common-env
+      PORT: "8000"
+      DEBUG: "false"
+      # FilaMan's first admin; it has no page to create one. Made and kept by
+      # spoolmanscale_pro/backend_secrets.py, never changed afterwards.
+      ADMIN_EMAIL: ${FILAMAN_ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${FILAMAN_ADMIN_PASSWORD:-}
+      ADMIN_DISPLAY_NAME: "Admin"
+    ports:
+      - "8002:8000"
+    volumes:
+      - filaman-data:/app/data
+
+  bambuddy:
+    <<: *common
+    profiles: ["bambuddy"]
+    image: ghcr.io/maziggy/bambuddy:${BAMBUDDY_VERSION:-1.2.5.7}
+    mem_limit: ${BAMBUDDY_MEM_LIMIT:-0}
+    ports:
+      - "8000:8000"
+    volumes:
+      - bambuddy-data:/app/data
+      - bambuddy-logs:/app/logs
+
+volumes:
+  spoolman-data:
+  filaman-data:
+  bambuddy-data:
+  bambuddy-logs:
