@@ -1,8 +1,9 @@
 """The demo data set: one saved state per backend, and a reset to it.
 
-Off unless paths.DEMO_FLAG_FILE exists on the Pi:
+Off unless paths.DEMO_FLAG_FILE exists on the Pi. There is no visible
+switch on purpose: seven taps on the version in the page header ask whether
+to turn it on or off (app.js), which lands in set_enabled(). By hand:
     sudo touch /var/lib/spoolmanscale-pro/demo-enabled
-There is no switch on the page on purpose.
 
 Set a backend up once the way the demo needs it (spools, the scale
 registered in FilaMan, the BamBuddy API key on the scale), then save it as
@@ -30,6 +31,14 @@ log = logging.getLogger(__name__)
 
 def enabled() -> bool:
     return DEMO_FLAG_FILE.exists()
+
+
+def set_enabled(on: bool) -> None:
+    if on:
+        DEMO_FLAG_FILE.touch()
+    else:
+        DEMO_FLAG_FILE.unlink(missing_ok=True)
+    log.info("Demo mode %s", "on" if on else "off")
 
 
 def snapshot_path(backend: Backend) -> Path:

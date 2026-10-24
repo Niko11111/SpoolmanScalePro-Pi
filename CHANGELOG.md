@@ -3,6 +3,12 @@
 One section per version, newest first. VERSION names the current one;
 scripts/check.sh fails when it has no section here.
 
+## 2.0.0-beta.23
+
+- Demo mode can be turned on and off from the page: seven quick taps on
+  the version in the header ask whether to. Nothing on the page points to
+  it; before, it took a file created over SSH with sudo.
+
 ## 2.0.0-beta.22
 
 - The browser tab shows the same icon as SpoolmanScale's own web

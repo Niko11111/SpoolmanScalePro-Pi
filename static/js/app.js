@@ -14,15 +14,39 @@
  */
 (function () {
   "use strict";
-  const { t, el, $, api, errorText } = SSPro;
+  const { t, el, $, api, ask, errorText, toast } = SSPro;
 
   const PAGE_ORDER = ["overview", "scaleview", "demo", "backup", "updates", "scale", "network", "system", "setup"];
   const DEFAULT_PAGE = "overview";
+  // Seven taps on the version, each within DEMO_TAP_GAP_MS of the last,
+  // turn demo mode on or off (demo.py): a switch only the owner knows of.
+  const DEMO_TAPS = 7;
+  const DEMO_TAP_GAP_MS = 1500;
   let cleanup = null;
 
+  function demoTaps(demoOn) {
+    let taps = 0;
+    let last = 0;
+    return async () => {
+      const now = Date.now();
+      taps = now - last > DEMO_TAP_GAP_MS ? 1 : taps + 1;
+      last = now;
+      if (taps < DEMO_TAPS) return;
+      taps = 0;
+      const key = demoOn ? "demo.turn_off" : "demo.turn_on";
+      if (!(await ask(t(key + "_title"), t(key + "_text"), t(key)))) return;
+      try {
+        await api("/api/system/demo", { method: "POST", body: { enabled: !demoOn } });
+        showPage();
+      } catch (e) {
+        toast(errorText(e), true);
+      }
+    };
+  }
+
   // address: the Pi's own (/api/system), shown next to the version unless
-  // the page was opened by it anyway.
-  function header(subline, address) {
+  // the page was opened by it anyway. onVersionTap: only once logged in.
+  function header(subline, address, onVersionTap) {
     const version = "v" + document.documentElement.dataset.version;
     const second = address && address !== location.hostname ? address + " · " + version : version;
     return el("header", { class: "head" },
@@ -32,7 +56,7 @@
         el("div", { class: "subline", text: subline })),
       el("div", { class: "addr" },
         el("b", { text: location.host }),
-        el("i", { text: second })));
+        el("i", { text: second, onclick: onVersionTap })));
   }
 
   function offered(system) {
@@ -81,7 +105,7 @@
     const name = currentPage(pages);
     const main = el("main", { class: "wrap" });
     const app = $("#app");
-    app.replaceChildren(el("div", { class: "wrap" }, header(t("app.tagline"), system.address), nav(pages, name, updates)), main,
+    app.replaceChildren(el("div", { class: "wrap" }, header(t("app.tagline"), system.address, demoTaps(!!system.demo_enabled)), nav(pages, name, updates)), main,
       el("footer", { class: "wrap" }, SSPro.views.linksRow(), el("p", { class: "foot", text: t("app.footer") })));
     cleanup = SSPro.pages[name].render(main) || null;
   }

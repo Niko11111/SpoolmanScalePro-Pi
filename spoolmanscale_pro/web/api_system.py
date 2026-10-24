@@ -31,6 +31,16 @@ def power_seen():
     return ok()
 
 
+# Demo mode on or off: the hidden switch behind the version in the header.
+@bp.post("/demo")
+def set_demo():
+    enabled = (request.get_json(silent=True) or {}).get("enabled")
+    if not isinstance(enabled, bool):
+        return fail("invalid_fields")
+    demo.set_enabled(enabled)
+    return ok(demo_enabled=demo.enabled())
+
+
 @bp.post("/clock")
 def set_clock():
     epoch = (request.get_json(silent=True) or {}).get("epoch_s")

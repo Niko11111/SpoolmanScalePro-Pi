@@ -82,7 +82,7 @@ a { color: var(--accent); }
   border: 1px solid var(--line-soft); border-radius: 10px; padding: 8px 12px;
 }
 .addr b { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--accent); }
-.addr i { font-family: var(--mono); font-size: 11px; font-style: normal; color: var(--ink-3); }
+.addr i { font-family: var(--mono); font-size: 11px; font-style: normal; color: var(--ink-3); user-select: none; -webkit-user-select: none; }
 
 /* ---- navigation ---- */
 .nav {
