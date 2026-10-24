@@ -74,7 +74,9 @@ def _base_command() -> list[str]:
     return cmd
 
 
-def _run(args: list[str], timeout_s: int) -> CommandResult:
+def _run(args: list[str], timeout_s: int, expected_error: str = "") -> CommandResult:
+    """expected_error: a failure the caller deals with itself, logged as
+    information rather than as an error."""
     cmd = _base_command() + args
     try:
         done = subprocess.run(cmd, capture_output=True, text=True,
@@ -87,7 +89,8 @@ def _run(args: list[str], timeout_s: int) -> CommandResult:
         return CommandResult(False, str(e))
     output = (done.stdout + done.stderr).strip()
     if done.returncode != 0:
-        log.error("docker compose %s failed (%d): %s", args[0], done.returncode, output[-500:])
+        level = logging.INFO if expected_error and expected_error in output else logging.ERROR
+        log.log(level, "docker compose %s failed (%d): %s", args[0], done.returncode, output[-500:])
     return CommandResult(done.returncode == 0, output)
 
 
@@ -254,10 +257,19 @@ def parse_ps_output(text: str) -> dict[str, str]:
     return {r.get("Service", ""): r.get("State", "") for r in rows if r.get("Service")}
 
 
+# A backup or a restore packs the data in a throwaway container of this
+# project (compose run --rm). Removed while ps lists it, it makes ps fail
+# with this message; asked once more, Docker answers.
+VANISHED_CONTAINER = "No such container"
+
+
 def states() -> dict[str, str] | None:
     """Every backend container that exists and its state, or None when
     Docker itself did not answer."""
-    result = _run(["ps", "--all", "--format", "json"], QUERY_TIMEOUT_S)
+    args = ["ps", "--all", "--format", "json"]
+    result = _run(args, QUERY_TIMEOUT_S, expected_error=VANISHED_CONTAINER)
+    if not result.ok and VANISHED_CONTAINER in result.output:
+        result = _run(args, QUERY_TIMEOUT_S)
     if not result.ok:
         return None
     try:

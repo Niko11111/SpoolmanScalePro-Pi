@@ -3,6 +3,12 @@
 One section per version, newest first. VERSION names the current one;
 scripts/check.sh fails when it has no section here.
 
+## 2.0.0-beta.19
+
+- The overview no longer reports Docker as not answering while a backup or
+  a restore runs: the throwaway container that packs the data could vanish
+  while Docker listed the containers, and the list is now asked for again.
+
 ## 2.0.0-beta.18
 
 From the first install on a Pi 3 B (Raspberry Pi OS Trixie):

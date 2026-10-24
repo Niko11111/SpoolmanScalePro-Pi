@@ -25,3 +25,26 @@ def test_stats_of_this_projects_backends_only():
             '{"Name":"homeassistant","MemUsage":"500MiB / 7.7GiB"}\n'
             'not json\n')
     assert parse_stats(text) == {"filaman": 366, "spoolman": 96, "bambuddy": 1126}
+
+
+def test_states_asks_again_when_a_container_vanished_mid_listing(monkeypatch):
+    import subprocess
+
+    from spoolmanscale_pro import docker_compose
+    answers = [subprocess.CompletedProcess([], 1, "", "Error response from daemon: No such container: 5d3a"),
+               subprocess.CompletedProcess([], 0, '{"Service":"spoolman","State":"running"}\n', "")]
+    monkeypatch.setattr(docker_compose.subprocess, "run", lambda *a, **k: answers.pop(0))
+    assert docker_compose.states() == {"spoolman": "running"}
+
+
+def test_states_gives_up_when_docker_does_not_answer(monkeypatch):
+    import subprocess
+
+    from spoolmanscale_pro import docker_compose
+    calls = []
+
+    def fail(*a, **k):
+        calls.append(1)
+        return subprocess.CompletedProcess([], 1, "", "Cannot connect to the Docker daemon")
+    monkeypatch.setattr(docker_compose.subprocess, "run", fail)
+    assert docker_compose.states() is None and len(calls) == 1
