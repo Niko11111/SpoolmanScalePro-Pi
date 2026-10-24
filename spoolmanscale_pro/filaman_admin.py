@@ -8,8 +8,10 @@ FilaMan's own API (v1.4.3, read in its source):
   POST /api/v1/admin/devices      {name, device_type} -> {device_code}
   GET  /api/v1/spools?page_size=1 -> {total}  (active spools, archived left out)
   POST /auth/logout
-Writing with a session needs header X-CSRF-Token equal to the csrf_token
-cookie (core/middleware.py, CsrfMiddleware).
+The test inventory adds manufacturers, colours, filaments and spools
+through request() (inventory_writers.py has those calls). Writing with a
+session needs header X-CSRF-Token equal to the csrf_token cookie
+(core/middleware.py, CsrfMiddleware).
 """
 
 import http.cookiejar
@@ -62,6 +64,11 @@ class FilamanAdmin:
             return json.loads(raw) if raw else {}
         except json.JSONDecodeError as e:
             raise FilamanError("filaman_refused", f"{path} gave no JSON") from e
+
+    def request(self, method: str, path: str, body: dict | None = None) -> dict:
+        """Any call in the admin's session (the test inventory,
+        inventory_writers.py). Raises FilamanError."""
+        return self._call(method, path, body)
 
     def login(self, email: str, password: str) -> None:
         self._call("POST", "/auth/login", {"email": email, "password": password})

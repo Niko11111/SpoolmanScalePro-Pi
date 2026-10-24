@@ -14,6 +14,16 @@ scripts/check.sh fails when it has no section here.
   BamBuddy's says which of its features need a Pi 4 (the live camera view
   of X1, H2 and P2, timelapses) and which need a service of their own
   (slicing on the server, Obico failure detection).
+- A backend installed since the last search for updates is looked at
+  within ten minutes rather than with the next round up to six hours
+  later, so BamBuddy's switch to daily builds shows soon after BamBuddy is
+  first started.
+- The Demo page writes the test inventory into any running backend: 21
+  spools from 7 manufacturers, the same in Spoolman, FilaMan and BamBuddy,
+  with each backend's own fields (vendor, filament and spool in Spoolman;
+  manufacturer, colour, filament and spool in FilaMan; the spool alone in
+  BamBuddy). Only what a backend lacks is created, so writing twice adds
+  nothing.
 
 ## 2.0.0-beta.21
 

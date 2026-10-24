@@ -1,6 +1,7 @@
 /* SpoolmanScale Pro - the demo page: reset everything to the demo state
- * with one button, and save a backend's current state as its demo state.
- * Only in the navigation while demo mode is enabled on this Pi.
+ * with one button, write the test inventory into a backend, and save a
+ * backend's current state as its demo state. Only in the navigation while
+ * demo mode is enabled on this Pi.
  */
 (function () {
   "use strict";
@@ -32,6 +33,25 @@
       el("div", { class: "stack" }, el("span", { class: "k", text: snapshot.label }), state), button);
   }
 
+  // The test inventory (inventory_writers.py), into a backend that runs;
+  // only what it lacks is added, so a second click creates nothing.
+  function importRow(backend, start) {
+    const ready = backend.state === "running" && backend.ready;
+    const button = el("button", { type: "button", class: "quiet", disabled: !ready }, t("demo.import"));
+    button.addEventListener("click", () => start(button, "/api/demo/" + backend.key + "/import"));
+    const state = ready ? el("span", { class: "pill ok" }, t("state.ready")) : el("span", { class: "pill off" }, t("demo.import_not_running"));
+    return el("div", { class: "row center" },
+      el("div", { class: "stack" }, el("span", { class: "k", text: backend.label }), state), button);
+  }
+
+  function inventoryCard(inventory, backends, start) {
+    if (!inventory) return null;
+    return el("section", { class: "card wide" }, el("h2", { text: t("demo.inventory_title") }),
+      el("p", { class: "hint", text: t("demo.inventory_hint", { spools: inventory.spools, vendors: inventory.vendors }) }),
+      el("div", { class: "rows" }, backends.map((b) => importRow(b, start))),
+      el("p", { class: "note", text: t("demo.inventory_note") }));
+  }
+
   function saveCard(snapshots, start) {
     return el("section", { class: "card wide" }, el("h2", { text: t("demo.states_title") }),
       el("div", { class: "rows" }, snapshots.map((s) => saveRow(s, start))),
@@ -49,7 +69,8 @@
       try {
         const [demo, backends] = await Promise.all([api("/api/demo"), api("/api/backends")]);
         labelOf = views.labelsFrom(backends.backends);
-        cards.replaceChildren(resetCard(demo.snapshots, start), saveCard(demo.snapshots, start));
+        cards.replaceChildren(resetCard(demo.snapshots, start),
+          inventoryCard(demo.inventory, backends.backends, start), saveCard(demo.snapshots, start));
       } catch (e) {
         if (e.code !== "login_required") toast(errorText(e), true);
       }

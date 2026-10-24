@@ -118,6 +118,7 @@ a { color: var(--accent); }
 
 /* ---- rows of label and value ---- */
 .rows { display: flex; flex-direction: column; }
+.hint + .rows { margin-top: 12px; }
 .row {
   display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
   padding: 9px 0; border-bottom: 1px solid var(--line-soft); font-size: 14px;
