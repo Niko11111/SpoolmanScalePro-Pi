@@ -7,9 +7,6 @@ inventory backend, [Spoolman](https://github.com/Donkie/Spoolman),
 and switches between them from a web page. The scale is switched along with
 it.
 
-> **Status: 0.2 beta.** A complete rewrite of version 0.1, which stays on
-> the `main` branch until 0.2.0 is released.
-
 ## What it does
 
 - **One backend or several**, as far as the Pi allows: a Pi Zero 2 W one at a

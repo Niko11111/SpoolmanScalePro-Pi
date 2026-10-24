@@ -3,6 +3,58 @@
 One section per version, newest first. VERSION names the current one;
 scripts/check.sh fails when it has no section here.
 
+## 0.2.0
+
+SpoolmanScale Pro 0.2 is a complete rewrite. Version 0.1 was a small web
+app in a privileged Docker container; for 0.2 we rebuilt everything from
+the ground up as a proper service for the Raspberry Pi, with its own
+installer, updates, backups and a web interface that walks you through it.
+
+It turns a Raspberry Pi into the filament server for your SpoolmanScale:
+it runs Spoolman, FilaMan or BamBuddy and takes your scale along whenever
+you switch.
+
+### What it does
+
+- **Three backends, one page.** Switch between Spoolman, FilaMan and
+  BamBuddy with a click and watch each step. A Pi with 2 GB or more runs
+  all three at once.
+- **Your scale comes along.** Find it on the network, pair it with a tap,
+  and one button makes the Pi its server for all three backends. Registering
+  the scale in FilaMan works from the page as well.
+- **Set up in minutes.** A setup assistant picks the backend and pairs the
+  scale after the first login.
+- **Backups** for every backend, by hand and once a day, to download,
+  restore or bring back from a file.
+- **Updates for everything:** the backends with their release notes and a
+  backup first (and back to the old version by itself if the new one does
+  not start), SpoolmanScale Pro itself, and Raspberry Pi OS. The Pi looks
+  for updates every six hours and installs only when you click. BamBuddy's
+  daily builds are one switch away.
+- **Network from the page:** join a WLAN, open the Pi's own, keep a fixed
+  address, or reach the Pi from anywhere through Tailscale. A Pi that finds
+  no network at boot opens a setup WLAN.
+- **Made to run unattended:** hardware watchdog, daily security updates, a
+  warning when the power supply is too weak, and RAM, SD card and
+  temperature at a glance.
+- English and German.
+
+### Good to know
+
+- Raspberry Pi Zero 2 W, 3, 4 or 5 with 64-bit Raspberry Pi OS Lite, and a
+  SpoolmanScale with firmware 0.7.0 or newer. A Zero 2 W runs one backend
+  at a time. Below a Pi 4, BamBuddy's live camera view for X1, H2 and P2
+  and its timelapses need more than the Pi has.
+- 0.2 is installed fresh, not upgraded from 0.1:
+
+```bash
+git clone https://github.com/Niko11111/SpoolmanScalePro-Pi.git
+cd SpoolmanScalePro-Pi
+sudo scripts/install.sh --pull-all
+```
+
+*SpoolmanScale Pro 0.2.0 | FormFollowsFunction*
+
 ## 0.2.0-beta.1
 
 - The version follows on from 0.1: the rewrite was built as
