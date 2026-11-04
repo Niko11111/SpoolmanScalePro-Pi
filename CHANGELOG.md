@@ -3,6 +3,11 @@
 One section per version, newest first. VERSION names the current one;
 scripts/check.sh fails when it has no section here.
 
+## 0.2.1-beta.1
+
+- Power supply: a voltage drop in the past is a quiet grey line. Only a
+  voltage that is too low right now is shown in red, with advice.
+
 ## 0.2.0
 
 SpoolmanScale Pro 0.2 is a complete rewrite. Version 0.1 was a small web

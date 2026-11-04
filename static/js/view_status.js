@@ -84,32 +84,21 @@
     return [el("div", { class: "callout wr", text: t("system.clock_off", { min: Math.round(Math.abs(drift) / 60) }) }), take];
   }
 
-  // The power supply from vcgencmd: red while the voltage is too low right
-  // now, yellow when it was since boot, green otherwise. Nothing on a laptop.
-  // "Seen" quiets the yellow one until the next restart; red always shows.
-  function powerState(power, now, earlier) {
+  // The power supply from vcgencmd: red with advice while the voltage is too
+  // low right now, a quiet grey line when it was since boot, green otherwise.
+  // Nothing on a laptop.
+  function powerState(now, earlier) {
     if (now) return ["bd", "system.power_low_now"];
-    if (earlier && power.seen) return ["off", "system.power_seen"];
-    if (earlier) return ["wr", "system.power_low_before"];
+    if (earlier) return ["off", "system.power_low_before"];
     return ["ok", "system.power_ok"];
   }
 
-  function powerRows(power, onChange) {
+  function powerRows(power) {
     if (!power) return [];
     const now = power.now.includes("under_voltage");
-    const earlier = power.since_boot.includes("under_voltage");
-    const state = powerState(power, now, earlier);
+    const state = powerState(now, power.since_boot.includes("under_voltage"));
     const rows = [row(t("system.power"), el("span", { class: "pill " + state[0] }, t(state[1])))];
-    if (!now && (!earlier || power.seen)) return rows;
-    rows.push(el("div", { class: "callout " + state[0], text: t("system.power_hint") }));
-    if (!now) {
-      const seen = el("button", { type: "button", class: "quiet" }, t("system.power_seen_button"));
-      seen.addEventListener("click", () => busy(seen, async () => {
-        await api("/api/system/power/seen", { method: "POST" });
-        onChange();
-      }));
-      rows.push(el("div", { class: "btnrow" }, seen));
-    }
+    if (now) rows.push(el("div", { class: "callout bd", text: t("system.power_hint") }));
     return rows;
   }
 
@@ -128,7 +117,7 @@
       row(t("system.uptime"), formatDuration(system.uptime_s)),
       row(t("system.clock"), formatClock(system.clock_epoch_s)));
     return el("section", { class: "card" }, el("h2", { text: t("system.title_short") }), rows,
-      powerRows(system.power, onChange), clockFix(system, onChange));
+      powerRows(system.power), clockFix(system, onChange));
   }
 
   SSPro.views = Object.assign(SSPro.views || {}, { scaleCard, systemCard });
