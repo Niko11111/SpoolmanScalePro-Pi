@@ -88,6 +88,11 @@ def start_one(target: Backend, progress: Progress) -> None:
         use_for_scale(target, progress)
 
 
+def restart(target: Backend, progress: Progress) -> None:
+    """Brings a running backend in line with its settings."""
+    _start(target, progress)
+
+
 def stop_one(target: Backend, progress: Progress) -> None:
     progress.step("stopping")
     if not docker_compose.stop(target.key).ok:

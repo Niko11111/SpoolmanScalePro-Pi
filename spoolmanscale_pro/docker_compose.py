@@ -48,11 +48,14 @@ def _environment() -> dict:
     env = dict(os.environ)
     env.update(backend_secrets.compose_environment())
     found = hardware.detect()
-    for key, limit_mb in hardware.memory_limits(hardware.effective_ram_mb(found), found["model"]).items():
+    ram_mb = hardware.effective_ram_mb(found)
+    current = settings.load()
+    workers = hardware.filaman_workers(ram_mb, found["model"], current["filaman_workers"])
+    env["FILAMAN_WORKERS"] = str(workers)
+    for key, limit_mb in hardware.memory_limits(ram_mb, found["model"], workers).items():
         env[f"{key.upper()}_MEM_LIMIT"] = f"{limit_mb}m"
-    chosen = settings.load()["backend_versions"]
     for backend in BACKENDS:
-        tag = chosen.get(backend.key)
+        tag = current["backend_versions"].get(backend.key)
         if isinstance(tag, str) and tag:
             env[backend.version_env] = tag
     try:

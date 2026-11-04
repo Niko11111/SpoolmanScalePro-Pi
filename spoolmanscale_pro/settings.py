@@ -15,6 +15,7 @@ import re
 import threading
 
 from .backends import BACKEND_KEYS
+from .hardware import FILAMAN_WORKER_CHOICES
 from .paths import SETTINGS_FILE
 
 log = logging.getLogger(__name__)
@@ -53,6 +54,9 @@ DEFAULTS = {
     # Several backends at once: None follows the Pi's size (hardware.py),
     # True or False is the owner's choice. Never on a small Pi.
     "parallel_mode": None,
+    # FilaMan's worker processes: None follows the Pi's size (hardware.py),
+    # a number is the owner's choice.
+    "filaman_workers": None,
 }
 
 SCALE_ADDRESS_MAX_LEN = 64
@@ -130,21 +134,19 @@ def clean_update(raw: dict) -> tuple[dict, list[str]]:
             clean["parallel_mode"] = raw["parallel_mode"]
         else:
             refused.append("parallel_mode")
-    if "setup_done" in raw:
-        if isinstance(raw["setup_done"], bool):
-            clean["setup_done"] = raw["setup_done"]
+    for name in ("setup_done", "include_prereleases", "update_check"):
+        if name in raw:
+            if isinstance(raw[name], bool):
+                clean[name] = raw[name]
+            else:
+                refused.append(name)
+    if "filaman_workers" in raw:
+        # bool is an int in Python, and True would pass as one worker.
+        value = raw["filaman_workers"]
+        if value is None or (type(value) is int and value in FILAMAN_WORKER_CHOICES):
+            clean["filaman_workers"] = value
         else:
-            refused.append("setup_done")
-    if "include_prereleases" in raw:
-        if isinstance(raw["include_prereleases"], bool):
-            clean["include_prereleases"] = raw["include_prereleases"]
-        else:
-            refused.append("include_prereleases")
-    if "update_check" in raw:
-        if isinstance(raw["update_check"], bool):
-            clean["update_check"] = raw["update_check"]
-        else:
-            refused.append("update_check")
+            refused.append("filaman_workers")
     return clean, refused
 
 

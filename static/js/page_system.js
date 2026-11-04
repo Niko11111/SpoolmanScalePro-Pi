@@ -141,13 +141,54 @@
       el("div", { class: "field" }, el("label", { text: t("cap.mode") }), mode));
   }
 
+  // Advanced: FilaMan's worker processes. Off follows the Pi's size; on, the
+  // owner picks the number. Changing it restarts a running FilaMan, after a
+  // question, and redraws from what the service then says.
+  function advancedCard(backends, redraw) {
+    const workers = backends.plan.filaman_workers;
+    const running = backends.backends.some((b) => b.key === "filaman" && b.state === "running");
+    const own = el("input", { type: "checkbox", checked: workers.choice !== null, disabled: !workers.supported });
+    const count = el("select", { class: "narrow", "aria-label": t("adv.workers_count"), disabled: !workers.supported || workers.choice === null },
+      workers.choices.map((n) => el("option", { value: n, selected: n === workers.in_use }, String(n))));
+    const jobSlot = el("div", {});
+    const apply = async () => {
+      const value = own.checked ? Number(count.value) : null;
+      if (running && !(await ask(t("adv.workers_restart_title"), t("adv.workers_restart_text"), t("adv.workers_restart_button")))) {
+        redraw();
+        return;
+      }
+      try {
+        const answer = await api("/api/backends/filaman/workers", { method: "POST", body: { workers: value } });
+        if (answer.restarting) SSPro.views.followJob(jobSlot, SSPro.views.labelsFrom(backends.backends), redraw, false);
+        else { toast(t("adv.workers_saved")); redraw(); }
+      } catch (e) {
+        toast(errorText(e), true);
+        redraw();
+      }
+    };
+    own.addEventListener("change", apply);
+    count.addEventListener("change", apply);
+    return el("section", { class: "card" }, el("h2", { text: t("adv.title") }),
+      el("div", { class: "optionrow" },
+        el("label", { class: "check" }, el("span", { text: t("adv.workers_own") }), el("span", { class: "switch" }, own, el("i", {}))),
+        count),
+      el("p", { class: "hint", text: workers.supported ? t("adv.workers_auto", { n: workers.automatic })
+        : t("adv.workers_old", { version: workers.version }) }),
+      el("p", { class: "note", text: t("adv.workers_hint") }), jobSlot);
+  }
+
   function render(main) {
     const grid = el("div", { class: "grid" });
     const os = SSPro.views.osCard();
     const remote = SSPro.views.tailscaleCard();
-    main.append(grid, os);
+    const advanced = el("div", { class: "grid" });
+    main.append(grid, os, advanced);
+    const redrawAdvanced = () => api("/api/backends")
+      .then((backends) => advanced.replaceChildren(advancedCard(backends, redrawAdvanced)))
+      .catch((e) => { if (e.code !== "login_required") toast(errorText(e), true); });
     Promise.all([api("/api/system"), api("/api/backends")]).then(([system, backends]) => {
       grid.replaceChildren(powerCard(system), capacityCard(backends.plan), accountCard(), lookCard(), remote);
+      advanced.replaceChildren(advancedCard(backends, redrawAdvanced));
     }).catch((e) => { if (e.code !== "login_required") toast(errorText(e), true); });
     return () => { os.stop(); remote.stop(); };
   }

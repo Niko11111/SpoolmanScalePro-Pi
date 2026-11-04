@@ -205,6 +205,12 @@ button.block { width: 100%; margin-top: 16px; }
 .switch input:checked + i::after { transform: translateX(18px); background: var(--accent); }
 .switch input:focus-visible + i { outline: 2px solid var(--accent); outline-offset: 1px; }
 .check { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 14px; color: var(--ink-2); cursor: pointer; }
+/* A switch and, right beside it, the small value it unlocks. */
+.optionrow { display: flex; align-items: center; gap: 12px; }
+.optionrow .check { flex: 1; }
+.optionrow + .hint { margin-top: 10px; }
+select.narrow { flex: 0 0 64px; width: 64px; }
+select.narrow:disabled { opacity: .5; }
 
 /* ---- the demo reset, the one big button of the demo page ---- */
 button.big { font-size: 16px; padding: 14px 20px; width: 100%; margin-top: 16px; }
