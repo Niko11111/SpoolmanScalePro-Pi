@@ -7,6 +7,8 @@ scripts/check.sh fails when it has no section here.
 
 - Power supply: a voltage drop in the past is a quiet grey line. Only a
   voltage that is too low right now is shown in red, with advice.
+- The overview stops polling while its browser tab is in the background, and
+  asks Docker less often while it is open.
 
 ## 0.2.0
 

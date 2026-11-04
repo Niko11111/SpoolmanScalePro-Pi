@@ -13,11 +13,42 @@ import time
 from . import backend_counts, backend_plan, backend_updates, docker_compose, health, settings, update_watch
 from . import version_rules
 from .backends import BACKENDS
+from .jobs import RUNNER
 
 # docker stats takes a second or two on a Pi 3; the overview polls every 5 s.
 STATS_CACHE_S = 15
 _stats = {"at": 0.0, "value": {}}
 _stats_lock = threading.Lock()
+# docker compose ps needs a quarter of a second just to load on a Pi 3.
+STATES_CACHE_S = 15
+_states = {"at": None, "job": None, "value": None}
+_states_lock = threading.Lock()
+
+
+def states_reusable(cached_at: float | None, now: float, job_then: tuple | None, job_now: tuple | None) -> bool:
+    """A job is what changes a backend's state, so while one runs, or once one
+    has started or ended since, the answer is asked for afresh. job_*: the
+    job's (id, running), or None."""
+    if cached_at is None or job_then != job_now or (job_now and job_now[1]):
+        return False
+    return now - cached_at < STATES_CACHE_S
+
+
+def _job_marker() -> tuple | None:
+    job = RUNNER.current()
+    return (job["id"], job["running"]) if job else None
+
+
+def _cached_states() -> dict[str, str] | None:
+    marker = _job_marker()
+    with _states_lock:
+        if states_reusable(_states["at"], time.monotonic(), _states["job"], marker):
+            return _states["value"]
+    value = docker_compose.states()
+    # Docker not answering is not kept: it should show as soon as it is back.
+    with _states_lock:
+        _states.update(at=time.monotonic() if value is not None else None, job=marker, value=value)
+    return value
 
 
 def _memory_use() -> dict[str, int]:
@@ -55,7 +86,7 @@ def merge(states: dict[str, str] | None, active: str | None, ready: dict[str, bo
 
 
 def describe() -> dict:
-    states = docker_compose.states()
+    states = _cached_states()
     ready = {b.key: health.is_ready(b) for b in BACKENDS
              if (states or {}).get(b.key) == "running"}
     running = [k for k, s in (states or {}).items() if s == "running"]
