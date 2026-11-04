@@ -7,6 +7,12 @@ scripts/check.sh fails when it has no section here.
 
 - Power supply: a voltage drop in the past is a quiet grey line. Only a
   voltage that is too low right now is shown in red, with advice.
+- The setup WLAN no longer traps a Pi whose router came up later than the Pi,
+  for example after a power cut. Every 10 minutes, unless a device is
+  connected, the Pi looks for its saved networks, and goes back to one when
+  it finds it.
+- Switching the hotspot off keeps it on when no saved WLAN is in reach and no
+  cable is plugged in, instead of leaving the Pi unreachable until a restart.
 - Naming the Pi spoolmanscale asks first: that name belongs to the scale.
   localhost is refused, and so is this Pi's own address as the scale's.
 - The overview stops polling while its browser tab is in the background, and

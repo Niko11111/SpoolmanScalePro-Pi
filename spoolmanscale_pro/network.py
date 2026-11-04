@@ -17,7 +17,7 @@ import subprocess
 from . import ip_rules
 from . import network_rules as rules
 from . import settings
-from .host_actions import (EXIT_NO_OTHER_NETWORK, EXIT_WIFI_FAILED, NETWORK_TIMEOUT_S,
+from .host_actions import (EXIT_NO_OTHER_NETWORK, EXIT_NOTHING_IN_REACH, EXIT_WIFI_FAILED, NETWORK_TIMEOUT_S,
                            run_helper)
 from .jobs import JobFailed, Progress
 
@@ -98,6 +98,8 @@ def hotspot_off(progress: Progress) -> None:
     result = run_helper("hotspot-off", timeout_s=NETWORK_TIMEOUT_S)
     if result.code == EXIT_NO_OTHER_NETWORK:
         raise JobFailed("no_other_network")
+    if result.code == EXIT_NOTHING_IN_REACH:
+        raise JobFailed("no_network_in_reach")
     if not result.ok:
         raise JobFailed("network_change_failed", "hotspot-off")
 

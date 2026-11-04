@@ -544,6 +544,7 @@ window.SSPRO_I18N.de = {
   "net.name_scale_text": "Eine SpoolmanScale meldet sich ab Werk als spoolmanscale.local. Ist eine im selben Netz, antworten beide auf diesen Namen, und die Waage ist darüber nicht mehr zuverlässig erreichbar. Mit einer umbenannten Waage oder ohne Waage in diesem Netz schadet es nicht.",
   "net.name_scale_confirm": "Trotzdem verwenden",
   "err.scale_address_is_pi": "Diese Adresse ist der Pi selbst, nicht die Waage.",
+  "err.no_network_in_reach": "Keines der gespeicherten WLANs ist in Reichweite, und kein Kabel steckt. Der Hotspot bleibt an, damit der Pi erreichbar bleibt.",
   "cap.model": "Dieser Pi",
   "cap.ram": "RAM",
   "cap.size_small": "Ein Pi Zero betreibt ein Backend zur Zeit; Umschalten bleibt möglich. Spoolman läuft darauf am besten; FilaMan und BamBuddy nur zum Ausprobieren.",

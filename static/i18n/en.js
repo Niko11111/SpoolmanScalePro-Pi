@@ -546,6 +546,7 @@ window.SSPRO_I18N.en = {
   "net.name_scale_text": "A SpoolmanScale answers to spoolmanscale.local out of the box. With one on the same network, both answer to that name and the scale can no longer be reached by it reliably. With a renamed scale, or none on this network, it does no harm.",
   "net.name_scale_confirm": "Use it anyway",
   "err.scale_address_is_pi": "That address is this Pi itself, not the scale.",
+  "err.no_network_in_reach": "None of the saved WLANs is in reach and no cable is plugged in. The hotspot stays on so the Pi can still be reached.",
   "cap.model": "This Pi",
   "cap.ram": "RAM",
   "cap.size_small": "A Pi Zero runs one backend at a time; switching stays possible. Spoolman runs best on it; FilaMan and BamBuddy only for trying out.",

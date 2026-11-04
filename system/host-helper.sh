@@ -38,6 +38,13 @@ HOTSPOT_ADDRESS=192.168.50.1/24
 CONNECT_WAIT_S=45
 OFFLINE_WAIT_S=90
 OFFLINE_POLL_S=5
+# While the setup WLAN is open, how often the Pi looks for its network again.
+# The radio cannot do both, so the setup WLAN closes for that moment.
+SETUP_RETRY_S=600
+# How long a saved WLAN gets to connect, and how many are tried: the helper's
+# caller waits at most 120 s (host_actions.NETWORK_TIMEOUT_S) for hotspot-off.
+KNOWN_WLAN_WAIT_S=25
+KNOWN_WLANS_TRIED=3
 
 # The upgrade runs as a unit of its own, not as a child of the service: if
 # the service restarts meanwhile (apt may update Python), dpkg is not cut
@@ -164,20 +171,73 @@ has_other_network() {
     | grep -v -e "^$HOTSPOT_CONNECTION:" -e "^$SETUP_CONNECTION:" | grep -q .
 }
 
-hotspot_off() {
-  has_other_network || { echo "host-helper: no other network to fall back to" >&2; exit 4; }
-  nmcli connection modify "$HOTSPOT_CONNECTION" connection.autoconnect no 2>/dev/null || true
-  nmcli connection down id "$HOTSPOT_CONNECTION" >/dev/null 2>&1 || true
-  # NetworkManager now joins the best known WLAN by itself.
-}
-
 is_online() {
   nmcli -t -f TYPE,STATE,CONNECTION device | grep -E '^(ethernet|wifi):connected:' \
     | grep -vq -e ":$SETUP_CONNECTION\$" -e ":$HOTSPOT_CONNECTION\$"
 }
 
+connection_active() {
+  nmcli -t -f NAME connection show --active | grep -Fxq "$1"
+}
+
 hotspot_active() {
-  nmcli -t -f NAME connection show --active | grep -Fxq "$HOTSPOT_CONNECTION"
+  connection_active "$HOTSPOT_CONNECTION"
+}
+
+known_wlans() {
+  nmcli -g NAME,TYPE connection show | sed -n 's/:802-11-wireless$//p' \
+    | grep -vFx -e "$HOTSPOT_CONNECTION" -e "$SETUP_CONNECTION" | sed 's/\\:/:/g' | head -n "$KNOWN_WLANS_TRIED"
+}
+
+# True once the Pi is in a network. Each saved WLAN is asked for by name:
+# NetworkManager can hold back one that was out of reach earlier for minutes.
+join_known_network() {
+  is_online && return 0
+  known_wlans | while IFS= read -r name; do
+    nmcli --wait "$KNOWN_WLAN_WAIT_S" connection up id "$name" >/dev/null 2>&1 && break
+  done
+  is_online
+}
+
+hotspot_off() {
+  has_other_network || { echo "host-helper: no other network to fall back to" >&2; exit 4; }
+  nmcli connection modify "$HOTSPOT_CONNECTION" connection.autoconnect no 2>/dev/null || true
+  nmcli connection down id "$HOTSPOT_CONNECTION" >/dev/null 2>&1 || true
+  join_known_network && return 0
+  # A saved WLAN is not one in reach (at a fair, the one from home). Without
+  # the hotspot the Pi could then not be reached until its next restart.
+  echo "host-helper: no saved network in reach, the hotspot stays on" >&2
+  nmcli connection modify "$HOTSPOT_CONNECTION" connection.autoconnect yes 2>/dev/null || true
+  nmcli --wait 30 connection up id "$HOTSPOT_CONNECTION" >/dev/null 2>&1 || true
+  exit 6
+}
+
+# A phone in the setup WLAN. There is no iw on Raspberry Pi OS Lite; a client
+# that was seen lately has a neighbour entry. A stale one only means the next
+# look comes one round later.
+setup_ap_has_client() {
+  ip neigh show dev wlan0 | grep -Eq 'REACHABLE|STALE|DELAY|PROBE'
+}
+
+# The setup WLAN must not trap a Pi whose network comes back later: after a
+# power cut the router can take longer to start than the 90 s the Pi waits.
+# Ends when the Pi is in a network or the owner chose its own hotspot; stays
+# open as long as somebody is connected, or there is nothing saved to go to.
+watch_setup_ap() {
+  while :; do
+    sleep "$SETUP_RETRY_S"
+    hotspot_active && return 0
+    if connection_active "$SETUP_CONNECTION"; then
+      setup_ap_has_client && continue
+      has_other_network || continue
+      nmcli connection down id "$SETUP_CONNECTION" >/dev/null 2>&1 || true
+    elif is_online; then
+      return 0
+    fi
+    join_known_network && return 0
+    echo "host-helper: still no network, setup WLAN open again"
+    nmcli --wait 30 connection up id "$SETUP_CONNECTION" >/dev/null 2>&1 || true
+  done
 }
 
 setup_ap_if_offline() {
@@ -192,7 +252,8 @@ setup_ap_if_offline() {
   done
   echo "host-helper: no network after ${OFFLINE_WAIT_S} s, opening $SETUP_SSID"
   make_ap "$SETUP_CONNECTION" "$SETUP_SSID" "$SETUP_PSK" 6 no
-  nmcli --wait 30 connection up id "$SETUP_CONNECTION" >/dev/null
+  nmcli --wait 30 connection up id "$SETUP_CONNECTION" >/dev/null || true
+  watch_setup_ap
 }
 
 apt_check() {
