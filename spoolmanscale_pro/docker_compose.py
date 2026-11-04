@@ -244,26 +244,44 @@ def memory_use() -> dict[str, int]:
     return parse_stats(done.stdout) if done.returncode == 0 else {}
 
 
-def parse_ps_output(text: str) -> dict[str, str]:
-    """Maps service name to container state ("running", "exited", ...).
-
-    Compose prints one JSON object per line since 2.21 and a single JSON
-    array before that; both are accepted.
-    """
+def _ps_rows(text: str) -> list[dict]:
+    """Compose prints one JSON object per line since 2.21 and a single JSON
+    array before that; both are accepted."""
     text = text.strip()
     if not text:
-        return {}
+        return []
     if text.startswith("["):
-        rows = json.loads(text)
-    else:
-        rows = [json.loads(line) for line in text.splitlines() if line.strip()]
-    return {r.get("Service", ""): r.get("State", "") for r in rows if r.get("Service")}
+        return json.loads(text)
+    return [json.loads(line) for line in text.splitlines() if line.strip()]
+
+
+def parse_ps_output(text: str) -> dict[str, str]:
+    """Maps service name to container state ("running", "exited", ...)."""
+    return {r.get("Service", ""): r.get("State", "") for r in _ps_rows(text) if r.get("Service")}
+
+
+def parse_ps_images(text: str) -> dict[str, str]:
+    """Maps service name to the image its container was made from."""
+    return {r["Service"]: r["Image"] for r in _ps_rows(text) if r.get("Service") and r.get("Image")}
 
 
 # A backup or a restore packs the data in a throwaway container of this
 # project (compose run --rm). Removed while ps lists it, it makes ps fail
 # with this message; asked once more, Docker answers.
 VANISHED_CONTAINER = "No such container"
+
+
+def container_images() -> dict[str, str] | None:
+    """The image of every backend container that exists, or None when Docker
+    did not answer. Unlike image_of(), what is there, not what compose names."""
+    result = _run(["ps", "--all", "--format", "json"], QUERY_TIMEOUT_S)
+    if not result.ok:
+        return None
+    try:
+        return parse_ps_images(result.output)
+    except (json.JSONDecodeError, AttributeError) as e:
+        log.error("docker compose ps gave output that is not JSON: %s", e)
+        return None
 
 
 def states() -> dict[str, str] | None:

@@ -9,7 +9,9 @@
 # owner can pick another on the Updates page; the service then sets the
 # variable (SPOOLMAN_VERSION and so on, see backends.py) and the default
 # after ":-" no longer applies. Moving a default is a change of its own,
-# tested on the Pi, with a line in CHANGELOG.md.
+# tested on the Pi, with a line in CHANGELOG.md. A Pi that already has a
+# backend keeps its version until the owner updates it, with a backup
+# (backend_updates.keep_installed_versions).
 #
 # Ports are published to the LAN on purpose: the scale and the browser talk
 # to the backend directly. BamBuddy stays on the bridge network like the

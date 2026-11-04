@@ -30,6 +30,8 @@ class Progress:
 def fake(monkeypatch):
     calls = {"restored": [], "up_ok": True, "ready": True, "pull_ok": True}
     settings.update({"backend_versions": {}, "include_prereleases": False})
+    # These tests are about the update, not about which default compose has now.
+    monkeypatch.setattr(bu, "default_version", lambda backend: "v1.4.3")
     monkeypatch.setattr(bu.release_sources, "image_tags", lambda image: ["v1.4.3", "v1.4.4", "v1.5.0"])
     monkeypatch.setattr(bu.release_sources, "releases", lambda repo: [{"tag": "v1.5.0"}, {"tag": "v1.4.4"}])
     monkeypatch.setattr(bu.docker_compose, "states", lambda: {"filaman": "running"})
@@ -85,3 +87,14 @@ def test_a_tag_that_is_not_offered_is_refused(fake):
         with pytest.raises(JobFailed) as e:
             bu.install(FILAMAN, bad, Progress())
         assert e.value.code == "unknown_version"
+
+
+def test_an_installed_backend_keeps_its_version_when_the_default_moves():
+    defaults = {"filaman": "v2.0.0", "spoolman": "0.27.1", "bambuddy": "1.2.5.7"}
+    installed = {"filaman": "v1.4.3", "spoolman": "0.27.1", "bambuddy": "1.2.5.6"}
+    # Spoolman has the default; BamBuddy has a choice on record already.
+    assert bu.versions_to_keep({"bambuddy": "1.2.5.6"}, installed, defaults) == {"filaman": "v1.4.3"}
+    # Never started: no container, so the new default is what it gets.
+    assert bu.versions_to_keep({}, {}, defaults) == {}
+    # An image without a version in its name is left alone.
+    assert bu.versions_to_keep({}, {"filaman": ""}, defaults) == {}

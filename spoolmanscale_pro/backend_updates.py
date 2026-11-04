@@ -15,15 +15,21 @@ one, which is why step 4 restores the backup and not only the version.
 
 import logging
 import re
+import threading
+import time
 
 from . import backups, docker_compose, health, release_sources, settings
 from . import version_rules as vr
-from .backends import Backend
+from .backends import BACKENDS, Backend
 from .jobs import JobFailed, Progress
 from .paths import BACKUP_DIR, COMPOSE_FILE
 from .release_sources import SourceError
 
 log = logging.getLogger(__name__)
+
+# Docker can come up after this service at boot.
+KEEP_VERSIONS_TRIES = 20
+KEEP_VERSIONS_WAIT_S = 30
 
 
 def compose_default_version(compose_text: str, backend: Backend) -> str | None:
@@ -74,6 +80,41 @@ def set_version(backend: Backend, tag: str | None) -> None:
     else:
         versions[backend.key] = tag
     settings.update({"backend_versions": versions})
+
+
+def versions_to_keep(chosen: dict, installed: dict, defaults: dict) -> dict:
+    """Which backends have to be held at the version they have. A new release
+    of this service can move a default in the compose file. Without a choice
+    on record the next start would then pull that version and migrate the
+    backend's database: no backup, and no way back."""
+    return {key: tag for key, tag in installed.items()
+            if key not in chosen and tag != defaults.get(key) and vr.parse(tag) is not None}
+
+
+def keep_installed_versions() -> bool:
+    """False while Docker does not answer."""
+    images = docker_compose.container_images()
+    if images is None:
+        return False
+    chosen = settings.load()["backend_versions"]
+    installed = {key: vr.image_tag(image) for key, image in images.items()}
+    keep = versions_to_keep(chosen, installed, {b.key: default_version(b) for b in BACKENDS})
+    if keep:
+        log.info("Keeping the installed versions: %s", keep)
+        settings.update({"backend_versions": {**chosen, **keep}})
+    return True
+
+
+def _keep_versions_when_docker_answers() -> None:
+    for _ in range(KEEP_VERSIONS_TRIES):
+        if keep_installed_versions():
+            return
+        time.sleep(KEEP_VERSIONS_WAIT_S)
+    log.warning("Docker did not answer, installed versions not checked")
+
+
+def start_keeping_versions() -> None:
+    threading.Thread(target=_keep_versions_when_docker_answers, daemon=True, name="keep-versions").start()
 
 
 def _roll_back(backend: Backend, previous: str, backup_name: str | None, progress: Progress) -> None:
