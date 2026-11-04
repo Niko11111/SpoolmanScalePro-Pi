@@ -11,6 +11,10 @@ scripts/check.sh fails when it has no section here.
   FilaMan's standard of 4. Needs FilaMan 1.6.1 or newer; a FilaMan that is
   already running takes it the next time it starts.
 - System page, Advanced: choose the number of workers yourself, 1 to 4.
+- New installations start with Spoolman 0.27.1 and FilaMan 2.0.0, the newest
+  stable versions (BamBuddy stays on 1.2.5.7, which is its newest). A Pi that
+  already has a backend keeps its version until you update it on the Updates
+  page, with a backup first.
 - The RAM budget for several backends at once counts FilaMan's workers and
   what the system itself takes on a Pi 3 (271 MB, measured).
 - Power supply: a voltage drop in the past is a quiet grey line. Only a

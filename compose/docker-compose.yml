@@ -37,7 +37,7 @@ services:
   spoolman:
     <<: *common
     profiles: ["spoolman"]
-    image: ghcr.io/donkie/spoolman:${SPOOLMAN_VERSION:-0.27.0}
+    image: ghcr.io/donkie/spoolman:${SPOOLMAN_VERSION:-0.27.1}
     mem_limit: ${SPOOLMAN_MEM_LIMIT:-0}
     ports:
       - "7912:8000"
@@ -47,7 +47,7 @@ services:
   filaman:
     <<: *common
     profiles: ["filaman"]
-    image: ghcr.io/fire-devils/filaman-system:${FILAMAN_VERSION:-v1.4.3}
+    image: ghcr.io/fire-devils/filaman-system:${FILAMAN_VERSION:-v2.0.0}
     mem_limit: ${FILAMAN_MEM_LIMIT:-0}
     environment:
       <<: *common-env
