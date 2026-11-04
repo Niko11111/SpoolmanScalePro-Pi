@@ -65,9 +65,14 @@ def hotspot_off():
 
 @bp.post("/hostname")
 def set_hostname():
-    name = (request.get_json(silent=True) or {}).get("hostname")
+    body = request.get_json(silent=True) or {}
+    name = body.get("hostname")
     if not rules.valid_hostname(name):
         return fail("hostname_invalid")
+    if rules.reserved_hostname(name):
+        return fail("hostname_reserved")
+    if rules.hostname_of_the_scale(name) and body.get("confirm") is not True:
+        return fail("hostname_is_the_scales", 409)
     if not network.set_hostname(name):
         return fail("hostname_failed", 500)
     return ok(hostname=name)

@@ -5,7 +5,7 @@ from flask import Blueprint, request
 from .. import backend_plan, backend_secrets, scale_discovery, scale_keys, scale_setup, settings, switcher
 from ..backends import backend_by_key
 from ..jobs import RUNNER
-from ..scale_api import ScaleClient, ScaleError, own_names, summarize
+from ..scale_api import ScaleClient, ScaleError, is_this_pi, own_names, summarize
 from ..ports import PROXY_PORT
 from .responses import fail, ok
 
@@ -58,6 +58,9 @@ def save_settings():
     # A Pi Zero runs one backend at a time, whatever a request asks for.
     if clean.get("parallel_mode") and backend_plan.situation()["rules"]["parallel"] == "blocked":
         return fail("parallel_blocked", 409)
+    address = clean.get("scale_address")
+    if address and is_this_pi(address, own_names(address)):
+        return fail("scale_address_is_pi")
     return ok(settings=settings.public_view(settings.update(clean)))
 
 

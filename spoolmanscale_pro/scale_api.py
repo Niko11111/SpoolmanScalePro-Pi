@@ -35,6 +35,7 @@ from .backends import Backend
 
 log = logging.getLogger(__name__)
 
+LOOPBACK_NAMES = ("localhost", "127.0.0.1")
 REQUEST_TIMEOUT_S = 5
 # The scale applies a new mode on its next loop pass and then has to reach
 # the new server before it reports backendOk.
@@ -146,6 +147,12 @@ def own_names(scale_address: str) -> set[str]:
     if address:
         names.add(address)
     return names
+
+
+def is_this_pi(address: str, names: set[str]) -> bool:
+    """Whether a scale address leads back to the Pi itself. Pure."""
+    host = address.split(":")[0].lower()
+    return host in names or host in LOOPBACK_NAMES
 
 
 def summarize(status: dict, backend: Backend | None, own_names: set[str]) -> dict:

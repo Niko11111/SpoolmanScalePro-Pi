@@ -12,6 +12,8 @@ import re
 # with a hyphen. No underscore: mDNS would publish it, but many resolvers
 # and routers refuse it.
 HOSTNAME_RE = re.compile(r"^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$")
+RESERVED_HOSTNAMES = ("localhost",)
+SCALE_DEFAULT_HOSTNAME = "spoolmanscale"
 SSID_MAX_BYTES = 32
 PSK_MIN_LEN = 8
 PSK_MAX_LEN = 63
@@ -82,6 +84,17 @@ def parse_active(text: str) -> list[dict]:
 
 def valid_hostname(name) -> bool:
     return isinstance(name, str) and bool(HOSTNAME_RE.match(name))
+
+
+def reserved_hostname(name: str) -> bool:
+    """A name that cannot work, whatever else is on the network."""
+    return name in RESERVED_HOSTNAMES
+
+
+def hostname_of_the_scale(name: str) -> bool:
+    """The name a SpoolmanScale answers to out of the box. Allowed after a
+    question: a scale can be renamed, or not be on this network at all."""
+    return name == SCALE_DEFAULT_HOSTNAME
 
 
 def valid_ssid(ssid) -> bool:

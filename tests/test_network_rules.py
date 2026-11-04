@@ -79,3 +79,9 @@ def test_primary_address_prefers_the_cable_and_never_shows_docker():
     assert nr.primary_address({"end0": "10.0.0.5"}) == "10.0.0.5"
     assert nr.primary_address({"docker0": "172.17.0.1"}) is None
     assert nr.primary_address({}) is None
+
+
+def test_hostnames_the_network_or_the_scale_needs():
+    assert nr.reserved_hostname("localhost") and not nr.reserved_hostname("demo")
+    assert nr.hostname_of_the_scale("spoolmanscale")
+    assert not nr.hostname_of_the_scale("spoolmanscale-pro")

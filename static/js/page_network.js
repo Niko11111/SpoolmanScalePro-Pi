@@ -22,7 +22,14 @@
       const next = name.value.trim().toLowerCase();
       if (!(await ask(t("net.name_title"), t("net.name_text", { name: next }), t("net.name_save")))) return;
       await busy(save, async () => {
-        await api("/api/network/hostname", { method: "POST", body: { hostname: next } });
+        const post = (confirm) => api("/api/network/hostname", { method: "POST", body: { hostname: next, confirm: confirm } });
+        try {
+          await post(false);
+        } catch (e) {
+          if (e.code !== "hostname_is_the_scales") throw e;
+          if (!(await ask(t("net.name_scale_title"), t("net.name_scale_text"), t("net.name_scale_confirm"), true))) return;
+          await post(true);
+        }
         toast(t("net.name_done", { name: next }));
       });
     });

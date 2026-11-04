@@ -7,6 +7,8 @@ scripts/check.sh fails when it has no section here.
 
 - Power supply: a voltage drop in the past is a quiet grey line. Only a
   voltage that is too low right now is shown in red, with advice.
+- Naming the Pi spoolmanscale asks first: that name belongs to the scale.
+  localhost is refused, and so is this Pi's own address as the scale's.
 - The overview stops polling while its browser tab is in the background, and
   asks Docker less often while it is open.
 
