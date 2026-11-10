@@ -131,6 +131,13 @@ Docker Desktop on a Mac with Apple silicon runs the same arm64 images as the
 Pi. `scripts/check.sh` runs the house rules and the tests, and CI runs it on
 every push.
 
+## Help
+
+Questions or trouble? Ask in the [Discord](https://discord.gg/K3KmKnrWhP), where the community is
+happy to help. Bugs and feature requests are best as an
+[issue on GitHub](https://github.com/Niko11111/SpoolmanScalePro-Pi/issues).
+Discord not for you? Email [support@spoolmanscale.com](mailto:support@spoolmanscale.com).
+
 ## License
 
 GPL-3.0, see [LICENSE](LICENSE). Part of the
