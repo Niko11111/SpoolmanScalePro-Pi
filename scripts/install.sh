@@ -216,9 +216,14 @@ install_release() {
 }
 
 install_system_files() {
-  step "Root helper, sudoers rule, services"
+  step "Root helper, sudoers rule, WLAN hook, services"
   install -d "$HELPER_DIR"
   install -m 0755 -o root -g root "$SRC/system/host-helper.sh" "$HELPER_DIR/host-helper"
+  # NetworkManager runs it when a WLAN comes up; it narrows the Pi's own
+  # WLANs to WPA-PSK, which phones can join (see the file).
+  install -d /etc/NetworkManager/dispatcher.d
+  install -m 0755 -o root -g root "$SRC/system/ap-psk-only.py" \
+    /etc/NetworkManager/dispatcher.d/90-spoolmanscale-pro-ap-psk-only
   install -m 0440 -o root -g root "$SRC/system/sudoers" /etc/sudoers.d/spoolmanscale-pro.new
   visudo -cf /etc/sudoers.d/spoolmanscale-pro.new >/dev/null || die "sudoers rule rejected by visudo"
   mv /etc/sudoers.d/spoolmanscale-pro.new /etc/sudoers.d/spoolmanscale-pro

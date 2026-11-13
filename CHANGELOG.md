@@ -3,6 +3,15 @@
 One section per version, newest first. VERSION names the current one;
 scripts/check.sh fails when it has no section here.
 
+## 0.2.1-beta.3
+
+- The setup WLAN and the Pi's own hotspot work on a Pi 3 again. NetworkManager
+  offers newer key types the Pi 3's radio cannot handle as an access point:
+  first neither WLAN appeared at all, then phones saw it but reported a
+  wrong password. Both WLANs now offer WPA2-PSK only; each restarts once,
+  for about two seconds, right after it comes up. The journal now also says
+  when the setup WLAN failed to open, instead of reporting it as open.
+
 ## 0.2.1-beta.2
 
 - WLAN power saving is off. The Pi answers the scale and the browser

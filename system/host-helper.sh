@@ -142,13 +142,26 @@ make_ap() {
   # $1 connection, $2 ssid, $3 psk, $4 channel, $5 autoconnect yes|no
   nmcli connection delete id "$1" >/dev/null 2>&1 || true
   # ipv4.method shared: NetworkManager runs DHCP for the clients itself.
+  # pmf disable: NetworkManager 1.52 otherwise offers WPA-PSK-SHA256 as well,
+  # which the Pi 3's radio (brcmfmac) refuses in access point mode ("key
+  # setting validation failed"): the WLAN never opened (measured 12.11.2026).
   nmcli connection add type wifi ifname wlan0 con-name "$1" \
     autoconnect "$5" connection.autoconnect-priority 100 \
     ssid "$2" mode ap 802-11-wireless.band bg 802-11-wireless.channel "$4" \
     802-11-wireless.powersave 2 \
     ipv4.method shared ipv4.addresses "$HOTSPOT_ADDRESS" ipv6.method disabled \
     wifi-sec.key-mgmt wpa-psk wifi-sec.proto rsn wifi-sec.pairwise ccmp wifi-sec.group ccmp \
-    wifi-sec.psk "$3" >/dev/null
+    wifi-sec.pmf disable wifi-sec.psk "$3" >/dev/null
+}
+
+# The setup WLAN is the one way into a Pi without a network, so the journal
+# says whether it really came up, not only that it was tried.
+open_setup_ap() {
+  if nmcli --wait 30 connection up id "$SETUP_CONNECTION" >/dev/null; then
+    echo "host-helper: $SETUP_SSID is open"
+  else
+    echo "host-helper: $SETUP_SSID could not be opened, see NetworkManager in the journal" >&2
+  fi
 }
 
 hotspot_on() {
@@ -235,8 +248,8 @@ watch_setup_ap() {
       return 0
     fi
     join_known_network && return 0
-    echo "host-helper: still no network, setup WLAN open again"
-    nmcli --wait 30 connection up id "$SETUP_CONNECTION" >/dev/null 2>&1 || true
+    echo "host-helper: still no network, opening $SETUP_SSID again"
+    open_setup_ap
   done
 }
 
@@ -252,7 +265,7 @@ setup_ap_if_offline() {
   done
   echo "host-helper: no network after ${OFFLINE_WAIT_S} s, opening $SETUP_SSID"
   make_ap "$SETUP_CONNECTION" "$SETUP_SSID" "$SETUP_PSK" 6 no
-  nmcli --wait 30 connection up id "$SETUP_CONNECTION" >/dev/null || true
+  open_setup_ap
   watch_setup_ap
 }
 
