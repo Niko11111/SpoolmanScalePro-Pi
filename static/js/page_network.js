@@ -108,9 +108,17 @@
     const on = net.wlan.mode === "hotspot";
     const ssid = el("input", { type: "text", value: net.hotspot_ssid || "SpoolmanScale-Pro", autocomplete: "off" });
     const psk = el("input", { type: "password", autocomplete: "new-password", placeholder: t("net.hotspot_psk_hint") });
+    // Typed twice: the field hides what is typed, and a typo would set a
+    // password nobody knows, on the WLAN the Pi is then only reachable in.
+    const pskRepeat = el("input", { type: "password", autocomplete: "new-password" });
     const channel = el("select", {}, CHANNELS.map((c) => el("option", { value: c, selected: c === net.hotspot_channel }, String(c))));
     const startButton = el("button", { type: "button" }, t(on ? "net.hotspot_restart" : "net.hotspot_on"));
     startButton.addEventListener("click", async () => {
+      if (psk.value !== pskRepeat.value) {
+        toast(t("net.hotspot_psk_mismatch"), true);
+        pskRepeat.focus();
+        return;
+      }
       if (!(await ask(t("net.hotspot_title"), t("net.hotspot_on_text", { address: net.hotspot_address }), t("net.hotspot_on")))) return;
       start(startButton, "/api/network/hotspot", { ssid: ssid.value, psk: psk.value, channel: Number(channel.value) });
     });
@@ -125,6 +133,7 @@
       el("p", { class: "hint", text: t("net.hotspot_hint") }),
       el("div", { class: "field" }, el("label", { text: t("net.hotspot_ssid") }), ssid),
       el("div", { class: "field" }, el("label", { text: t("net.hotspot_psk") }), psk),
+      el("div", { class: "field" }, el("label", { text: t("net.hotspot_psk_repeat") }), pskRepeat),
       el("div", { class: "field" }, el("label", { text: t("net.hotspot_channel") }), channel),
       el("div", { class: "btnrow" }, startButton, stop));
   }

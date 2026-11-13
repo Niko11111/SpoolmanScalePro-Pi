@@ -292,6 +292,8 @@ window.SSPRO_I18N.de = {
   "net.hotspot_ssid": "Netzname",
   "net.hotspot_psk": "Passwort",
   "net.hotspot_psk_hint": "8 bis 63 Zeichen",
+  "net.hotspot_psk_repeat": "Passwort wiederholen",
+  "net.hotspot_psk_mismatch": "Die beiden Passwörter stimmen nicht überein.",
   "net.hotspot_channel": "Kanal (2,4 GHz)",
   "net.hotspot_on": "Hotspot einschalten",
   "net.hotspot_restart": "Übernehmen",

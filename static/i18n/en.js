@@ -294,6 +294,8 @@ window.SSPRO_I18N.en = {
   "net.hotspot_ssid": "Network name",
   "net.hotspot_psk": "Password",
   "net.hotspot_psk_hint": "8 to 63 characters",
+  "net.hotspot_psk_repeat": "Repeat password",
+  "net.hotspot_psk_mismatch": "The two passwords do not match.",
   "net.hotspot_channel": "Channel (2.4 GHz)",
   "net.hotspot_on": "Switch on hotspot",
   "net.hotspot_restart": "Apply",

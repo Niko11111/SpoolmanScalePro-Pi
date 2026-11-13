@@ -11,6 +11,9 @@ scripts/check.sh fails when it has no section here.
   wrong password. Both WLANs now offer WPA2-PSK only; each restarts once,
   for about two seconds, right after it comes up. The journal now also says
   when the setup WLAN failed to open, instead of reporting it as open.
+- The hotspot password is typed twice, on the Network page and in
+  `setup-hotspot.sh`. A typo in the hidden field no longer sets a password
+  nobody knows.
 
 ## 0.2.1-beta.2
 
