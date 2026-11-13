@@ -3,6 +3,14 @@
 One section per version, newest first. VERSION names the current one;
 scripts/check.sh fails when it has no section here.
 
+## 0.2.1-beta.2
+
+- WLAN power saving is off. The Pi answers the scale and the browser
+  without first waking its radio: on a Pi 3, a ping once a second took
+  19 ms on average and up to 227 ms with it on, against 6.5 ms when the
+  radio stays awake. Applies to every network the Pi joins, from the update
+  on, without a restart.
+
 ## 0.2.1-beta.1
 
 - FilaMan runs with one worker process on a Pi Zero 2 W and a Pi 3, which

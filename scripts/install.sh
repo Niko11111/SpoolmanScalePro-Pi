@@ -128,13 +128,14 @@ install_packages() {
 }
 
 harden_system() {
-  step "Watchdog, logs, security updates, SSH"
+  step "Watchdog, logs, security updates, WLAN power saving, SSH"
   install -d /etc/systemd/system.conf.d /etc/systemd/journald.conf.d /etc/ssh/sshd_config.d
   install -m 0644 "$SRC/system/watchdog.conf" /etc/systemd/system.conf.d/spoolmanscale-pro-watchdog.conf
   install -m 0644 "$SRC/system/journald.conf" /etc/systemd/journald.conf.d/spoolmanscale-pro.conf
   install -m 0644 "$SRC/system/auto-upgrades.conf" /etc/apt/apt.conf.d/20auto-upgrades
   systemctl daemon-reexec
   systemctl restart systemd-journald
+  wifi_powersave_off
   # Compressed swap in RAM: a backend that briefly needs more than 1 GB is
   # slowed down instead of killed. Recent Raspberry Pi OS has it already.
   if [ ! -e /sys/block/zram0 ]; then
@@ -143,6 +144,20 @@ harden_system() {
     systemctl restart zramswap
   fi
   harden_ssh
+}
+
+# Power saving off from the next connection on (the file), and right now on
+# the running one (iw): the install often runs over this very WLAN, so the
+# connection is not brought down and up again to apply it.
+wifi_powersave_off() {
+  install -d /etc/NetworkManager/conf.d
+  install -m 0644 "$SRC/system/wifi-powersave.conf" /etc/NetworkManager/conf.d/spoolmanscale-pro-wifi-powersave.conf
+  nmcli general reload conf 2>/dev/null || note "warning: NetworkManager did not reload its settings; they apply after a restart"
+  [ -e /sys/class/net/wlan0 ] || return 0
+  if command -v iw >/dev/null 2>&1; then
+    iw dev wlan0 set power_save off 2>/dev/null || note "warning: WLAN power saving stays on until the next restart"
+  fi
+  note "WLAN power saving off"
 }
 
 harden_ssh() {
