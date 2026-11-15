@@ -3,7 +3,7 @@
  */
 (function () {
   "use strict";
-  const { t, el, api, ask, busy, toast, errorText } = SSPro;
+  const { t, el, api, ask, busy, toast, errorText, label } = SSPro;
 
   const THEME_KEY = "sspro.theme";
   const THEMES = ["system", "dark", "light"];
@@ -45,6 +45,15 @@
       hintKey ? el("p", { class: "hint", text: t(hintKey) }) : null);
   }
 
+  // A new password is typed twice: the field hides it, and a typo would set
+  // a password nobody knows. True when the two agree.
+  function samePassword(next, repeat, message) {
+    if (next.value === repeat.value) return true;
+    message.textContent = t("account.password_mismatch");
+    repeat.focus();
+    return false;
+  }
+
   async function post(path, body, message) {
     try {
       await api(path, { method: "POST", body: body });
@@ -60,18 +69,20 @@
     const current = input("password", "current-password");
     const user = input("text", "username", account.username);
     const next = input("password", "new-password");
+    const repeat = input("password", "new-password");
     const message = el("div", { class: "msg bad", role: "alert" });
-    const save = el("button", { type: "button" }, t("account.save"));
-    save.addEventListener("click", () => busy(save, () =>
+    const save = el("button", { type: "button" }, label("account.save"));
+    save.addEventListener("click", () => samePassword(next, repeat, message) && busy(save, () =>
       post("/api/auth/account", { current: current.value, username: user.value, password: next.value }, message)));
-    const off = el("button", { type: "button", class: "danger" }, t("account.switch_off"));
+    const off = el("button", { type: "button", class: "danger" }, label("account.switch_off"));
     off.addEventListener("click", async () => {
       if (!(await ask(t("gate.open_title"), t("gate.open_text"), t("account.switch_off"), true))) return;
       await busy(off, () => post("/api/auth/open", { current: current.value }, message));
     });
     return [el("p", { class: "hint", text: t("account.signed_in", { name: account.username }) }),
       labelled("account.current", current, "account.current_hint"),
-      labelled("gate.username", user), labelled("account.new_password", next, "account.password_hint"),
+      labelled("gate.username", user), labelled("account.new_password", next),
+      labelled("account.password_repeat", repeat, "account.password_hint"),
       el("div", { class: "btnrow" }, save, off), message];
   }
 
@@ -79,12 +90,14 @@
   function openAccount() {
     const user = input("text", "username", "admin");
     const next = input("password", "new-password");
+    const repeat = input("password", "new-password");
     const message = el("div", { class: "msg bad", role: "alert" });
-    const save = el("button", { type: "button" }, t("account.switch_on"));
-    save.addEventListener("click", () => busy(save, () =>
+    const save = el("button", { type: "button" }, label("account.switch_on"));
+    save.addEventListener("click", () => samePassword(next, repeat, message) && busy(save, () =>
       post("/api/auth/account", { username: user.value, password: next.value }, message)));
     return [el("div", { class: "callout bd", text: t("account.open_warning") }),
-      labelled("gate.username", user), labelled("gate.password", next, "account.password_hint"),
+      labelled("gate.username", user), labelled("gate.password", next),
+      labelled("account.password_repeat", repeat, "account.password_hint"),
       el("div", { class: "btnrow" }, save), message];
   }
 
@@ -95,7 +108,7 @@
   }
 
   function powerButton(labelKey, path, danger) {
-    const button = el("button", { type: "button", class: danger ? "danger" : "quiet" }, t(labelKey));
+    const button = el("button", { type: "button", class: danger ? "danger" : "quiet" }, label(labelKey));
     button.addEventListener("click", async () => {
       if (!(await ask(t(labelKey), t(labelKey + "_text"), t(labelKey), danger))) return;
       await busy(button, async () => {
@@ -113,7 +126,7 @@
         el("div", { class: "row" }, el("span", { class: "k", text: t("power.hostname") }), el("span", { class: "v mono", text: system.hostname }))),
       el("div", { class: "btnrow" }, powerButton("power.reboot", "/api/system/reboot", false),
         powerButton("power.poweroff", "/api/system/poweroff", true),
-        el("a", { class: "linkbtn", href: "#setup" }, t("setup.open"))),
+        el("a", { class: "linkbtn", href: "#setup" }, label("setup.open"))),
       el("p", { class: "note", text: t("power.note") }));
   }
 
@@ -178,7 +191,7 @@
   }
 
   function render(main) {
-    const grid = el("div", { class: "grid" });
+    const grid = el("div", {});
     const os = SSPro.views.osCard();
     const remote = SSPro.views.tailscaleCard();
     const advanced = el("div", { class: "grid" });
@@ -187,7 +200,9 @@
       .then((backends) => advanced.replaceChildren(advancedCard(backends, redrawAdvanced)))
       .catch((e) => { if (e.code !== "login_required") toast(errorText(e), true); });
     Promise.all([api("/api/system"), api("/api/backends")]).then(([system, backends]) => {
-      grid.replaceChildren(powerCard(system), capacityCard(backends.plan), accountCard(), lookCard(), remote);
+      // Left what is used most (the Pi, the login), right the short ones.
+      grid.replaceChildren(SSPro.views.columns([powerCard(system), accountCard()],
+        [lookCard(), capacityCard(backends.plan), remote]));
       advanced.replaceChildren(advancedCard(backends, redrawAdvanced));
     }).catch((e) => { if (e.code !== "login_required") toast(errorText(e), true); });
     return () => { os.stop(); remote.stop(); };

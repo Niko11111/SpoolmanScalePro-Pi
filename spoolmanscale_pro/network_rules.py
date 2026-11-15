@@ -19,6 +19,8 @@ PSK_MIN_LEN = 8
 PSK_MAX_LEN = 63
 # 2.4 GHz channels that do not overlap; the scale's ESP32 has no 5 GHz.
 HOTSPOT_CHANNELS = (1, 6, 11)
+# NetworkManager takes any connection name; this only keeps a request sane.
+CONNECTION_NAME_MAX_LEN = 255
 
 
 def split_terse(line: str) -> list[str]:
@@ -80,6 +82,42 @@ def parse_active(text: str) -> list[dict]:
         if len(fields) >= 3 and fields[2]:
             rows.append({"name": fields[0], "type": fields[1], "device": fields[2]})
     return rows
+
+
+def parse_saved(text: str, own: tuple[str, ...]) -> list[str]:
+    """nmcli -t -f TIMESTAMP,TYPE,NAME connection show: the saved client
+    WLANs by connection name, the one used last first. own: the Pi's own
+    access points, which are no network to join."""
+    saved = []
+    for line in text.splitlines():
+        fields = split_terse(line)
+        if len(fields) < 3 or fields[1] != "802-11-wireless" or fields[2] in own:
+            continue
+        stamp = int(fields[0]) if fields[0].isdigit() else 0
+        saved.append((stamp, fields[2]))
+    return [name for _, name in sorted(saved, key=lambda s: s[0], reverse=True)]
+
+
+def mark_saved(networks: list[dict], saved: list[dict]) -> list[dict]:
+    """Scan rows from parse_wifi_list() with "saved_name": the connection
+    that joins this network without a password, the one used last when
+    there are several, or None."""
+    by_ssid: dict[str, str] = {}
+    for entry in saved:
+        by_ssid.setdefault(entry["ssid"], entry["name"])
+    return [{**n, "saved_name": by_ssid.get(n["ssid"])} for n in networks]
+
+
+def without_own_access_point(networks: list[dict], own_running: bool) -> list[dict]:
+    """While the Pi runs its own WLAN, the scan lists that one as in use:
+    no network to join, so it is left out."""
+    return [n for n in networks if not (own_running and n["in_use"])]
+
+
+def valid_connection_name(name) -> bool:
+    if not isinstance(name, str) or not name or len(name) > CONNECTION_NAME_MAX_LEN:
+        return False
+    return not any(ch in name for ch in "\n\r\0")
 
 
 def valid_hostname(name) -> bool:

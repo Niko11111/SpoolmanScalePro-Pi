@@ -23,7 +23,7 @@ def _start(kind: str, target: str, fn):
 
 @bp.get("")
 def overview():
-    return ok(network={**network.status(), "ip": network.ip_status()})
+    return ok(network={**network.status(), "ip": network.ip_status(), "saved": network.saved()})
 
 
 @bp.post("/scan")
@@ -43,6 +43,37 @@ def join_wifi():
     if not rules.valid_psk(psk, allow_empty=True):
         return fail("psk_invalid")
     return _start("wifi", ssid, lambda progress: network.join_wifi(ssid, psk, progress))
+
+
+def _saved_entry(body: dict) -> dict | None:
+    """The saved WLAN a request names, None when there is no such one."""
+    name = body.get("name")
+    return next((s for s in network.saved() if s["name"] == name), None)
+
+
+@bp.post("/saved/connect")
+def join_saved():
+    body = request.get_json(silent=True) or {}
+    if not rules.valid_connection_name(body.get("name")):
+        return fail("name_invalid")
+    entry = _saved_entry(body)
+    if entry is None:
+        return fail("wifi_not_saved", 404)
+    return _start("wifi", entry["ssid"], lambda progress: network.join_saved(entry["name"], entry["ssid"], progress))
+
+
+@bp.post("/saved/forget")
+def forget_saved():
+    body = request.get_json(silent=True) or {}
+    if not rules.valid_connection_name(body.get("name")):
+        return fail("name_invalid")
+    entry = _saved_entry(body)
+    if entry is None:
+        return fail("wifi_not_saved", 404)
+    error = network.forget(entry["name"])
+    if error == "wifi_in_use":
+        return fail(error, 409)
+    return fail(error, 500) if error else ok()
 
 
 @bp.post("/hotspot")

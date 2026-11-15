@@ -4,7 +4,7 @@
  */
 (function () {
   "use strict";
-  const { t, el, ask, views } = SSPro;
+  const { t, el, ask, views, labelForText } = SSPro;
 
   // "2026-10-24_120000" in a backup's name.
   const BACKUP_DAY_RE = /_(\d{4}-\d{2}-\d{2})_\d{6}/;
@@ -19,7 +19,7 @@
   }
 
   function actionButton(label, danger, confirm, run) {
-    const button = el("button", { type: "button", class: danger ? "danger" : "" }, label);
+    const button = el("button", { type: "button", class: danger ? "danger" : "" }, labelForText(label));
     button.addEventListener("click", async () => {
       if (await ask(confirm.title, confirm.text, label, danger)) run(button);
     });

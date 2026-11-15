@@ -3,6 +3,50 @@
 One section per version, newest first. VERSION names the current one;
 scripts/check.sh fails when it has no section here.
 
+## 0.2.1-beta.4
+
+- Network page: a list of the saved WLANs, the one used last first. Each
+  one joins with a tap, without its password, and can be forgotten; the
+  WLAN the Pi is in cannot, so the page never cuts itself off. In the scan
+  list a saved network is marked and joins without the form. A join that
+  fails takes the Pi back to the network it was in.
+- The Pi's network shows its name: "Connected to Home" instead of the
+  connection NetworkManager made for it (netplan-wlan0-Home), and a cable
+  shows as "Network cable" instead of netplan-eth0.
+- When the Pi looks for a saved WLAN on its own (setup WLAN, hotspot off),
+  it tries the ones used last first.
+- Every button carries a small icon before its text, so its kind reads at
+  a glance: a tick saves, a bin deletes or forgets, a cloud installs,
+  circling arrows search for updates. One meaning has one icon everywhere,
+  the same as in TheRentalScale (Lucide icons, shipped with the page, so
+  they work offline).
+- Network, System and Backup arrange their cards in two columns that stack
+  on their own, the ones used most first: no card stands half empty next
+  to a long one any more. On a phone the left column comes first.
+- WLAN list: the buttons sit at the right edge, a network's password form
+  opens under it, and the list keeps its distance from the search buttons.
+  While the Pi runs its own WLAN, the scan no longer lists that one.
+- A new password for the login is typed twice, on the System page and when
+  the login is first created.
+- Updates: one button installs the newest version, without a list of
+  versions to choose from (an older one was never offered). The newest
+  release notes show their first lines and unfold on a click; older ones
+  stay folded.
+- Backups: the list shows the newest three and the rest on "Show all".
+- Nothing touches any more: the error message above the backend tiles, a
+  button row above a field, and an error under buttons or a field each
+  keep their distance (they sat at 0 px). tools/spacing_audit.js measures
+  every page for it.
+- FilaMan access: e-mail and password each have a copy button. Copying
+  works over the Pi's plain http address too, where browsers have no
+  clipboard API; this also fixes the MAC address's copy button, which did
+  nothing there.
+- A backend started for the first time takes its newest release, not a
+  version written into SpoolmanScale Pro; the version in the compose file
+  is only the fallback without internet. A backend that ran before keeps
+  its version, also when only its data are left. The "Tested with" line on
+  the Updates page is gone.
+
 ## 0.2.1-beta.3
 
 - The setup WLAN and the Pi's own hotspot work on a Pi 3 again. NetworkManager

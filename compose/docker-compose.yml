@@ -5,11 +5,11 @@
 # "spoolmanscale-pro", so the named volumes below come out as
 # spoolmanscale-pro_<name> and survive any update of this file.
 #
-# Each image is pinned to the version this release was tested with. The
-# owner can pick another on the Updates page; the service then sets the
-# variable (SPOOLMAN_VERSION and so on, see backends.py) and the default
-# after ":-" no longer applies. Moving a default is a change of its own,
-# tested on the Pi, with a line in CHANGELOG.md. A Pi that already has a
+# A backend started for the first time takes its newest release on ghcr.io
+# (backend_updates.choose_first_version); the service then sets the variable
+# (SPOOLMAN_VERSION and so on, see backends.py). The default after ":-" is
+# only the fallback when ghcr.io is out of reach, and what
+# `install.sh --pull-all` downloads for offline use. A Pi that already has a
 # backend keeps its version until the owner updates it, with a backup
 # (backend_updates.keep_installed_versions).
 #

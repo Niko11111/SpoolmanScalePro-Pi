@@ -85,3 +85,42 @@ def test_hostnames_the_network_or_the_scale_needs():
     assert nr.reserved_hostname("localhost") and not nr.reserved_hostname("demo")
     assert nr.hostname_of_the_scale("spoolmanscale")
     assert not nr.hostname_of_the_scale("spoolmanscale-pro")
+
+
+SAVED = (
+    "1794615075:802-11-wireless:spoolmanscale-hotspot\n"
+    "1794615127:802-3-ethernet:netplan-eth0\n"
+    "1794535515:802-11-wireless:netplan-wlan0-Home@H\n"
+    "1794700000:802-11-wireless:Werkstatt\\: 2,4\n"
+    "0:802-11-wireless:spoolmanscale-setup\n"
+    "0:802-11-wireless:Never used\n"
+)
+OWN = ("spoolmanscale-hotspot", "spoolmanscale-setup")
+
+
+def test_parse_saved_lists_client_wlans_used_last_first():
+    assert nr.parse_saved(SAVED, OWN) == ["Werkstatt: 2,4", "netplan-wlan0-Home@H", "Never used"]
+
+
+def test_parse_saved_without_any_wlan():
+    assert nr.parse_saved("1:802-3-ethernet:netplan-eth0\n", OWN) == []
+
+
+def test_mark_saved_names_the_connection_used_last_per_ssid():
+    networks = [{"ssid": "Home@H"}, {"ssid": "Cafe"}]
+    saved = [{"name": "netplan-wlan0-Home@H", "ssid": "Home@H"}, {"name": "Home@H 1", "ssid": "Home@H"}]
+    marked = nr.mark_saved(networks, saved)
+    assert marked == [{"ssid": "Home@H", "saved_name": "netplan-wlan0-Home@H"}, {"ssid": "Cafe", "saved_name": None}]
+
+
+def test_valid_connection_name():
+    assert nr.valid_connection_name("netplan-wlan0-Home@H")
+    assert nr.valid_connection_name("Werkstatt: 2,4")
+    for bad in ("", None, 5, "a\nb", "a\rb", "a\0b", "x" * 256):
+        assert not nr.valid_connection_name(bad), bad
+
+
+def test_own_access_point_is_left_out_of_the_scan_while_it_runs():
+    networks = [{"ssid": "SpoolmanScale-Pro", "in_use": True}, {"ssid": "Home", "in_use": False}]
+    assert nr.without_own_access_point(networks, True) == [{"ssid": "Home", "in_use": False}]
+    assert nr.without_own_access_point(networks, False) == networks

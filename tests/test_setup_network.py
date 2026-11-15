@@ -17,7 +17,10 @@ case "$*" in
   "-t -f TYPE,STATE,CONNECTION device") cat "$STATE/devices" ;;
   "-t -f TYPE,STATE device") sed 's/:[^:]*$//' "$STATE/devices" ;;
   "-t -f NAME connection show --active") cat "$STATE/active" ;;
-  "-g NAME,TYPE connection show") cat "$STATE/profiles" ;;
+  "-g NAME,TYPE connection show") cut -d: -f1,2 "$STATE/profiles" ;;
+  "-t -f TIMESTAMP,TYPE,NAME connection show") awk -F: '{ print ($3 == "" ? 0 : $3) ":" $2 ":" $1 }' "$STATE/profiles" ;;
+  "-t -f NAME,DEVICE connection show --active") sed -n 's/$/:wlan0/p' "$STATE/active" ;;
+  *"connection delete id "*) ;;
   *"connection up id "*)
     args="$*"; name="${args##*connection up id }"
     if [ "$name" = spoolmanscale-setup ] || [ "$name" = spoolmanscale-hotspot ]; then
@@ -39,7 +42,7 @@ exit 0
 """
 
 
-def run(tmp_path, verb, **world):
+def run(tmp_path, verb, *args, **world):
     devices = world.get("devices", "wifi:disconnected:\n")
     profiles = world.get("profiles", f"Home:802-11-wireless\n{SETUP}:802-11-wireless\n")
     back_at = world.get("back_at")
@@ -58,7 +61,7 @@ def run(tmp_path, verb, **world):
         tool.write_text(text)
         tool.chmod(tool.stat().st_mode | stat.S_IEXEC)
     env = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}", "STATE": str(state)}
-    done = subprocess.run(["sh", str(HELPER), verb], env=env, capture_output=True, text=True, timeout=30)
+    done = subprocess.run(["sh", str(HELPER), verb, *args], env=env, capture_output=True, text=True, timeout=30)
     return done, (state / "active").read_text().strip(), (state / "log").read_text()
 
 
@@ -110,3 +113,43 @@ def test_hotspot_off_refused_with_nothing_saved(tmp_path):
     done, active, _ = run(tmp_path, "hotspot-off", devices=f"wifi:connected:{HOTSPOT}\n", active=f"{HOTSPOT}\n",
                           profiles=f"{HOTSPOT}:802-11-wireless\n")
     assert done.returncode == 4 and active == HOTSPOT
+
+
+# Saved WLANs: NAME:TYPE:TIMESTAMP, the one used last has the largest stamp.
+SAVED = f"Home:802-11-wireless:200\nWork:802-11-wireless:100\n{HOTSPOT}:802-11-wireless:300\n"
+ON_HOME = {"devices": "wifi:connected:Home\n", "active": "Home\n", "profiles": SAVED}
+
+
+def test_wifi_up_joins_a_saved_wlan(tmp_path):
+    done, active, _ = run(tmp_path, "wifi-up", "Work", reachable="Home\nWork\n", **ON_HOME)
+    assert done.returncode == 0 and active == "Work"
+
+
+def test_wifi_up_goes_back_when_the_saved_wlan_fails(tmp_path):
+    done, active, log = run(tmp_path, "wifi-up", "Work", reachable="Home\n", **ON_HOME)
+    assert done.returncode == 3 and active == "Home"
+    assert log.rstrip().endswith("connection up id Home")
+
+
+def test_wifi_up_takes_only_a_saved_client_wlan(tmp_path):
+    for name in ("Cafe", HOTSPOT, ""):
+        world = tmp_path / (name or "empty")
+        world.mkdir()
+        done, _, log = run(world, "wifi-up", name, reachable="Home\n", **ON_HOME)
+        assert done.returncode == 2 and "connection up" not in log, name
+
+
+def test_wifi_forget_deletes_a_saved_wlan(tmp_path):
+    done, _, log = run(tmp_path, "wifi-forget", "Work", **ON_HOME)
+    assert done.returncode == 0 and "connection delete id Work" in log
+
+
+def test_wifi_forget_refuses_the_wlan_in_use(tmp_path):
+    done, _, log = run(tmp_path, "wifi-forget", "Home", **ON_HOME)
+    assert done.returncode == 7 and "connection delete" not in log
+
+
+def test_hotspot_off_tries_the_wlan_used_last_first(tmp_path):
+    done, active, _ = run(tmp_path, "hotspot-off", devices=f"wifi:connected:{HOTSPOT}\n", active=f"{HOTSPOT}\n",
+                          profiles="Old:802-11-wireless:100\nNew:802-11-wireless:200\n", reachable="Old\nNew\n")
+    assert done.returncode == 0 and active == "New"

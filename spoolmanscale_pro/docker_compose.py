@@ -284,6 +284,23 @@ def container_images() -> dict[str, str] | None:
         return None
 
 
+def data_volumes() -> set[str] | None:
+    """The names of this project's volumes that exist, as the compose file
+    names them (spoolman-data ...), or None when Docker did not answer. A
+    volume outlives its container: data there means the backend ran before."""
+    cmd = ["docker", "volume", "ls", "--filter", f"label=com.docker.compose.project={PROJECT_NAME}",
+           "--format", '{{.Label "com.docker.compose.volume"}}']
+    try:
+        done = subprocess.run(cmd, capture_output=True, text=True, timeout=QUERY_TIMEOUT_S)
+    except (subprocess.TimeoutExpired, OSError) as e:
+        log.error("docker volume ls could not run: %s", e)
+        return None
+    if done.returncode != 0:
+        log.error("docker volume ls failed (%d): %s", done.returncode, done.stderr.strip()[-500:])
+        return None
+    return set(done.stdout.split())
+
+
 def states() -> dict[str, str] | None:
     """Every backend container that exists and its state, or None when
     Docker itself did not answer."""

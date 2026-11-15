@@ -18,7 +18,7 @@ so Docker brings back the backend that was running and leaves the stopped
 ones stopped.
 """
 
-from . import docker_compose, health, settings
+from . import backend_updates, docker_compose, health, settings
 from .backends import Backend
 from .jobs import JobFailed, Progress
 from .scale_api import ScaleClient, ScaleError, own_names, summarize, switch_and_confirm
@@ -38,6 +38,7 @@ def _stop_others(keep: str | None, progress: Progress) -> None:
 
 def _start(target: Backend, progress: Progress) -> None:
     progress.step("starting")
+    backend_updates.choose_first_version(target)
     if not docker_compose.up(target.key).ok:
         raise JobFailed("start_failed", target.key)
     progress.step("waiting_ready")

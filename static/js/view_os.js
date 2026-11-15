@@ -7,7 +7,7 @@
  */
 (function () {
   "use strict";
-  const { t, el, api, ask, busy, toast, errorText, views } = SSPro;
+  const { t, el, api, ask, busy, toast, errorText, views, label } = SSPro;
 
   function packageList(result) {
     const rows = result.packages.map((p) => el("div", { class: "row" },
@@ -17,7 +17,7 @@
   }
 
   function restartButton() {
-    const button = el("button", { type: "button" }, t("os.restart_now"));
+    const button = el("button", { type: "button" }, label("os.restart_now"));
     button.addEventListener("click", async () => {
       if (!(await ask(t("power.reboot"), t("power.reboot_text"), t("power.reboot")))) return;
       await busy(button, async () => {
@@ -35,7 +35,7 @@
     if (result.mismatch) parts.push(el("p", { class: "hint", text: t("os.mismatch", { n: count }) }));
     if (result.removals.length) parts.push(el("div", { class: "callout wr", text: t("os.removals", { names: result.removals.join(", ") }) }));
     if (result.restart_after) parts.push(el("p", { class: "hint", text: t("os.kernel") }));
-    const install = el("button", { type: "button" }, t("os.install"));
+    const install = el("button", { type: "button" }, label("os.install"));
     install.addEventListener("click", async () => {
       if (!(await ask(t("os.install_title"), t("os.install_text", { n: count }), t("os.install")))) return;
       startUpgrade(install);
@@ -47,7 +47,7 @@
   function osCard() {
     const jobSlot = el("div", { class: "wrap" });
     const resultSlot = el("div", { class: "wrap" });
-    const search = el("button", { type: "button", class: "quiet" }, t("os.search"));
+    const search = el("button", { type: "button", class: "quiet" }, label("os.search"));
     let unfollow = null;
 
     function onEnd(job) {

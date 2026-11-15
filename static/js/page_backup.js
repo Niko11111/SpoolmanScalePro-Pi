@@ -3,7 +3,10 @@
  */
 (function () {
   "use strict";
-  const { t, el, api, ask, busy, toast, errorText, views } = SSPro;
+  const { t, el, api, ask, busy, toast, errorText, views, label } = SSPro;
+
+  // The newest backups; the rest behind "Show all".
+  const BACKUPS_SHOWN = 3;
 
   const BYTES_PER_KIB = 1024;
 
@@ -18,7 +21,7 @@
 
   function createCard(backends, start) {
     const rows = backends.map((b) => {
-      const button = el("button", { type: "button", disabled: b.state === "absent" }, t("backup.make"));
+      const button = el("button", { type: "button", disabled: b.state === "absent" }, label("backup.make"));
       button.addEventListener("click", () => start(button, "/api/backups/" + b.key));
       return el("div", { class: "row" }, el("span", { class: "k", text: b.label }), button);
     });
@@ -29,7 +32,7 @@
   function uploadCard(backends, start) {
     const backend = el("select", {}, backends.map((b) => el("option", { value: b.key }, b.label)));
     const file = el("input", { type: "file", accept: ".tar" });
-    const button = el("button", { type: "button", class: "danger" }, t("backup.upload_restore"));
+    const button = el("button", { type: "button", class: "danger" }, label("backup.upload_restore"));
     button.addEventListener("click", async () => {
       if (!file.files.length) { toast(t("err.no_file"), true); return; }
       const label = backend.selectedOptions[0].textContent;
@@ -45,12 +48,12 @@
   }
 
   function backupRow(item, labelOf, start, redraw) {
-    const restore = el("button", { type: "button", class: "quiet" }, t("backup.restore"));
+    const restore = el("button", { type: "button", class: "quiet" }, label("backup.restore"));
     restore.addEventListener("click", async () => {
       if (!(await ask(t("backup.restore_title", { name: labelOf(item.backend) }), t("backup.restore_text"), t("backup.restore"), true))) return;
       start(restore, "/api/backups/file/" + encodeURIComponent(item.name) + "/restore");
     });
-    const remove = el("button", { type: "button", class: "quiet" }, t("backup.delete"));
+    const remove = el("button", { type: "button", class: "quiet" }, label("backup.delete"));
     remove.addEventListener("click", async () => {
       if (!(await ask(t("backup.delete"), t("backup.delete_text", { name: item.name }), t("backup.delete"), true))) return;
       await busy(remove, async () => { await api("/api/backups/file/" + encodeURIComponent(item.name), { method: "DELETE" }); redraw(); });
@@ -60,7 +63,7 @@
         el("div", { class: "nm" }, labelOf(item.backend), item.reason ? el("span", { class: "pill off" }, t("backup.reason_" + item.reason.replace("-", "_"))) : null),
         el("div", { class: "sz", text: when(item.created) + " - " + size(item.size) })),
       el("div", { class: "inrow" },
-        el("a", { class: "linkbtn", href: "/api/backups/file/" + encodeURIComponent(item.name), download: item.name }, t("backup.download")),
+        el("a", { class: "linkbtn", href: "/api/backups/file/" + encodeURIComponent(item.name), download: item.name }, label("backup.download")),
         restore, remove));
   }
 
@@ -87,16 +90,16 @@
   }
 
   function listCard(items, labelOf, start, redraw) {
-    const card = el("section", { class: "card wide" }, el("h2", { text: t("backup.list_title") }));
+    const card = el("section", { class: "card" }, el("h2", { text: t("backup.list_title") }));
     if (!items.length) card.append(el("p", { class: "hint", text: t("backup.none") }));
-    for (const item of items) card.append(backupRow(item, labelOf, start, redraw));
+    card.append(...views.collapsed(items.map((item) => backupRow(item, labelOf, start, redraw)), BACKUPS_SHOWN));
     card.append(el("p", { class: "note", text: t("backup.list_note") }));
     return card;
   }
 
   function render(main) {
     const jobSlot = el("div", { class: "wrap" });
-    const grid = el("div", { class: "grid" });
+    const grid = el("div", { class: "wrap" });
     main.append(jobSlot, grid);
     let unfollow = null;
     let labelOf = (key) => key;
@@ -105,8 +108,8 @@
       try {
         const [backends, list, settings] = await Promise.all([api("/api/backends"), api("/api/backups"), api("/api/settings")]);
         labelOf = views.labelsFrom(backends.backends);
-        grid.replaceChildren(createCard(backends.backends, start), autoCard(settings.settings),
-          uploadCard(backends.backends, start), listCard(list.backups, labelOf, start, draw));
+        grid.replaceChildren(views.columns([createCard(backends.backends, start)],
+          [autoCard(settings.settings), uploadCard(backends.backends, start)]), listCard(list.backups, labelOf, start, draw));
       } catch (e) {
         if (e.code !== "login_required") toast(errorText(e), true);
       }

@@ -6,7 +6,7 @@
  */
 (function () {
   "use strict";
-  const { t, el, api, ask, busy, toast } = SSPro;
+  const { t, el, api, ask, busy, toast, label } = SSPro;
 
   const LOGOS = {
     spoolman: "/static/img/spoolman-logo.svg",
@@ -60,8 +60,8 @@
     });
   }
 
-  function post(label, path, ctx, cls) {
-    const button = el("button", { type: "button", class: cls || "", disabled: ctx.jobRunning }, t(label));
+  function post(key, path, ctx, cls) {
+    const button = el("button", { type: "button", class: cls || "", disabled: ctx.jobRunning }, label(key));
     button.addEventListener("click", () => busy(button, async () => {
       await api(path, { method: "POST" });
       ctx.onChange();
@@ -74,10 +74,10 @@
   // failed, a crash), or the only way back would be "Stop all".
   function singleActions(backend, ctx) {
     if (backend.active && backend.ready) {
-      return [el("a", { class: "linkbtn", href: backendUrl(backend), target: "_blank", rel: "noopener" }, t("tile.open"))];
+      return [el("a", { class: "linkbtn", href: backendUrl(backend), target: "_blank", rel: "noopener" }, label("tile.open"))];
     }
     if (backend.active && backend.state === "running") return [];
-    const button = el("button", { type: "button", disabled: ctx.jobRunning }, t("tile.activate"));
+    const button = el("button", { type: "button", disabled: ctx.jobRunning }, label("tile.activate"));
     button.addEventListener("click", () => activate(button, backend, ctx));
     return [button];
   }
@@ -86,12 +86,12 @@
   function parallelActions(backend, ctx) {
     const base = "/api/backends/" + backend.key;
     if (backend.state !== "running") {
-      const button = el("button", { type: "button", disabled: ctx.jobRunning }, t("tile.start"));
+      const button = el("button", { type: "button", disabled: ctx.jobRunning }, label("tile.start"));
       button.addEventListener("click", () => startBackend(button, backend, ctx));
       return [button];
     }
     const out = [];
-    if (backend.ready) out.push(el("a", { class: "linkbtn", href: backendUrl(backend), target: "_blank", rel: "noopener" }, t("tile.open")));
+    if (backend.ready) out.push(el("a", { class: "linkbtn", href: backendUrl(backend), target: "_blank", rel: "noopener" }, label("tile.open")));
     if (!backend.active) out.push(post("tile.use", base + "/use", ctx));
     out.push(post("tile.stop", base + "/stop", ctx, "quiet"));
     return out;
@@ -109,8 +109,8 @@
     }
     showDialog(t("login.title"), [
       el("div", { class: "rows" },
-        el("div", { class: "row" }, el("span", { class: "k", text: t("login.email") }), el("span", { class: "v mono", text: login.email })),
-        el("div", { class: "row" }, el("span", { class: "k", text: t("login.password") }), el("span", { class: "v mono", text: login.password }))),
+        el("div", { class: "row" }, el("span", { class: "k", text: t("login.email") }), SSPro.views.copyable(login.email, true)),
+        el("div", { class: "row" }, el("span", { class: "k", text: t("login.password") }), SSPro.views.copyable(login.password, true))),
       el("p", { class: "note", text: t("login.note") })]);
   }
 
@@ -126,7 +126,7 @@
     if (plan.rules.slow_backends.includes(backend.key)) {
       body.push(el("div", { class: "callout wr", text: t("switch.slow", { name: backend.label }) }));
     }
-    const homepage = el("a", { class: "linkbtn", href: backend.homepage, target: "_blank", rel: "noopener" }, t("info.homepage"));
+    const homepage = el("a", { class: "linkbtn", href: backend.homepage, target: "_blank", rel: "noopener" }, label("info.homepage"));
     showDialog(backend.label, body, [homepage]);
   }
 
@@ -134,7 +134,7 @@
     const dialog = el("dialog", {});
     const close = () => { dialog.close(); dialog.remove(); };
     dialog.append(el("h3", { text: title }), ...body,
-      el("div", { class: "btnrow" }, ...(extraButtons || []), el("button", { type: "button", onclick: close }, t("common.close"))));
+      el("div", { class: "btnrow" }, ...(extraButtons || []), el("button", { type: "button", onclick: close }, label("common.close"))));
     dialog.addEventListener("cancel", (e) => { e.preventDefault(); close(); });
     document.body.append(dialog);
     dialog.showModal();
@@ -163,12 +163,12 @@
     const actions = el("div", { class: "tile-actions" },
       ctx.plan.parallel ? parallelActions(backend, ctx) : singleActions(backend, ctx));
     if (backend.key === "filaman" && backend.state !== "absent") {
-      actions.append(el("button", { class: "quiet", type: "button", onclick: showFilamanLogin }, t("tile.login")));
+      actions.append(el("button", { class: "quiet", type: "button", onclick: showFilamanLogin }, label("tile.login")));
     }
     if (backend.state !== "absent") {
-      actions.append(el("button", { class: "quiet", type: "button", onclick: () => ctx.onLog(backend) }, t("tile.log")));
+      actions.append(el("button", { class: "quiet", type: "button", onclick: () => ctx.onLog(backend) }, label("tile.log")));
     }
-    actions.append(el("button", { class: "quiet", type: "button", onclick: () => showInfo(backend, ctx.plan) }, t("tile.info")));
+    actions.append(el("button", { class: "quiet", type: "button", onclick: () => showInfo(backend, ctx.plan) }, label("tile.info")));
     const badges = el("div", { class: "inrow" }, statePill(backend),
       ctx.plan.parallel && backend.active ? el("span", { class: "pill ok" }, t("tile.scale_uses")) : null,
       updatePill(backend), facts(backend));
@@ -199,7 +199,7 @@
 
   function backendsCard(data, jobRunning, onChange, onLog) {
     const ctx = { all: data.backends, jobRunning, onChange, onLog, plan: data.plan };
-    const stopAll = el("button", { class: "quiet", type: "button", disabled: jobRunning || !data.backends.some((b) => b.state === "running") }, t("backends.stop_all"));
+    const stopAll = el("button", { class: "quiet", type: "button", disabled: jobRunning || !data.backends.some((b) => b.state === "running") }, label("backends.stop_all"));
     stopAll.addEventListener("click", async () => {
       if (!(await ask(t("backends.stop_all"), t("backends.stop_all_text"), t("backends.stop_all"), true))) return;
       await busy(stopAll, async () => { await api("/api/backends/stop", { method: "POST" }); onChange(); });
@@ -216,7 +216,7 @@
     const body = el("div", { class: "log", text: t("common.loading") });
     const card = el("section", { class: "card wide" },
       el("h2", {}, el("span", { text: t("log.title", { name: backend.label }) }),
-        el("button", { class: "quiet", type: "button", onclick: onClose }, t("common.close"))),
+        el("button", { class: "quiet", type: "button", onclick: onClose }, label("common.close"))),
       body);
     try {
       const data = await api("/api/backends/" + backend.key + "/logs");

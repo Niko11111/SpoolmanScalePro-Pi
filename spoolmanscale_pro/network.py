@@ -3,7 +3,8 @@
 Reading goes straight to nmcli and ip, which any user may call. Changing
 goes through the root helper (host_actions.run_helper); its verbs and the
 safety rules behind them are in system/host-helper.sh:
-  - joining a WLAN falls back to the previous one when it fails,
+  - joining a WLAN, new or saved, falls back to the previous one when it fails,
+  - the saved WLAN the Pi is in cannot be forgotten,
   - the hotspot is only switched off when another network is there,
   - the setup WLAN opens at boot only when nothing else connected.
 
@@ -17,8 +18,8 @@ import subprocess
 from . import ip_rules
 from . import network_rules as rules
 from . import settings
-from .host_actions import (EXIT_NO_OTHER_NETWORK, EXIT_NOTHING_IN_REACH, EXIT_WIFI_FAILED, NETWORK_TIMEOUT_S,
-                           run_helper)
+from .host_actions import (EXIT_NO_OTHER_NETWORK, EXIT_NOTHING_IN_REACH, EXIT_WIFI_FAILED, EXIT_WIFI_IN_USE,
+                           NETWORK_TIMEOUT_S, run_helper)
 from .jobs import JobFailed, Progress
 
 log = logging.getLogger(__name__)
@@ -52,8 +53,10 @@ def status() -> dict:
         return {**base, "available": False}
     rows = rules.parse_active(active)
     addresses = rules.parse_ip_addresses(_read(["ip", "-4", "-o", "addr", "show", "scope", "global"]) or "")
-    return {**base, "available": True,
-            "wlan": rules.wlan_mode(rows, HOTSPOT_CONNECTION, SETUP_CONNECTION),
+    wlan = rules.wlan_mode(rows, HOTSPOT_CONNECTION, SETUP_CONNECTION)
+    if wlan["mode"] == "client":
+        wlan["ssid"] = _ssid_of(wlan["connection"])
+    return {**base, "available": True, "wlan": wlan,
             "ethernet": any(r["type"] == "802-3-ethernet" for r in rows),
             "addresses": addresses}
 
@@ -64,9 +67,34 @@ def primary_address() -> str | None:
         _read(["ip", "-4", "-o", "addr", "show", "scope", "global"]) or ""))
 
 
+def _ssid_of(connection: str) -> str:
+    """The network name a WLAN connection joins. NetworkManager names a
+    connection itself (netplan-wlan0-Home), so this is what a person knows."""
+    shown = (_read(["nmcli", "-g", "802-11-wireless.ssid", "connection", "show", connection]) or "").strip()
+    return rules.split_terse(shown)[0] if shown else connection
+
+
+def saved() -> list[dict]:
+    """The saved WLANs, the one used last first: connection name and SSID."""
+    listed = _read(["nmcli", "-t", "-f", "TIMESTAMP,TYPE,NAME", "connection", "show"])
+    if listed is None:
+        return []
+    names = rules.parse_saved(listed, (HOTSPOT_CONNECTION, SETUP_CONNECTION))
+    return [{"name": name, "ssid": _ssid_of(name)} for name in names]
+
+
+def _own_access_point_running() -> bool:
+    active = _read(["nmcli", "-t", "-f", "NAME,TYPE,DEVICE", "connection", "show", "--active"]) or ""
+    mode = rules.wlan_mode(rules.parse_active(active), HOTSPOT_CONNECTION, SETUP_CONNECTION)["mode"]
+    return mode in ("hotspot", "setup")
+
+
 def scan() -> list[dict] | None:
     result = run_helper("wifi-scan")
-    return rules.parse_wifi_list(result.output) if result.ok else None
+    if not result.ok:
+        return None
+    networks = rules.without_own_access_point(rules.parse_wifi_list(result.output), _own_access_point_running())
+    return rules.mark_saved(networks, saved())
 
 
 def set_hostname(name: str) -> bool:
@@ -81,6 +109,24 @@ def join_wifi(ssid: str, psk: str, progress: Progress) -> None:
     if not result.ok:
         raise JobFailed("network_change_failed", "wifi-connect")
     progress.set_result(ssid=ssid)
+
+
+def join_saved(name: str, ssid: str, progress: Progress) -> None:
+    progress.step("joining_wifi")
+    result = run_helper("wifi-up", name, timeout_s=NETWORK_TIMEOUT_S)
+    if result.code == EXIT_WIFI_FAILED:
+        raise JobFailed("wifi_failed", ssid)
+    if not result.ok:
+        raise JobFailed("network_change_failed", "wifi-up")
+    progress.set_result(ssid=ssid)
+
+
+def forget(name: str) -> str | None:
+    """None once the WLAN is forgotten, else the error code."""
+    result = run_helper("wifi-forget", name)
+    if result.code == EXIT_WIFI_IN_USE:
+        return "wifi_in_use"
+    return None if result.ok else "network_change_failed"
 
 
 def hotspot_on(ssid: str, psk: str, channel: int, progress: Progress) -> None:
@@ -129,7 +175,9 @@ def ip_status() -> dict | None:
     shown = _read(["nmcli", "-t", "-f", "GENERAL.HWADDR,IP4.ADDRESS,IP4.GATEWAY,IP4.DNS",
                    "device", "show", link["device"]]) or ""
     method = _read(["nmcli", "-t", "-f", "ipv4.method", "connection", "show", link["name"]]) or ""
-    return {"connection": link["name"], "device": link["device"],
+    cable = link["type"] == "802-3-ethernet"
+    return {"connection": link["name"], "device": link["device"], "cable": cable,
+            "ssid": None if cable else _ssid_of(link["name"]),
             "fixed": method.strip().endswith(":manual"), **ip_rules.parse_device_show(shown)}
 
 

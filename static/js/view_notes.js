@@ -8,7 +8,7 @@
  */
 (function () {
   "use strict";
-  const { t, el } = SSPro;
+  const { t, el, label } = SSPro;
 
   // A note longer than this is cut; the full one is a click away on GitHub.
   const MAX_LINES = 60;
@@ -44,14 +44,30 @@
     return el("div", { class: "notes" }, nodes);
   }
 
-  // One release as a fold-out: name and date, then the notes.
-  function releaseNotes(release, open) {
-    const head = el("summary", {}, el("b", { text: release.name || release.tag }),
+  // Shows the notes whole, and drops the button that asked for it.
+  function unfold(notes, more) {
+    notes.classList.remove("clamp");
+    more.remove();
+  }
+
+  // One release: name and date, then the notes. The newest (preview) shows
+  // its first lines and a button for the rest, so three backends with notes
+  // do not make a page that scrolls for minutes; older ones stay folded.
+  function releaseNotes(release, preview) {
+    const head = [el("b", { text: release.name || release.tag }),
       release.published ? " - " + release.published : "",
-      release.prerelease ? el("span", { class: "pill wr" }, t("upd.prerelease")) : null);
+      release.prerelease ? el("span", { class: "pill wr" }, t("upd.prerelease")) : null];
     const link = release.url && release.url.startsWith("https://")
       ? el("a", { href: release.url, target: "_blank", rel: "noopener noreferrer", text: t("upd.on_github") }) : null;
-    return el("details", { class: "release", open: open }, head, body(release.body || ""), link);
+    const notes = body(release.body || "");
+    if (!preview) return el("details", { class: "release" }, el("summary", {}, head), notes, link);
+    notes.classList.add("clamp");
+    const more = el("button", { type: "button", class: "quiet" }, label("upd.notes_more"));
+    more.addEventListener("click", () => unfold(notes, more));
+    // Short notes fit their preview whole: then there is nothing to unfold.
+    requestAnimationFrame(() => { if (notes.scrollHeight <= notes.clientHeight) unfold(notes, more); });
+    return el("div", { class: "release" }, el("div", { class: "release-head" }, head), notes,
+      el("div", { class: "release-actions" }, more, link));
   }
 
   SSPro.views = Object.assign(SSPro.views || {}, { releaseNotes });

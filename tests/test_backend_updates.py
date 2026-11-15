@@ -98,3 +98,49 @@ def test_an_installed_backend_keeps_its_version_when_the_default_moves():
     assert bu.versions_to_keep({}, {}, defaults) == {}
     # An image without a version in its name is left alone.
     assert bu.versions_to_keep({}, {"filaman": ""}, defaults) == {}
+
+
+def test_only_a_backend_that_never_ran_picks_its_version():
+    assert bu.is_first_start(None, False, False)
+    assert not bu.is_first_start("v1.4.3", False, False)
+    assert not bu.is_first_start(None, True, False)
+    assert not bu.is_first_start(None, False, True)  # data left behind by a removed container
+
+
+def first_start_world(monkeypatch, containers, volumes, tags=("v1.4.3", "v1.5.0", "v1.6.0-beta.1")):
+    monkeypatch.setattr(bu, "default_version", lambda backend: "v1.4.3")
+    monkeypatch.setattr(bu.docker_compose, "container_images", lambda: containers)
+    monkeypatch.setattr(bu.docker_compose, "data_volumes", lambda: volumes)
+    monkeypatch.setattr(bu.release_sources, "image_tags", lambda image: list(tags))
+    settings.update({"backend_versions": {}})
+
+
+def test_first_start_takes_the_newest_stable_release(monkeypatch):
+    first_start_world(monkeypatch, containers={}, volumes=set())
+    bu.choose_first_version(FILAMAN)
+    assert settings.load()["backend_versions"] == {"filaman": "v1.5.0"}
+
+
+def test_an_installed_backend_keeps_its_version(monkeypatch):
+    first_start_world(monkeypatch, containers={"filaman": "ghcr.io/x:v1.4.3"}, volumes={"filaman-data"})
+    bu.choose_first_version(FILAMAN)
+    assert settings.load()["backend_versions"] == {}
+
+
+def test_data_without_a_container_keeps_the_default(monkeypatch):
+    first_start_world(monkeypatch, containers={}, volumes={"filaman-data"})
+    bu.choose_first_version(FILAMAN)
+    assert settings.load()["backend_versions"] == {}
+
+
+def test_without_docker_or_ghcr_the_default_applies(monkeypatch):
+    first_start_world(monkeypatch, containers=None, volumes=set())
+    bu.choose_first_version(FILAMAN)
+    assert settings.load()["backend_versions"] == {}
+
+    def offline(image):
+        raise bu.SourceError("source_unreachable", "offline")
+    first_start_world(monkeypatch, containers={}, volumes=set())
+    monkeypatch.setattr(bu.release_sources, "image_tags", offline)
+    bu.choose_first_version(FILAMAN)
+    assert settings.load()["backend_versions"] == {}

@@ -7,7 +7,7 @@
  */
 (function () {
   "use strict";
-  const { t, el, api, ask, busy, toast, errorText, views } = SSPro;
+  const { t, el, api, ask, busy, toast, errorText, views, label } = SSPro;
 
   const POLL_MS = 3000;
   // An update downloads, checks, reinstalls the Python packages and
@@ -36,21 +36,22 @@
     setTimeout(poll, POLL_MS);
   }
 
+  // Always the newest; a release older than the running one is never offered.
   function installRow(info, slot) {
-    const choice = el("select", {}, info.newer.map((v) => el("option", { value: v }, v)));
-    const install = el("button", { type: "button" }, t("upd.install"));
+    const version = info.newer[0];
+    const install = el("button", { type: "button" }, label("upd.install_version", { version }));
     install.addEventListener("click", async () => {
-      if (!(await ask(t("app.install_title", { version: choice.value }), t("app.install_text"), t("upd.install")))) return;
+      if (!(await ask(t("app.install_title", { version }), t("app.install_text"), t("upd.install")))) return;
       await busy(install, async () => {
-        await api("/api/updates/app", { method: "POST", body: { version: choice.value } });
+        await api("/api/updates/app", { method: "POST", body: { version } });
         waitForNewVersion(slot, info.current);
       });
     });
-    return el("div", { class: "field" }, el("label", { text: t("upd.choose") }), el("div", { class: "inrow" }, choice, install));
+    return el("div", { class: "btnrow" }, install);
   }
 
   function rollbackButton(info, slot) {
-    const back = el("button", { type: "button", class: "quiet" }, t("app.rollback", { version: info.previous }));
+    const back = el("button", { type: "button", class: "quiet" }, label("app.rollback", { version: info.previous }));
     back.addEventListener("click", async () => {
       if (!(await ask(t("app.rollback", { version: info.previous }), t("app.rollback_text"), t("app.rollback_go"), true))) return;
       await busy(back, async () => {
@@ -81,7 +82,7 @@
   // still applies. Going back is offered after a search of its own.
   function appCard(kept) {
     const slot = el("div", { class: "wrap" });
-    const search = el("button", { type: "button", class: "quiet" }, t("upd.search"));
+    const search = el("button", { type: "button", class: "quiet" }, label("upd.search"));
     const current = document.documentElement.dataset.version;
     const rows = el("div", { class: "rows" });
     const tools = el("div", { class: "btnrow" });

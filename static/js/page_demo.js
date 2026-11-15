@@ -5,11 +5,11 @@
  */
 (function () {
   "use strict";
-  const { t, el, api, ask, busy, toast, errorText, views } = SSPro;
+  const { t, el, api, ask, busy, toast, errorText, views, label } = SSPro;
 
   function resetCard(snapshots, start) {
     const saved = snapshots.filter((s) => s.saved);
-    const button = el("button", { type: "button", class: "big", disabled: !saved.length }, t("demo.reset"));
+    const button = el("button", { type: "button", class: "big", disabled: !saved.length }, label("demo.reset"));
     button.addEventListener("click", async () => {
       if (!(await ask(t("demo.reset"), t("demo.reset_text"), t("demo.reset"), true))) return;
       start(button, "/api/demo/reset");
@@ -20,7 +20,7 @@
   }
 
   function saveRow(snapshot, start) {
-    const button = el("button", { type: "button", class: "quiet" }, t("demo.save"));
+    const button = el("button", { type: "button", class: "quiet" }, label("demo.save"));
     button.addEventListener("click", async () => {
       const text = t(snapshot.saved ? "demo.save_text_replace" : "demo.save_text", { name: snapshot.label });
       if (!(await ask(t("demo.save_title", { name: snapshot.label }), text, t("demo.save")))) return;
@@ -37,7 +37,7 @@
   // only what it lacks is added, so a second click creates nothing.
   function importRow(backend, start) {
     const ready = backend.state === "running" && backend.ready;
-    const button = el("button", { type: "button", class: "quiet", disabled: !ready }, t("demo.import"));
+    const button = el("button", { type: "button", class: "quiet", disabled: !ready }, label("demo.import"));
     button.addEventListener("click", () => start(button, "/api/demo/" + backend.key + "/import"));
     const state = ready ? el("span", { class: "pill ok" }, t("state.ready")) : el("span", { class: "pill off" }, t("demo.import_not_running"));
     return el("div", { class: "row center" },

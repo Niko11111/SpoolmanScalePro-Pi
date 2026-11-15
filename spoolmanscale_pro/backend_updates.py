@@ -2,8 +2,10 @@
 installing one as a job.
 
 The version a backend runs is the one the owner chose (settings
-"backend_versions") or else the default compose/docker-compose.yml was
-tested with. Installing:
+"backend_versions"). A backend started for the first time takes the newest
+release on ghcr.io (Nikolai, 15.11.2026: no versions written into this
+service); the default in compose/docker-compose.yml is only the fallback
+when ghcr.io is out of reach. Installing a newer one:
   1. check the version still exists on ghcr.io,
   2. back up the backend's data ("before-update"),
   3. pull the image (the backend keeps running meanwhile),
@@ -73,13 +75,45 @@ def check(backend: Backend, floor: str | None = None) -> dict:
 
 
 def set_version(backend: Backend, tag: str | None) -> None:
-    """tag None goes back to the tested default."""
+    """tag None goes back to the default in the compose file."""
     versions = dict(settings.load()["backend_versions"])
     if tag is None or tag == default_version(backend):
         versions.pop(backend.key, None)
     else:
         versions[backend.key] = tag
     settings.update({"backend_versions": versions})
+
+
+def is_first_start(chosen: str | None, has_container: bool, has_data: bool) -> bool:
+    """Only a backend that never ran picks its version: one with a container
+    or a data volume keeps what it has, or a newer version would migrate its
+    database without a backup."""
+    return not chosen and not has_container and not has_data
+
+
+def newest_release(backend: Backend) -> str | None:
+    """The newest stable version on ghcr.io, None when it is out of reach."""
+    try:
+        found = vr.versions(release_sources.image_tags(backend.image), False)
+    except SourceError as e:
+        log.info("Newest %s not found, the compose default applies: %s", backend.key, e)
+        return None
+    return found[0] if found else None
+
+
+def choose_first_version(backend: Backend) -> None:
+    """Before a start: a backend that never ran gets the newest release.
+    Anything unclear (Docker or ghcr.io not answering) leaves the default."""
+    containers, volumes = docker_compose.container_images(), docker_compose.data_volumes()
+    if containers is None or volumes is None:
+        return
+    chosen = settings.load()["backend_versions"].get(backend.key)
+    if not is_first_start(chosen, backend.key in containers, f"{backend.key}-data" in volumes):
+        return
+    newest = newest_release(backend)
+    if newest:
+        log.info("%s starts for the first time, with the newest release %s", backend.key, newest)
+        set_version(backend, newest)
 
 
 def versions_to_keep(chosen: dict, installed: dict, defaults: dict) -> dict:

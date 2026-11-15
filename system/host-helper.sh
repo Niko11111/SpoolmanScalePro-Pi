@@ -12,6 +12,8 @@
 #   set-hostname NAME
 #   wifi-scan                      prints nmcli -t rows
 #   wifi-connect     (stdin: SSID, PSK)            join a WLAN, fall back if it fails
+#   wifi-up NAME                   join a saved WLAN by its connection name, fall back if it fails
+#   wifi-forget NAME               delete a saved WLAN, never the one in use or the Pi's own
 #   hotspot-on       (stdin: SSID, PSK, CHANNEL)   the Pi's own WLAN
 #   hotspot-off                                     back to the known WLANs
 #   setup-ap-if-offline            at boot: open the setup WLAN if nothing connected
@@ -132,10 +134,48 @@ wifi_connect() {
   fi
   # Failed: leave no half profile behind, and go back where the Pi was.
   [ "$existed" = 1 ] || nmcli connection delete id "$ssid" >/dev/null 2>&1 || true
-  if [ -n "$previous" ]; then
-    nmcli --wait 30 connection up id "$previous" >/dev/null 2>&1 || true
-  fi
+  back_to "$previous"
   exit 3
+}
+
+# After a failed join: the WLAN the Pi was in before, if it was in one.
+back_to() {
+  [ -n "$1" ] || return 0
+  nmcli --wait 30 connection up id "$1" >/dev/null 2>&1 || true
+}
+
+# The saved client WLANs by connection name, the one used last first. The
+# timestamp leads so that a name holding an escaped ":" stays whole.
+saved_wlans() {
+  nmcli -t -f TIMESTAMP,TYPE,NAME connection show \
+    | sed -n 's/^\([0-9]*\):802-11-wireless:/\1 /p' | sort -rn | cut -d' ' -f2- \
+    | sed 's/\\:/:/g' | grep -vFx -e "$HOTSPOT_CONNECTION" -e "$SETUP_CONNECTION"
+}
+
+saved_wlan_named() {
+  [ -n "$1" ] && saved_wlans | grep -Fxq -- "$1"
+}
+
+wifi_up() {
+  name="$1"
+  saved_wlan_named "$name" || die "no saved WLAN named '$name'"
+  previous="$(active_wifi)"
+  if nmcli --wait "$CONNECT_WAIT_S" connection up id "$name" >/dev/null; then
+    # A client WLAN now; the Pi's own hotspot must not take wlan0 back at boot.
+    nmcli connection modify "$HOTSPOT_CONNECTION" connection.autoconnect no 2>/dev/null || true
+    return 0
+  fi
+  back_to "$previous"
+  exit 3
+}
+
+# Not the WLAN in use: the page would lose the Pi, and without a cable so
+# would everyone else until the next restart opens the setup WLAN.
+wifi_forget() {
+  name="$1"
+  saved_wlan_named "$name" || die "no saved WLAN named '$name'"
+  [ "$name" != "$(active_wifi)" ] || { echo "host-helper: '$name' is in use, join another one first" >&2; exit 7; }
+  nmcli connection delete id "$name" >/dev/null
 }
 
 make_ap() {
@@ -198,8 +238,7 @@ hotspot_active() {
 }
 
 known_wlans() {
-  nmcli -g NAME,TYPE connection show | sed -n 's/:802-11-wireless$//p' \
-    | grep -vFx -e "$HOTSPOT_CONNECTION" -e "$SETUP_CONNECTION" | sed 's/\\:/:/g' | head -n "$KNOWN_WLANS_TRIED"
+  saved_wlans | head -n "$KNOWN_WLANS_TRIED"
 }
 
 # True once the Pi is in a network. Each saved WLAN is asked for by name:
@@ -444,6 +483,8 @@ case "$verb" in
   set-hostname)        set_hostname "${2:-}" ;;
   wifi-scan)           wifi_scan ;;
   wifi-connect)        wifi_connect ;;
+  wifi-up)             wifi_up "${2:-}" ;;
+  wifi-forget)         wifi_forget "${2:-}" ;;
   hotspot-on)          hotspot_on ;;
   hotspot-off)         hotspot_off ;;
   setup-ap-if-offline) setup_ap_if_offline ;;

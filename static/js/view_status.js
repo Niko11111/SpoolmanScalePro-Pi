@@ -4,7 +4,7 @@
  */
 (function () {
   "use strict";
-  const { t, el, api, busy, toast, formatDuration, formatClock } = SSPro;
+  const { t, el, api, busy, toast, formatDuration, formatClock, label } = SSPro;
 
   // Above this, the Pi's clock is called wrong and the page offers the
   // browser's time. A Pi has no battery clock, so after a power cut without
@@ -28,7 +28,7 @@
     const card = el("section", { class: "card" }, el("h2", { text: t("scale.title") }));
     if (!scale.paired) {
       card.append(el("p", { class: "hint", text: t("scale.not_paired") }),
-        el("div", { class: "btnrow" }, el("a", { class: "linkbtn", href: "#scale" }, t("scale.pair"))));
+        el("div", { class: "btnrow" }, el("a", { class: "linkbtn", href: "#scale" }, label("scale.pair"))));
       return card;
     }
     if (!scale.reachable) {
@@ -46,7 +46,7 @@
       row(t("scale.weight"), scale.weight, true),
       row(t("scale.firmware"), scale.version, true)));
     if (!scale.on_active || !scale.points_here) {
-      const sync = el("button", { type: "button", class: "block" }, t("scale.sync"));
+      const sync = el("button", { type: "button", class: "block" }, label("scale.sync"));
       sync.addEventListener("click", () => busy(sync, async () => {
         await api("/api/scale/sync", { method: "POST" });
         onChange();
@@ -75,7 +75,7 @@
   function clockFix(system, onChange) {
     const drift = Math.round(Date.now() / 1000) - system.clock_epoch_s;
     if (Math.abs(drift) <= CLOCK_DRIFT_LIMIT_S) return [];
-    const take = el("button", { type: "button", class: "block" }, t("system.take_clock"));
+    const take = el("button", { type: "button", class: "block" }, label("system.take_clock"));
     take.addEventListener("click", () => busy(take, async () => {
       await api("/api/system/clock", { method: "POST", body: { epoch_s: Math.round(Date.now() / 1000) } });
       toast(t("system.clock_set"));

@@ -4,7 +4,7 @@
  */
 (function () {
   "use strict";
-  const { t, el, api, ask, busy, toast, errorText, views } = SSPro;
+  const { t, el, api, ask, busy, toast, errorText, views, label } = SSPro;
 
   const DEFAULT_SCALE_NAME = "spoolmanscale.local";
 
@@ -31,7 +31,7 @@
     return scales.map((s) => el("div", { class: "listrow" },
       el("div", {}, el("div", { class: "nm", text: s.name }),
         el("div", { class: "sz", text: s.host + " - " + s.address + " - " + s.firmware + " - " + s.backend })),
-      el("button", { type: "button", onclick: () => pick(s) }, t("pair.take"))));
+      el("button", { type: "button", onclick: () => pick(s) }, label("pair.take"))));
   }
 
   function pairingCard(settings, onSaved) {
@@ -40,9 +40,9 @@
       placeholder: t(settings.scale_password_set ? "pair.password_kept" : "pair.password_none") });
     const result = el("div", { class: "msg", role: "status" });
     const found = el("div", { class: "wrap" });
-    const save = el("button", { type: "button" }, t("pair.save_test"));
+    const save = el("button", { type: "button" }, label("pair.save_test"));
     save.addEventListener("click", () => busy(save, () => saveAndTest(address.value, password.value, result, onSaved)));
-    const search = el("button", { type: "button", class: "quiet" }, t("pair.search"));
+    const search = el("button", { type: "button", class: "quiet" }, label("pair.search"));
     search.addEventListener("click", () => busy(search, async () => {
       found.replaceChildren(el("p", { class: "hint", text: t("pair.searching") }));
       const scales = (await api("/api/scale/discover", { method: "POST" })).scales;
@@ -51,7 +51,7 @@
         busy(save, () => saveAndTest(s.host, password.value, result, onSaved));
       }));
     }));
-    const forget = el("button", { type: "button", class: "quiet", disabled: !settings.scale_password_set }, t("pair.forget_password"));
+    const forget = el("button", { type: "button", class: "quiet", disabled: !settings.scale_password_set }, label("pair.forget_password"));
     forget.addEventListener("click", () => busy(forget, async () => {
       await api("/api/settings", { method: "POST", body: { scale_password: "" } });
       toast(t("pair.password_forgotten"));
@@ -78,7 +78,7 @@
   function keysPart(filamanActive, paired, follow) {
     const email = el("input", { type: "text", autocomplete: "off", placeholder: t("keys.email") });
     const password = el("input", { type: "password", autocomplete: "off", placeholder: t("keys.password") });
-    const register = el("button", { type: "button", disabled: !(paired && filamanActive) }, t("keys.filaman_run"));
+    const register = el("button", { type: "button", disabled: !(paired && filamanActive) }, label("keys.filaman_run"));
     register.addEventListener("click", () => busy(register, async () => {
       const body = email.value ? { email: email.value, password: password.value } : {};
       await api("/api/scale/filaman", { method: "POST", body: body });
@@ -86,7 +86,7 @@
       follow();
     }));
     const key = el("input", { type: "password", autocomplete: "off", placeholder: t("keys.bambuddy_key") });
-    const send = el("button", { type: "button", class: "quiet", disabled: !paired }, t("keys.bambuddy_send"));
+    const send = el("button", { type: "button", class: "quiet", disabled: !paired }, label("keys.bambuddy_send"));
     send.addEventListener("click", () => busy(send, async () => {
       await api("/api/scale/bambuddy-key", { method: "POST", body: { key: key.value } });
       key.value = "";
@@ -104,7 +104,7 @@
     const jobSlot = el("div", { class: "wrap" });
     const resultSlot = el("div", { class: "wrap" });
     const useIp = el("input", { type: "checkbox" });
-    const run = el("button", { type: "button", disabled: !paired }, t("setup.run"));
+    const run = el("button", { type: "button", disabled: !paired }, label("setup.run"));
     let unfollow = null;
     const follow = (onEnd) => {
       if (unfollow) unfollow();
