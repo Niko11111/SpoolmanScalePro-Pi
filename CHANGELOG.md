@@ -3,6 +3,60 @@
 One section per version, newest first. VERSION names the current one;
 scripts/check.sh fails when it has no section here.
 
+## 0.2.1
+
+SpoolmanScale Pro 0.2.1 makes the Pi's own WLANs work on a Raspberry Pi 3,
+keeps the Pi quick to answer, and makes the network page easier to live
+with. A Pi on 0.2.0 finds it on the Updates page.
+
+### Network
+
+- **Hotspot and setup WLAN on a Pi 3.** NetworkManager offers key types the
+  Pi 3's radio cannot handle as an access point: the WLAN did not appear,
+  or phones reported a wrong password. Both now offer WPA2-PSK only.
+- **Saved WLANs** are listed, the one used last first: join one with a tap,
+  without its password, or forget it. A join that fails takes the Pi back
+  to the network it was in, and the WLAN the Pi is in cannot be forgotten.
+- **Readable names:** "Connected to Home" and "Network cable" instead of
+  NetworkManager's netplan names.
+- **The hotspot password** stands in plain text, as a phone shows its own
+  hotspot's, filled with the current one or a suggestion.
+- **WLAN power saving is off:** on a Pi 3 the average ping dropped from
+  19 ms (up to 227 ms) to 6.5 ms, so the scale and the browser get their
+  answer without waiting for the radio to wake up.
+- The setup WLAN no longer traps a Pi whose router came up after it: every
+  10 minutes the Pi looks for its saved networks again.
+
+### Backends
+
+- A backend started for the first time takes its **newest release**. A
+  backend that ran before keeps its version until you update it.
+- FilaMan runs with one worker on a Pi Zero 2 W and a Pi 3, about 124 MB
+  instead of 366 MB; the System page lets you choose 1 to 4.
+- The fallback versions for a start without internet are Spoolman 0.27.1,
+  FilaMan v2.2.1 and BamBuddy 1.3.1.
+
+### Page
+
+- Every button carries an icon for its kind of action, and Network, System
+  and Backup arrange their cards in two columns.
+- One button installs the newest update; release notes show their first
+  lines and unfold on a click.
+- Copy buttons for the FilaMan login, and copying works over the Pi's plain
+  http address too.
+- A new login password is typed twice.
+- Buttons and boxes no longer touch.
+
+### Fixes
+
+- WLAN names with ":" or "\" can be joined and forgotten.
+- A first start whose download broke off chooses its version again next time.
+- Stricter argument checks in the root helper.
+- A voltage drop in the past is a quiet grey line; only a voltage that is
+  too low right now shows in red.
+
+*SpoolmanScale Pro 0.2.1 | FormFollowsFunction*
+
 ## 0.2.1-beta.6
 
 - The hotspot's password stands in plain text on the Network page, filled
