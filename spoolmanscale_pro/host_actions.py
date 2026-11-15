@@ -27,6 +27,8 @@ EPOCH_MAX_S = 4102444800
 # Exit codes of host-helper.sh beyond plain failure.
 EXIT_WIFI_FAILED = 3
 EXIT_NO_OTHER_NETWORK = 4
+EXIT_NOTHING_IN_REACH = 6
+EXIT_WIFI_IN_USE = 7
 
 
 @dataclass(frozen=True)

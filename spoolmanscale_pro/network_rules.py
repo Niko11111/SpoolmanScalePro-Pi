@@ -7,16 +7,27 @@ or "\\" inside a value escaped with a backslash.
 """
 
 import re
+import secrets
 
 # RFC 1123: one label of letters, digits and hyphens, not starting or ending
 # with a hyphen. No underscore: mDNS would publish it, but many resolvers
 # and routers refuse it.
 HOSTNAME_RE = re.compile(r"^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$")
+RESERVED_HOSTNAMES = ("localhost",)
+SCALE_DEFAULT_HOSTNAME = "spoolmanscale"
 SSID_MAX_BYTES = 32
 PSK_MIN_LEN = 8
 PSK_MAX_LEN = 63
 # 2.4 GHz channels that do not overlap; the scale's ESP32 has no 5 GHz.
 HOTSPOT_CHANNELS = (1, 6, 11)
+# A suggested hotspot password: letters and digits in groups of four, easy
+# to type on a phone, without 0/o and 1/l/i, which read alike. 31^12 is
+# about 8 * 10^17: out of reach for guessing a captured handshake.
+SUGGESTED_PSK_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789"
+SUGGESTED_PSK_GROUPS = 3
+SUGGESTED_PSK_GROUP_LEN = 4
+# NetworkManager takes any connection name; this only keeps a request sane.
+CONNECTION_NAME_MAX_LEN = 255
 
 
 def split_terse(line: str) -> list[str]:
@@ -80,8 +91,55 @@ def parse_active(text: str) -> list[dict]:
     return rows
 
 
+def parse_saved(text: str, own: tuple[str, ...]) -> list[str]:
+    """nmcli -t -f TIMESTAMP,TYPE,NAME connection show: the saved client
+    WLANs by connection name, the one used last first. own: the Pi's own
+    access points, which are no network to join."""
+    saved = []
+    for line in text.splitlines():
+        fields = split_terse(line)
+        if len(fields) < 3 or fields[1] != "802-11-wireless" or fields[2] in own:
+            continue
+        stamp = int(fields[0]) if fields[0].isdigit() else 0
+        saved.append((stamp, fields[2]))
+    return [name for _, name in sorted(saved, key=lambda s: s[0], reverse=True)]
+
+
+def mark_saved(networks: list[dict], saved: list[dict]) -> list[dict]:
+    """Scan rows from parse_wifi_list() with "saved_name": the connection
+    that joins this network without a password, the one used last when
+    there are several, or None."""
+    by_ssid: dict[str, str] = {}
+    for entry in saved:
+        by_ssid.setdefault(entry["ssid"], entry["name"])
+    return [{**n, "saved_name": by_ssid.get(n["ssid"])} for n in networks]
+
+
+def without_own_access_point(networks: list[dict], own_running: bool) -> list[dict]:
+    """While the Pi runs its own WLAN, the scan lists that one as in use:
+    no network to join, so it is left out."""
+    return [n for n in networks if not (own_running and n["in_use"])]
+
+
+def valid_connection_name(name) -> bool:
+    if not isinstance(name, str) or not name or len(name) > CONNECTION_NAME_MAX_LEN:
+        return False
+    return not any(ch in name for ch in "\n\r\0")
+
+
 def valid_hostname(name) -> bool:
     return isinstance(name, str) and bool(HOSTNAME_RE.match(name))
+
+
+def reserved_hostname(name: str) -> bool:
+    """A name that cannot work, whatever else is on the network."""
+    return name in RESERVED_HOSTNAMES
+
+
+def hostname_of_the_scale(name: str) -> bool:
+    """The name a SpoolmanScale answers to out of the box. Allowed after a
+    question: a scale can be renamed, or not be on this network at all."""
+    return name == SCALE_DEFAULT_HOSTNAME
 
 
 def valid_ssid(ssid) -> bool:
@@ -97,6 +155,12 @@ def valid_psk(psk, allow_empty: bool) -> bool:
         return True
     return isinstance(psk, str) and PSK_MIN_LEN <= len(psk) <= PSK_MAX_LEN \
         and "\n" not in psk and "\r" not in psk
+
+
+def suggested_psk() -> str:
+    """A password for a hotspot that has none yet, like k7mp-x2qd-9rta."""
+    return "-".join("".join(secrets.choice(SUGGESTED_PSK_ALPHABET) for _ in range(SUGGESTED_PSK_GROUP_LEN))
+                    for _ in range(SUGGESTED_PSK_GROUPS))
 
 
 def valid_channel(channel) -> bool:

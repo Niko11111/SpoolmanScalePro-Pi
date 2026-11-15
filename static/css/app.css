@@ -106,6 +106,9 @@ a { color: var(--accent); }
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .card { background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--radius); padding: 18px 20px 20px; }
 .card.wide { grid-column: 1 / -1; }
+/* Two columns that stack their cards on their own (view_layout.js). */
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+.col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 /* A job's card inside another card (OS updates): apart from the text above. */
 .card .card { margin-top: 14px; }
 .card h2 {
@@ -152,9 +155,15 @@ a.pill { text-decoration: none; }
 
 /* ---- forms ---- */
 .field { display: flex; flex-direction: column; gap: 7px; }
-.field + .field, .hint + .field, .callout + .field { margin-top: 16px; }
+.field + .field, .hint + .field, .callout + .field, .rows + .field { margin-top: 16px; }
+/* Blocks that touched before (measured 15.11.2026: 0 px each). */
+.callout + .tiles, .rows + .wrap, .btnrow + .field { margin-top: 16px; }
+.btnrow + .msg:not(:empty) { margin-top: 12px; }
+.field + .msg:not(:empty) { margin-top: 8px; }
 .field label { font-size: 13px; color: var(--ink-2); }
 .hint { font-size: 12px; color: var(--ink-soft); line-height: 1.55; }
+/* A hint a field fills later (the hotspot's suggestion): no gap while empty. */
+.field > .hint:empty { display: none; }
 .inrow { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 input[type=text], input[type=password], input[type=number], select {
   flex: 1; min-width: 0; background: var(--ground); border: 1px solid var(--line);
@@ -165,6 +174,7 @@ input:focus, select:focus, button:focus-visible, a:focus-visible { outline: 2px 
 .msg.bad { color: var(--bad); }
 
 button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
   appearance: none; cursor: pointer; font: inherit; font-size: 13.5px; font-weight: 550;
   padding: 9px 16px; border-radius: var(--radius-sm); background: var(--btn); color: var(--accent);
   border: 1px solid var(--accent-line); transition: background .14s; white-space: nowrap;
@@ -183,6 +193,20 @@ button.block { width: 100%; margin-top: 16px; }
   background: var(--quiet); color: var(--ink-2); border: 1px solid var(--line);
 }
 .linkbtn:hover { background: var(--quiet-hover); }
+/* A button that is only its icon (icons.js iconButton). */
+button.icon { padding: 7px; }
+/* A value and its copy button (view_layout.js copyable). */
+.copyable { display: inline-flex; align-items: center; gap: 10px; }
+/* The hidden field copyText() selects where the clipboard API is missing. */
+.offscreen { position: fixed; left: -9999px; top: 0; opacity: 0; }
+/* The icon before a button's text (icons.js): Lucide's stroke of 2 matches
+   the button's 550 weight; 1.15em keeps it the height of the capitals. */
+.ico {
+  width: 1.15em; height: 1.15em; flex: none; fill: none; stroke: currentColor;
+  stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+}
+/* Stop is a red square, like a stop button on a machine. */
+.ico-stop { fill: var(--bad); stroke: var(--bad); }
 
 /* ---- list of files (backups) ---- */
 .listrow {
@@ -190,6 +214,14 @@ button.block { width: 100%; margin-top: 16px; }
   padding: 10px 12px; border-radius: var(--radius-sm); background: var(--surface-2); border: 1px solid var(--line-soft);
 }
 .listrow + .listrow { margin-top: 7px; }
+/* A list of WLANs, and a list's rows behind "Show all" (view_layout.js). */
+.netlist, .more { display: flex; flex-direction: column; gap: 7px; }
+.more { margin-top: 7px; }
+.btnrow + .netlist:not(:empty) { margin-top: 16px; }
+.more[hidden] { display: none; }
+/* Under a row, the form a row's button opens; no room while it is empty. */
+.listrow .rowform { flex-basis: 100%; }
+.listrow .rowform:empty { display: none; }
 .listrow .nm { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-2); }
 .listrow .sz { font-family: var(--mono); font-size: 11.5px; color: var(--ink-soft); }
 
@@ -205,6 +237,12 @@ button.block { width: 100%; margin-top: 16px; }
 .switch input:checked + i::after { transform: translateX(18px); background: var(--accent); }
 .switch input:focus-visible + i { outline: 2px solid var(--accent); outline-offset: 1px; }
 .check { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 14px; color: var(--ink-2); cursor: pointer; }
+/* A switch and, right beside it, the small value it unlocks. */
+.optionrow { display: flex; align-items: center; gap: 12px; }
+.optionrow .check { flex: 1; }
+.optionrow + .hint { margin-top: 10px; }
+select.narrow { flex: 0 0 64px; width: 64px; }
+select.narrow:disabled { opacity: .5; }
 
 /* ---- the demo reset, the one big button of the demo page ---- */
 button.big { font-size: 16px; padding: 14px 20px; width: 100%; margin-top: 16px; }
@@ -252,8 +290,12 @@ button.big { font-size: 16px; padding: 14px 20px; width: 100%; margin-top: 16px;
 .numbered > li > .rows { margin-top: 8px; }
 
 /* ---- release notes (view_notes.js) ---- */
-details.release { border-top: 1px solid var(--line-soft); padding: 10px 0; }
-details.release > summary { cursor: pointer; font-size: 14px; color: var(--ink-2); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.release { border-top: 1px solid var(--line-soft); padding: 10px 0; }
+details.release > summary, .release-head { font-size: 14px; color: var(--ink-2); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+details.release > summary { cursor: pointer; }
+/* The newest release's preview: its first lines, fading out (view_notes.js). */
+.notes.clamp { max-height: 6.4em; overflow: hidden; mask-image: linear-gradient(to bottom, black 50%, transparent); }
+.release-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 .notes { margin: 10px 0 8px; font-size: 13px; color: var(--ink-2); line-height: 1.55; }
 .notes p + p { margin-top: 4px; }
 .notes .note-h { font-weight: 600; color: var(--ink); margin-top: 10px; }
@@ -334,7 +376,7 @@ dialog .btnrow { justify-content: flex-end; }
 @keyframes pulse { 50% { opacity: .35; } }
 
 @media (max-width: 760px) {
-  .grid, .tiles { grid-template-columns: 1fr; }
+  .grid, .tiles, .cols { grid-template-columns: 1fr; }
   .head { grid-template-columns: 44px 1fr; }
   .mark { width: 44px; height: 44px; }
   .addr { grid-column: 1 / -1; }

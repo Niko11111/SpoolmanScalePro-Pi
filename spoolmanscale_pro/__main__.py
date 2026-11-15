@@ -11,7 +11,7 @@ import threading
 
 from waitress import serve
 
-from . import auto_backup, update_watch
+from . import auto_backup, backend_updates, update_watch
 from .ports import PAGE_PORT, PROXY_PORT
 from .scale_proxy import create_proxy_app
 from .web import create_app
@@ -31,6 +31,7 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO,
                         format="%(levelname)s %(name)s: %(message)s")
     app = create_app()
+    backend_updates.start_keeping_versions()
     # The scale's web interface on a port of its own (scale_proxy.py).
     proxy = threading.Thread(target=serve, args=(create_proxy_app(args.port),), daemon=True, name="scale-proxy",
                              kwargs={"host": args.host, "port": PROXY_PORT, "threads": PROXY_THREADS,

@@ -48,11 +48,14 @@ def _environment() -> dict:
     env = dict(os.environ)
     env.update(backend_secrets.compose_environment())
     found = hardware.detect()
-    for key, limit_mb in hardware.memory_limits(hardware.effective_ram_mb(found), found["model"]).items():
+    ram_mb = hardware.effective_ram_mb(found)
+    current = settings.load()
+    workers = hardware.filaman_workers(ram_mb, found["model"], current["filaman_workers"])
+    env["FILAMAN_WORKERS"] = str(workers)
+    for key, limit_mb in hardware.memory_limits(ram_mb, found["model"], workers).items():
         env[f"{key.upper()}_MEM_LIMIT"] = f"{limit_mb}m"
-    chosen = settings.load()["backend_versions"]
     for backend in BACKENDS:
-        tag = chosen.get(backend.key)
+        tag = current["backend_versions"].get(backend.key)
         if isinstance(tag, str) and tag:
             env[backend.version_env] = tag
     try:
@@ -241,26 +244,61 @@ def memory_use() -> dict[str, int]:
     return parse_stats(done.stdout) if done.returncode == 0 else {}
 
 
-def parse_ps_output(text: str) -> dict[str, str]:
-    """Maps service name to container state ("running", "exited", ...).
-
-    Compose prints one JSON object per line since 2.21 and a single JSON
-    array before that; both are accepted.
-    """
+def _ps_rows(text: str) -> list[dict]:
+    """Compose prints one JSON object per line since 2.21 and a single JSON
+    array before that; both are accepted."""
     text = text.strip()
     if not text:
-        return {}
+        return []
     if text.startswith("["):
-        rows = json.loads(text)
-    else:
-        rows = [json.loads(line) for line in text.splitlines() if line.strip()]
-    return {r.get("Service", ""): r.get("State", "") for r in rows if r.get("Service")}
+        return json.loads(text)
+    return [json.loads(line) for line in text.splitlines() if line.strip()]
+
+
+def parse_ps_output(text: str) -> dict[str, str]:
+    """Maps service name to container state ("running", "exited", ...)."""
+    return {r.get("Service", ""): r.get("State", "") for r in _ps_rows(text) if r.get("Service")}
+
+
+def parse_ps_images(text: str) -> dict[str, str]:
+    """Maps service name to the image its container was made from."""
+    return {r["Service"]: r["Image"] for r in _ps_rows(text) if r.get("Service") and r.get("Image")}
 
 
 # A backup or a restore packs the data in a throwaway container of this
 # project (compose run --rm). Removed while ps lists it, it makes ps fail
 # with this message; asked once more, Docker answers.
 VANISHED_CONTAINER = "No such container"
+
+
+def container_images() -> dict[str, str] | None:
+    """The image of every backend container that exists, or None when Docker
+    did not answer. Unlike image_of(), what is there, not what compose names."""
+    result = _run(["ps", "--all", "--format", "json"], QUERY_TIMEOUT_S)
+    if not result.ok:
+        return None
+    try:
+        return parse_ps_images(result.output)
+    except (json.JSONDecodeError, AttributeError) as e:
+        log.error("docker compose ps gave output that is not JSON: %s", e)
+        return None
+
+
+def data_volumes() -> set[str] | None:
+    """The names of this project's volumes that exist, as the compose file
+    names them (spoolman-data ...), or None when Docker did not answer. A
+    volume outlives its container: data there means the backend ran before."""
+    cmd = ["docker", "volume", "ls", "--filter", f"label=com.docker.compose.project={PROJECT_NAME}",
+           "--format", '{{.Label "com.docker.compose.volume"}}']
+    try:
+        done = subprocess.run(cmd, capture_output=True, text=True, timeout=QUERY_TIMEOUT_S)
+    except (subprocess.TimeoutExpired, OSError) as e:
+        log.error("docker volume ls could not run: %s", e)
+        return None
+    if done.returncode != 0:
+        log.error("docker volume ls failed (%d): %s", done.returncode, done.stderr.strip()[-500:])
+        return None
+    return set(done.stdout.split())
 
 
 def states() -> dict[str, str] | None:

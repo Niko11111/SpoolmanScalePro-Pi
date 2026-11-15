@@ -114,10 +114,14 @@ def test_network_input_is_checked_before_the_helper_runs(client, monkeypatch):
     cases = [
         ("/api/network/hostname", {"hostname": "spoolmanscale_pro"}, "hostname_invalid"),
         ("/api/network/hostname", {"hostname": "x; reboot"}, "hostname_invalid"),
+        ("/api/network/hostname", {"hostname": "localhost"}, "hostname_reserved"),
         ("/api/network/wifi", {"ssid": "", "psk": "longenough"}, "ssid_invalid"),
         ("/api/network/wifi", {"ssid": "Home", "psk": "short"}, "psk_invalid"),
         ("/api/network/hotspot", {"ssid": "Demo", "psk": "", "channel": 6}, "psk_invalid"),
         ("/api/network/hotspot", {"ssid": "Demo", "psk": "longenough", "channel": 5}, "channel_invalid"),
+        ("/api/network/saved/connect", {"name": ""}, "name_invalid"),
+        ("/api/network/saved/forget", {"name": "Home\nreboot"}, "name_invalid"),
+        ("/api/network/saved/forget", {}, "name_invalid"),
     ]
     for path, body, code in cases:
         r = client.post(path, json=body, headers=H)

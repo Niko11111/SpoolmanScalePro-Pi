@@ -2,8 +2,10 @@
 installing one as a job.
 
 The version a backend runs is the one the owner chose (settings
-"backend_versions") or else the default compose/docker-compose.yml was
-tested with. Installing:
+"backend_versions"). A backend started for the first time takes the newest
+release on ghcr.io (Nikolai, 15.11.2026: no versions written into this
+service); the default in compose/docker-compose.yml is only the fallback
+when ghcr.io is out of reach. Installing a newer one:
   1. check the version still exists on ghcr.io,
   2. back up the backend's data ("before-update"),
   3. pull the image (the backend keeps running meanwhile),
@@ -15,15 +17,21 @@ one, which is why step 4 restores the backup and not only the version.
 
 import logging
 import re
+import threading
+import time
 
 from . import backups, docker_compose, health, release_sources, settings
 from . import version_rules as vr
-from .backends import Backend
+from .backends import BACKENDS, Backend
 from .jobs import JobFailed, Progress
 from .paths import BACKUP_DIR, COMPOSE_FILE
 from .release_sources import SourceError
 
 log = logging.getLogger(__name__)
+
+# Docker can come up after this service at boot.
+KEEP_VERSIONS_TRIES = 20
+KEEP_VERSIONS_WAIT_S = 30
 
 
 def compose_default_version(compose_text: str, backend: Backend) -> str | None:
@@ -67,13 +75,95 @@ def check(backend: Backend, floor: str | None = None) -> dict:
 
 
 def set_version(backend: Backend, tag: str | None) -> None:
-    """tag None goes back to the tested default."""
+    """tag None goes back to the default in the compose file."""
     versions = dict(settings.load()["backend_versions"])
     if tag is None or tag == default_version(backend):
         versions.pop(backend.key, None)
     else:
         versions[backend.key] = tag
     settings.update({"backend_versions": versions})
+
+
+def is_first_start(chosen: str | None, has_container: bool, has_data: bool) -> bool:
+    """Only a backend that never ran picks its version: one with a container
+    or a data volume keeps what it has, or a newer version would migrate its
+    database without a backup."""
+    return not chosen and not has_container and not has_data
+
+
+def newest_release(backend: Backend) -> str | None:
+    """The newest stable version on ghcr.io, None when it is out of reach."""
+    try:
+        found = vr.versions(release_sources.image_tags(backend.image), False)
+    except SourceError as e:
+        log.info("Newest %s not found, the compose default applies: %s", backend.key, e)
+        return None
+    return found[0] if found else None
+
+
+def choose_first_version(backend: Backend) -> str | None:
+    """Before a start: a backend that never ran gets the newest release.
+    Returns the version chosen, None when it keeps what it has. Anything
+    unclear (Docker or ghcr.io not answering) leaves the default."""
+    containers, volumes = docker_compose.container_images(), docker_compose.data_volumes()
+    if containers is None or volumes is None:
+        return None
+    chosen = settings.load()["backend_versions"].get(backend.key)
+    if not is_first_start(chosen, backend.key in containers, f"{backend.key}-data" in volumes):
+        return None
+    newest = newest_release(backend)
+    if newest:
+        log.info("%s starts for the first time, with the newest release %s", backend.key, newest)
+        set_version(backend, newest)
+    return newest
+
+
+def undo_first_version(backend: Backend, chosen: str | None) -> None:
+    """After a start that failed before a container existed (the download
+    broke off, no image for this Pi): the choice goes, so the next start
+    picks again and an image already here can still start offline. Once a
+    container ran the version, it stays: it may have written the data."""
+    if not chosen:
+        return
+    containers = docker_compose.container_images()
+    if containers is not None and backend.key not in containers:
+        log.info("%s did not start on %s, back to choosing at the next start", backend.key, chosen)
+        set_version(backend, None)
+
+
+def versions_to_keep(chosen: dict, installed: dict, defaults: dict) -> dict:
+    """Which backends have to be held at the version they have. A new release
+    of this service can move a default in the compose file. Without a choice
+    on record the next start would then pull that version and migrate the
+    backend's database: no backup, and no way back."""
+    return {key: tag for key, tag in installed.items()
+            if key not in chosen and tag != defaults.get(key) and vr.parse(tag) is not None}
+
+
+def keep_installed_versions() -> bool:
+    """False while Docker does not answer."""
+    images = docker_compose.container_images()
+    if images is None:
+        return False
+    chosen = settings.load()["backend_versions"]
+    installed = {key: vr.image_tag(image) for key, image in images.items()}
+    keep = versions_to_keep(chosen, installed, {b.key: default_version(b) for b in BACKENDS})
+    if keep:
+        log.info("Keeping the installed versions: %s", keep)
+        settings.update({"backend_versions": {**chosen, **keep}})
+    return True
+
+
+def _keep_versions_when_docker_answers() -> None:
+    for _ in range(KEEP_VERSIONS_TRIES):
+        if keep_installed_versions():
+            return
+        time.sleep(KEEP_VERSIONS_WAIT_S)
+    log.warning("Docker did not answer, installed versions not checked")
+
+
+def start_keeping_versions() -> None:
+    threading.Thread(target=_keep_versions_when_docker_answers, daemon=True, name="keep-versions").start()
 
 
 def _roll_back(backend: Backend, previous: str, backup_name: str | None, progress: Progress) -> None:

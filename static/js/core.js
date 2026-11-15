@@ -122,8 +122,9 @@
         el("h3", { text: title }),
         el("p", { text: text }),
         el("div", { class: "btnrow" },
-          el("button", { class: "quiet", type: "button", onclick: () => finish(false) }, t("common.cancel")),
-          el("button", { class: danger ? "danger" : "", type: "button", onclick: () => finish(true) }, confirmLabel)));
+          el("button", { class: "quiet", type: "button", onclick: () => finish(false) }, SSPro.label("common.cancel")),
+          el("button", { class: danger ? "danger" : "", type: "button", onclick: () => finish(true) },
+            SSPro.labelForText(confirmLabel))));
       dialog.addEventListener("cancel", (e) => { e.preventDefault(); finish(false); });
       document.body.append(dialog);
       dialog.showModal();
@@ -143,6 +144,31 @@
     }
   }
 
+  // The clipboard API exists only on https and localhost, and the Pi is
+  // reached over plain http: there a selected hidden field copies instead.
+  async function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (e) {
+        // Refused (no permission): the hidden field below may still work.
+      }
+    }
+    // Inside an open dialog: everything outside it cannot be selected.
+    const field = el("textarea", { readonly: true, class: "offscreen" }, text);
+    (document.querySelector("dialog[open]") || document.body).append(field);
+    field.select();
+    let copied = false;
+    try {
+      copied = document.execCommand("copy");
+    } catch (e) {
+      copied = false;
+    }
+    field.remove();
+    return copied;
+  }
+
   function formatDuration(seconds) {
     if (seconds === null || seconds === undefined) return "-";
     const days = Math.floor(seconds / 86400);
@@ -157,5 +183,5 @@
     return new Date(epochSeconds * 1000).toLocaleString(lang, { dateStyle: "medium", timeStyle: "medium" });
   }
 
-  window.SSPro = { lang, setLanguage, t, el, $, api, errorText, toast, ask, busy, formatDuration, formatClock, pages: {} };
+  window.SSPro = { lang, setLanguage, t, el, $, api, errorText, toast, ask, busy, copyText, formatDuration, formatClock, pages: {} };
 })();

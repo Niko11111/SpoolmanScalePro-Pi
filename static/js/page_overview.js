@@ -51,11 +51,22 @@
       } catch (e) {
         if (e.code !== "login_required") toast(errorText(e), true);
       }
-      if (!stopped) timer = setTimeout(refresh, jobRunning ? POLL_JOB_MS : POLL_MS);
+      // A tab left open in the background costs the Pi nothing.
+      if (!stopped && !document.hidden) timer = setTimeout(refresh, jobRunning ? POLL_JOB_MS : POLL_MS);
     }
 
+    function onVisibility() {
+      if (document.hidden) clearTimeout(timer);
+      else refreshSoon();
+    }
+    document.addEventListener("visibilitychange", onVisibility);
+
     refresh();
-    return () => { stopped = true; clearTimeout(timer); };
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }
 
   SSPro.pages.overview = { nav: "nav.overview", render };

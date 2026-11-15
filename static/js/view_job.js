@@ -7,7 +7,7 @@
  */
 (function () {
   "use strict";
-  const { t, el, api, errorText, toast } = SSPro;
+  const { t, el, api, errorText, toast, label } = SSPro;
 
   const SWITCH_STEPS = ["stopping_others", "starting", "waiting_ready", "switching_scale"];
   const POLL_MS = 1200;
@@ -39,7 +39,7 @@
   function jobCard(job, labelOf, onDismiss) {
     const card = el("section", { class: "card wide" },
       el("h2", {}, el("span", { text: t("job.title_" + job.kind, { to: labelOf(job.target) }) }),
-        job.running ? null : el("button", { class: "quiet", type: "button", onclick: onDismiss }, t("common.close"))));
+        job.running ? null : el("button", { class: "quiet", type: "button", onclick: onDismiss }, label("common.close"))));
     const steps = job.kind === "switch" ? switchSteps(job) : currentStep(job, labelOf);
     if (steps) card.append(steps);
     if (job.ok === true) card.append(el("div", { class: "callout ok", text: t("job.done") }));

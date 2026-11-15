@@ -15,17 +15,33 @@ def test_sizes_and_rules():
 
 def test_budget_on_a_pi_3():
     two_small = hw.budget(PI_3, ["spoolman"], "bambuddy")
-    assert two_small == {"after_mb": 200 + 180 + 420, "total_mb": PI_3, "fits": True}
+    assert two_small == {"after_mb": 271 + 180 + 420, "total_mb": PI_3, "fits": True}
     with_filaman = hw.budget(PI_3, ["spoolman", "bambuddy"], "filaman")
     assert not with_filaman["fits"]
 
 
+def test_one_filaman_worker_makes_room_on_a_pi_3():
+    four = hw.budget(PI_3, ["bambuddy"], "filaman")
+    one = hw.budget(PI_3, ["bambuddy"], "filaman", 1)
+    assert four == {"after_mb": 271 + 480 + 420, "total_mb": PI_3, "fits": False}
+    assert one == {"after_mb": 271 + 201 + 420, "total_mb": PI_3, "fits": True}
+
+
+def test_filaman_workers():
+    assert hw.filaman_workers(ZERO_2W) == 1
+    assert hw.filaman_workers(858, "Raspberry Pi 3 Model B Rev 1.2") == 1
+    assert hw.filaman_workers(3800, "Raspberry Pi 4 Model B Rev 1.4") == 4
+    # The owner's choice wins, also against the automatic one on a big Pi.
+    assert hw.filaman_workers(ZERO_2W, "", 3) == 3
+    assert hw.filaman_workers(3800, "Raspberry Pi 4 Model B Rev 1.4", 2) == 2
+
+
 def test_memory_limits():
-    limits = hw.memory_limits(ZERO_2W)
-    # Never more than the Pi has to spare, and Spoolman still above its need.
-    assert limits["spoolman"] == ZERO_2W - hw.SYSTEM_RESERVE_MB >= 180
-    assert limits["filaman"] == ZERO_2W - hw.SYSTEM_RESERVE_MB
-    assert hw.memory_limits(PI_3) == {"spoolman": 360, "filaman": 706, "bambuddy": 706}
+    # At most what the Pi has to spare, but never below a backend's typical
+    # use: the Zero has 156 MB to spare, less than any of them needs.
+    assert hw.memory_limits(ZERO_2W, "", 1) == {"spoolman": 180, "filaman": 201, "bambuddy": 420}
+    assert hw.memory_limits(PI_3) == {"spoolman": 360, "filaman": 635, "bambuddy": 635}
+    assert hw.memory_limits(PI_3, "", 1) == {"spoolman": 360, "filaman": 402, "bambuddy": 635}
     assert hw.memory_limits(4096) == {}
 
 

@@ -7,7 +7,7 @@
  */
 (function () {
   "use strict";
-  const { t, el, api, toast, errorText, views } = SSPro;
+  const { t, el, api, toast, errorText, views, label } = SSPro;
 
   const STEPS = ["setup.step_backend", "setup.step_scale", "setup.step_done"];
 
@@ -28,9 +28,9 @@
 
   function navRow(back, next, nextLabel, nextEnabled) {
     return el("div", { class: "btnrow wizard-nav" },
-      back ? el("button", { type: "button", class: "quiet", onclick: back }, t("setup.back")) : null,
+      back ? el("button", { type: "button", class: "quiet", onclick: back }, label("setup.back")) : null,
       el("span", { class: "spacer" }),
-      el("button", { type: "button", class: "quiet", onclick: finish }, t("setup.skip")),
+      el("button", { type: "button", class: "quiet", onclick: finish }, label("setup.skip")),
       el("button", { type: "button", disabled: !nextEnabled, onclick: next }, nextLabel));
   }
 
@@ -54,7 +54,7 @@
       const ready = data.backends.some((b) => b.active && b.ready);
       body.replaceChildren(progressBar(0), el("p", { class: "hint", text: t("setup.backend_hint") }),
         views.backendsCard(data, running, () => draw(), () => {}), jobSlot,
-        navRow(null, () => go(1), t("setup.next"), ready && !running));
+        navRow(null, () => go(1), label("setup.next"), ready && !running));
       if (running && !unfollow) {
         unfollow = views.followJob(jobSlot, views.labelsFrom(data.backends), () => { unfollow = null; draw(); }, false);
       }
@@ -69,7 +69,7 @@
         el("div", { class: "grid" }, views.pairingCard(settings.settings, () => draw()),
           views.setupCard(piName, views.labelsFrom(backends.backends), !!settings.settings.scale_address,
             backends.active === "filaman")),
-        navRow(() => go(0), () => go(2), t("setup.next"), true));
+        navRow(() => go(0), () => go(2), label("setup.next"), true));
     }
 
     async function drawDone() {
@@ -82,8 +82,8 @@
           el("div", { class: "row" }, el("span", { class: "k", text: t("setup.summary_scale") }),
             el("span", { class: "v", text: scale.scale.paired ? scale.scale.address : t("setup.none_scale") }))),
         el("p", { class: "note", text: t("setup.done_note") })),
-        el("div", { class: "btnrow wizard-nav" }, el("button", { type: "button", class: "quiet", onclick: () => go(1) }, t("setup.back")),
-          el("span", { class: "spacer" }), el("button", { type: "button", onclick: finish }, t("setup.finish"))));
+        el("div", { class: "btnrow wizard-nav" }, el("button", { type: "button", class: "quiet", onclick: () => go(1) }, label("setup.back")),
+          el("span", { class: "spacer" }), el("button", { type: "button", onclick: finish }, label("setup.finish"))));
     }
 
     function draw() {

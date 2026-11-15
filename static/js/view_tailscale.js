@@ -5,7 +5,7 @@
  */
 (function () {
   "use strict";
-  const { t, el, api, ask, busy, toast, errorText } = SSPro;
+  const { t, el, api, ask, busy, toast, errorText, label } = SSPro;
 
   const POLL_MS = 2000;
   const WAITING = ["NeedsLogin", "Starting", "NoState"];
@@ -20,10 +20,10 @@
       el("p", { class: "hint", text: t("ts.hint") }), body);
     let timer = null;
 
-    const action = (label, path, confirmKey, kind) => {
-      const button = el("button", { type: "button", class: kind || "" }, t(label));
+    const action = (key, path, confirmKey, kind) => {
+      const button = el("button", { type: "button", class: kind || "" }, label(key));
       button.addEventListener("click", async () => {
-        if (confirmKey && !(await ask(t(label), t(confirmKey), t(label)))) return;
+        if (confirmKey && !(await ask(t(key), t(confirmKey), t(key)))) return;
         await busy(button, async () => { await api(path, { method: "POST" }); refresh(); });
       });
       return button;
@@ -40,7 +40,7 @@
         el("div", { class: "btnrow" }, action("ts.disconnect", "/api/system/tailscale/disconnect", null, "quiet")));
       } else if (ts.auth_url && ts.auth_url.startsWith("https://")) {
         out.push(el("div", { class: "callout wr", text: t("ts.login_hint") }),
-          el("div", { class: "btnrow" }, el("a", { class: "linkbtn", href: ts.auth_url, target: "_blank", rel: "noopener noreferrer" }, t("ts.login"))));
+          el("div", { class: "btnrow" }, el("a", { class: "linkbtn", href: ts.auth_url, target: "_blank", rel: "noopener noreferrer" }, label("ts.login"))));
       } else if (ts.installed && !ts.busy) {
         out.push(el("div", { class: "btnrow" }, action("ts.connect", "/api/system/tailscale/connect")));
       }

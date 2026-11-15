@@ -5,11 +5,13 @@
 # "spoolmanscale-pro", so the named volumes below come out as
 # spoolmanscale-pro_<name> and survive any update of this file.
 #
-# Each image is pinned to the version this release was tested with. The
-# owner can pick another on the Updates page; the service then sets the
-# variable (SPOOLMAN_VERSION and so on, see backends.py) and the default
-# after ":-" no longer applies. Moving a default is a change of its own,
-# tested on the Pi, with a line in CHANGELOG.md.
+# A backend started for the first time takes its newest release on ghcr.io
+# (backend_updates.choose_first_version); the service then sets the variable
+# (SPOOLMAN_VERSION and so on, see backends.py). The default after ":-" is
+# only the fallback when ghcr.io is out of reach, and what
+# `install.sh --pull-all` downloads for offline use. A Pi that already has a
+# backend keeps its version until the owner updates it, with a backup
+# (backend_updates.keep_installed_versions).
 #
 # Ports are published to the LAN on purpose: the scale and the browser talk
 # to the backend directly. BamBuddy stays on the bridge network like the
@@ -35,7 +37,7 @@ services:
   spoolman:
     <<: *common
     profiles: ["spoolman"]
-    image: ghcr.io/donkie/spoolman:${SPOOLMAN_VERSION:-0.27.0}
+    image: ghcr.io/donkie/spoolman:${SPOOLMAN_VERSION:-0.27.1}
     mem_limit: ${SPOOLMAN_MEM_LIMIT:-0}
     ports:
       - "7912:8000"
@@ -45,12 +47,15 @@ services:
   filaman:
     <<: *common
     profiles: ["filaman"]
-    image: ghcr.io/fire-devils/filaman-system:${FILAMAN_VERSION:-v1.4.3}
+    image: ghcr.io/fire-devils/filaman-system:${FILAMAN_VERSION:-v2.2.1}
     mem_limit: ${FILAMAN_MEM_LIMIT:-0}
     environment:
       <<: *common-env
       PORT: "8000"
       DEBUG: "false"
+      # Gunicorn's worker count, chosen by the service (hardware.py). An image
+      # older than FilaMan 1.6.1 fixes it at 4 and ignores this.
+      WEB_CONCURRENCY: ${FILAMAN_WORKERS:-4}
       # FilaMan's first admin; it has no page to create one. Made and kept by
       # spoolmanscale_pro/backend_secrets.py, never changed afterwards.
       ADMIN_EMAIL: ${FILAMAN_ADMIN_EMAIL:-}
@@ -64,7 +69,7 @@ services:
   bambuddy:
     <<: *common
     profiles: ["bambuddy"]
-    image: ghcr.io/maziggy/bambuddy:${BAMBUDDY_VERSION:-1.2.5.7}
+    image: ghcr.io/maziggy/bambuddy:${BAMBUDDY_VERSION:-1.3.1}
     mem_limit: ${BAMBUDDY_MEM_LIMIT:-0}
     ports:
       - "8000:8000"

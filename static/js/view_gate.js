@@ -6,7 +6,7 @@
  */
 (function () {
   "use strict";
-  const { t, el, api, ask, errorText } = SSPro;
+  const { t, el, api, ask, errorText, label } = SSPro;
 
   const DEFAULT_USERNAME = "admin";
 
@@ -31,18 +31,27 @@
       autocapitalize: "none", spellcheck: "false", required: true, value: firstVisit ? DEFAULT_USERNAME : "" });
     const pass = el("input", { type: "password", name: "password", required: true,
       autocomplete: firstVisit ? "new-password" : "current-password" });
+    // A new password is typed twice: a typo would lock its owner out.
+    const repeat = firstVisit ? el("input", { type: "password", name: "password-repeat", required: true,
+      autocomplete: "new-password" }) : null;
     const message = el("div", { class: "msg bad", role: "alert" });
-    const submit = el("button", { class: "block", type: "submit" }, t(firstVisit ? "gate.set" : "gate.login"));
+    const submit = el("button", { class: "block", type: "submit" }, label(firstVisit ? "gate.set" : "gate.login"));
     const form = el("form", { class: "card", method: "post", action: "#" },
       el("h2", { text: t(firstVisit ? "gate.setup_title" : "gate.login_title") }),
       firstVisit ? el("p", { class: "hint", text: t("gate.setup_hint") }) : null,
-      field("gate.username", user), field("gate.password", pass), message, submit);
+      field("gate.username", user), field("gate.password", pass),
+      repeat ? field("account.password_repeat", repeat) : null, message, submit);
     if (firstVisit) {
       form.append(el("button", { class: "quiet block", type: "button",
-        onclick: () => runWithoutPassword(onDone, message) }, t("gate.open_button")));
+        onclick: () => runWithoutPassword(onDone, message) }, label("gate.open_button")));
     }
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
+      if (repeat && repeat.value !== pass.value) {
+        message.textContent = t("account.password_mismatch");
+        repeat.focus();
+        return;
+      }
       submit.disabled = true;
       try {
         await api(firstVisit ? "/api/auth/setup" : "/api/auth/login",

@@ -23,3 +23,14 @@ def test_merge_without_docker_or_details():
     view = backend_status.merge(None, None, {})
     assert not view["docker_ok"]
     assert all(row["version"] is None and row["spools"] is None for row in view["backends"])
+
+
+def test_states_are_only_kept_between_jobs():
+    done = ("j1", False)
+    assert backend_status.states_reusable(100.0, 110.0, done, done)
+    assert not backend_status.states_reusable(100.0, 116.0, done, done)  # too old
+    assert not backend_status.states_reusable(None, 110.0, done, done)  # never asked, or Docker did not answer
+    assert not backend_status.states_reusable(100.0, 110.0, done, ("j2", True))  # a job started
+    assert not backend_status.states_reusable(100.0, 110.0, ("j2", True), ("j2", False))  # and ended
+    assert not backend_status.states_reusable(100.0, 110.0, ("j2", True), ("j2", True))  # still running
+    assert backend_status.states_reusable(100.0, 110.0, None, None)  # none since the service started

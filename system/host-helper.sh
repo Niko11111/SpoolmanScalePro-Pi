@@ -12,8 +12,11 @@
 #   set-hostname NAME
 #   wifi-scan                      prints nmcli -t rows
 #   wifi-connect     (stdin: SSID, PSK)            join a WLAN, fall back if it fails
+#   wifi-up NAME                   join a saved WLAN by its connection name, fall back if it fails
+#   wifi-forget NAME               delete a saved WLAN, never the one in use or the Pi's own
 #   hotspot-on       (stdin: SSID, PSK, CHANNEL)   the Pi's own WLAN
 #   hotspot-off                                     back to the known WLANs
+#   hotspot-psk                    print the hotspot's password, nothing without a hotspot
 #   setup-ap-if-offline            at boot: open the setup WLAN if nothing connected
 #   apt-check                      refresh the package lists, print a simulated upgrade
 #   os-upgrade-start               run the upgrade as its own systemd unit, log in UPGRADE_LOG
@@ -38,6 +41,13 @@ HOTSPOT_ADDRESS=192.168.50.1/24
 CONNECT_WAIT_S=45
 OFFLINE_WAIT_S=90
 OFFLINE_POLL_S=5
+# While the setup WLAN is open, how often the Pi looks for its network again.
+# The radio cannot do both, so the setup WLAN closes for that moment.
+SETUP_RETRY_S=600
+# How long a saved WLAN gets to connect, and how many are tried: the helper's
+# caller waits at most 120 s (host_actions.NETWORK_TIMEOUT_S) for hotspot-off.
+KNOWN_WLAN_WAIT_S=25
+KNOWN_WLANS_TRIED=3
 
 # The upgrade runs as a unit of its own, not as a child of the service: if
 # the service restarts meanwhile (apt may update Python), dpkg is not cut
@@ -78,10 +88,24 @@ set_time() {
   fi
 }
 
+# One line, and nothing else: an argument with a line break in it would
+# pass grep -x on any one of its lines, and grep -F reads each line as a
+# pattern of its own.
+one_line() {
+  case "$1" in *"
+"*) return 1 ;; esac
+}
+
+# True when $1 is one line that matches the extended regex $2 whole.
+# printf, not echo: dash's echo turns a written "\n" into a line break.
+matches() {
+  one_line "$1" && printf '%s\n' "$1" | grep -Eqx -- "$2"
+}
+
 set_hostname() {
   name="${1:-}"
   # The same rule as network_rules.HOSTNAME_RE.
-  echo "$name" | grep -Eqx '[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?' || die "invalid host name"
+  matches "$name" '[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?' || die "invalid host name"
   hostnamectl set-hostname "$name"
   if grep -q '^127\.0\.1\.1' /etc/hosts; then
     sed -i "s/^127\.0\.1\.1.*/127.0.1.1\t$name/" /etc/hosts
@@ -99,8 +123,14 @@ wifi_scan() {
     || nmcli -t -f IN-USE,SSID,SIGNAL,SECURITY,CHAN device wifi list --rescan no ifname wlan0
 }
 
+# nmcli -t writes ":" as "\:" and "\" as "\\"; one pass from the left
+# undoes both, so "a\\:b" (a backslash, then a field end) stays apart.
+unescape_terse() {
+  sed 's/\\\(.\)/\1/g'
+}
+
 active_wifi() {
-  nmcli -t -f NAME,DEVICE connection show --active | sed -n 's/^\(.*\):wlan0$/\1/p' | head -n 1
+  nmcli -t -f NAME,DEVICE connection show --active | sed -n 's/^\(.*\):wlan0$/\1/p' | head -n 1 | unescape_terse
 }
 
 wifi_connect() {
@@ -110,9 +140,11 @@ wifi_connect() {
   previous="$(active_wifi)"
   existed=0
   nmcli -g NAME connection show | grep -Fxq -- "$ssid" && existed=1
-  # The password reaches nmcli as an argument: visible to root in the
-  # process list for the second it runs, which on this single-user Pi is
-  # the same trust as the file NetworkManager keeps it in.
+  # The password reaches nmcli as an argument: for the second it runs, it
+  # stands in /proc/<pid>/cmdline, which every local account can read (not
+  # only root; the backends' containers have their own PID namespace and do
+  # not see it). On this Pi the only other accounts are pi and the service.
+  # Handing it over on a file or stdin instead needs a test on a Pi first.
   if [ -n "$psk" ]; then
     ok=0; nmcli --wait "$CONNECT_WAIT_S" device wifi connect "$ssid" password "$psk" ifname wlan0 >/dev/null && ok=1
   else
@@ -125,23 +157,85 @@ wifi_connect() {
   fi
   # Failed: leave no half profile behind, and go back where the Pi was.
   [ "$existed" = 1 ] || nmcli connection delete id "$ssid" >/dev/null 2>&1 || true
-  if [ -n "$previous" ]; then
-    nmcli --wait 30 connection up id "$previous" >/dev/null 2>&1 || true
-  fi
+  back_to "$previous"
   exit 3
+}
+
+# After a failed join: the WLAN the Pi was in before, if it was in one.
+back_to() {
+  [ -n "$1" ] || return 0
+  nmcli --wait 30 connection up id "$1" >/dev/null 2>&1 || true
+}
+
+# The saved client WLANs by connection name, the one used last first. The
+# timestamp leads so that a name holding an escaped ":" stays whole.
+saved_wlans() {
+  nmcli -t -f TIMESTAMP,TYPE,NAME connection show \
+    | sed -n 's/^\([0-9]*\):802-11-wireless:/\1 /p' | sort -rn | cut -d' ' -f2- \
+    | unescape_terse | grep -vFx -e "$HOTSPOT_CONNECTION" -e "$SETUP_CONNECTION"
+}
+
+saved_wlan_named() {
+  [ -n "$1" ] && one_line "$1" && saved_wlans | grep -Fxq -- "$1"
+}
+
+wifi_up() {
+  name="$1"
+  saved_wlan_named "$name" || die "no saved WLAN named '$name'"
+  previous="$(active_wifi)"
+  if nmcli --wait "$CONNECT_WAIT_S" connection up id "$name" >/dev/null; then
+    # A client WLAN now; the Pi's own hotspot must not take wlan0 back at boot.
+    nmcli connection modify "$HOTSPOT_CONNECTION" connection.autoconnect no 2>/dev/null || true
+    return 0
+  fi
+  back_to "$previous"
+  exit 3
+}
+
+# Not the WLAN in use: the page would lose the Pi, and without a cable so
+# would everyone else until the next restart opens the setup WLAN.
+wifi_forget() {
+  name="$1"
+  saved_wlan_named "$name" || die "no saved WLAN named '$name'"
+  [ "$name" != "$(active_wifi)" ] || { echo "host-helper: '$name' is in use, join another one first" >&2; exit 7; }
+  # Its own failure, not nmcli's status: nmcli's 7 ("deletion failed")
+  # would read as this helper's 7 ("in use").
+  nmcli connection delete id "$name" >/dev/null || die "could not delete '$name'"
 }
 
 make_ap() {
   # $1 connection, $2 ssid, $3 psk, $4 channel, $5 autoconnect yes|no
   nmcli connection delete id "$1" >/dev/null 2>&1 || true
   # ipv4.method shared: NetworkManager runs DHCP for the clients itself.
+  # The PSK is an argument here too: see wifi_connect for who can read it.
+  # pmf disable: NetworkManager 1.52 otherwise offers WPA-PSK-SHA256 as well,
+  # which the Pi 3's radio (brcmfmac) refuses in access point mode ("key
+  # setting validation failed"): the WLAN never opened (measured 12.11.2026).
   nmcli connection add type wifi ifname wlan0 con-name "$1" \
     autoconnect "$5" connection.autoconnect-priority 100 \
     ssid "$2" mode ap 802-11-wireless.band bg 802-11-wireless.channel "$4" \
     802-11-wireless.powersave 2 \
     ipv4.method shared ipv4.addresses "$HOTSPOT_ADDRESS" ipv6.method disabled \
     wifi-sec.key-mgmt wpa-psk wifi-sec.proto rsn wifi-sec.pairwise ccmp wifi-sec.group ccmp \
-    wifi-sec.psk "$3" >/dev/null
+    wifi-sec.pmf disable wifi-sec.psk "$3" >/dev/null
+}
+
+# The setup WLAN is the one way into a Pi without a network, so the journal
+# says whether it really came up, not only that it was tried.
+open_setup_ap() {
+  if nmcli --wait 30 connection up id "$SETUP_CONNECTION" >/dev/null; then
+    echo "host-helper: $SETUP_SSID is open"
+  else
+    echo "host-helper: $SETUP_SSID could not be opened, see NetworkManager in the journal" >&2
+  fi
+}
+
+# The hotspot's password, for the page to show in plain text, as a phone
+# shows its own hotspot's: the hotspot is used rarely, and a password nobody
+# remembers is no use at a fair. stdout only; the caller logs stderr alone.
+hotspot_psk() {
+  nmcli -s -g 802-11-wireless-security.psk connection show id "$HOTSPOT_CONNECTION" 2>/dev/null \
+    | head -n 1 | unescape_terse
 }
 
 hotspot_on() {
@@ -164,20 +258,72 @@ has_other_network() {
     | grep -v -e "^$HOTSPOT_CONNECTION:" -e "^$SETUP_CONNECTION:" | grep -q .
 }
 
-hotspot_off() {
-  has_other_network || { echo "host-helper: no other network to fall back to" >&2; exit 4; }
-  nmcli connection modify "$HOTSPOT_CONNECTION" connection.autoconnect no 2>/dev/null || true
-  nmcli connection down id "$HOTSPOT_CONNECTION" >/dev/null 2>&1 || true
-  # NetworkManager now joins the best known WLAN by itself.
-}
-
 is_online() {
   nmcli -t -f TYPE,STATE,CONNECTION device | grep -E '^(ethernet|wifi):connected:' \
     | grep -vq -e ":$SETUP_CONNECTION\$" -e ":$HOTSPOT_CONNECTION\$"
 }
 
+connection_active() {
+  nmcli -t -f NAME connection show --active | grep -Fxq "$1"
+}
+
 hotspot_active() {
-  nmcli -t -f NAME connection show --active | grep -Fxq "$HOTSPOT_CONNECTION"
+  connection_active "$HOTSPOT_CONNECTION"
+}
+
+known_wlans() {
+  saved_wlans | head -n "$KNOWN_WLANS_TRIED"
+}
+
+# True once the Pi is in a network. Each saved WLAN is asked for by name:
+# NetworkManager can hold back one that was out of reach earlier for minutes.
+join_known_network() {
+  is_online && return 0
+  known_wlans | while IFS= read -r name; do
+    nmcli --wait "$KNOWN_WLAN_WAIT_S" connection up id "$name" >/dev/null 2>&1 && break
+  done
+  is_online
+}
+
+hotspot_off() {
+  has_other_network || { echo "host-helper: no other network to fall back to" >&2; exit 4; }
+  nmcli connection modify "$HOTSPOT_CONNECTION" connection.autoconnect no 2>/dev/null || true
+  nmcli connection down id "$HOTSPOT_CONNECTION" >/dev/null 2>&1 || true
+  join_known_network && return 0
+  # A saved WLAN is not one in reach (at a fair, the one from home). Without
+  # the hotspot the Pi could then not be reached until its next restart.
+  echo "host-helper: no saved network in reach, the hotspot stays on" >&2
+  nmcli connection modify "$HOTSPOT_CONNECTION" connection.autoconnect yes 2>/dev/null || true
+  nmcli --wait 30 connection up id "$HOTSPOT_CONNECTION" >/dev/null 2>&1 || true
+  exit 6
+}
+
+# A phone in the setup WLAN. There is no iw on Raspberry Pi OS Lite; a client
+# that was seen lately has a neighbour entry. A stale one only means the next
+# look comes one round later.
+setup_ap_has_client() {
+  ip neigh show dev wlan0 | grep -Eq 'REACHABLE|STALE|DELAY|PROBE'
+}
+
+# The setup WLAN must not trap a Pi whose network comes back later: after a
+# power cut the router can take longer to start than the 90 s the Pi waits.
+# Ends when the Pi is in a network or the owner chose its own hotspot; stays
+# open as long as somebody is connected, or there is nothing saved to go to.
+watch_setup_ap() {
+  while :; do
+    sleep "$SETUP_RETRY_S"
+    hotspot_active && return 0
+    if connection_active "$SETUP_CONNECTION"; then
+      setup_ap_has_client && continue
+      has_other_network || continue
+      nmcli connection down id "$SETUP_CONNECTION" >/dev/null 2>&1 || true
+    elif is_online; then
+      return 0
+    fi
+    join_known_network && return 0
+    echo "host-helper: still no network, opening $SETUP_SSID again"
+    open_setup_ap
+  done
 }
 
 setup_ap_if_offline() {
@@ -192,7 +338,8 @@ setup_ap_if_offline() {
   done
   echo "host-helper: no network after ${OFFLINE_WAIT_S} s, opening $SETUP_SSID"
   make_ap "$SETUP_CONNECTION" "$SETUP_SSID" "$SETUP_PSK" 6 no
-  nmcli --wait 30 connection up id "$SETUP_CONNECTION" >/dev/null
+  open_setup_ap
+  watch_setup_ap
 }
 
 apt_check() {
@@ -224,7 +371,7 @@ os_upgrade_start() {
 self_update() {
   version="${1:-}"
   # The same form as VERSION; check_conventions.py checks VERSION for it.
-  echo "$version" | grep -Eqx '[0-9]+\.[0-9]+\.[0-9]+(-beta\.[0-9]+)?' || die "invalid version"
+  matches "$version" '[0-9]+\.[0-9]+\.[0-9]+(-beta\.[0-9]+)?' || die "invalid version"
   if systemctl is-active --quiet "$SELF_UPDATE_UNIT"; then
     echo "host-helper: an update is already running" >&2
     exit 5
@@ -305,10 +452,10 @@ tailscale_up() {
   tailscale_unit "tailscale up --hostname=$(hostname) --accept-dns=false --timeout=600s"
 }
 
-check_ip() { echo "$1" | grep -Eqx "$IP_RE" || die "not an IPv4 address: $1"; }
+check_ip() { matches "$1" "$IP_RE" || die "not an IPv4 address: $1"; }
 
 check_connection() {
-  nmcli -g NAME connection show | grep -Fxq -- "$1" || die "no connection named '$1'"
+  one_line "$1" && nmcli -g NAME connection show | grep -Fxq -- "$1" || die "no connection named '$1'"
   case "$1" in "$HOTSPOT_CONNECTION"|"$SETUP_CONNECTION") die "the Pi's own WLAN keeps its address" ;; esac
 }
 
@@ -337,9 +484,9 @@ ip_to_dhcp() {
 ip_static() {
   connection="${1:-}"; cidr="${2:-}"; gateway="${3:-}"; dns="${4:-}"
   check_connection "$connection"
-  echo "$cidr" | grep -Eqx "$IP_RE/[0-9]{1,2}" || die "address must be a.b.c.d/prefix"
+  matches "$cidr" "$IP_RE/[0-9]{1,2}" || die "address must be a.b.c.d/prefix"
   check_ip "$gateway"
-  echo "$dns" | grep -Eqx "$IP_RE(,$IP_RE)*" || die "DNS must be addresses separated by commas"
+  matches "$dns" "$IP_RE(,$IP_RE)*" || die "DNS must be addresses separated by commas"
   nmcli connection modify "$connection" ipv4.method manual ipv4.addresses "$cidr" \
     ipv4.gateway "$gateway" ipv4.dns "$dns"
   nmcli --wait 30 connection up "$connection" >/dev/null 2>&1 || true
@@ -370,8 +517,11 @@ case "$verb" in
   set-hostname)        set_hostname "${2:-}" ;;
   wifi-scan)           wifi_scan ;;
   wifi-connect)        wifi_connect ;;
+  wifi-up)             wifi_up "${2:-}" ;;
+  wifi-forget)         wifi_forget "${2:-}" ;;
   hotspot-on)          hotspot_on ;;
   hotspot-off)         hotspot_off ;;
+  hotspot-psk)         hotspot_psk ;;
   setup-ap-if-offline) setup_ap_if_offline ;;
   apt-check)           apt_check ;;
   os-upgrade-start)    os_upgrade_start ;;

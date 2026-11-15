@@ -30,6 +30,8 @@ class Progress:
 def fake(monkeypatch):
     calls = {"restored": [], "up_ok": True, "ready": True, "pull_ok": True}
     settings.update({"backend_versions": {}, "include_prereleases": False})
+    # These tests are about the update, not about which default compose has now.
+    monkeypatch.setattr(bu, "default_version", lambda backend: "v1.4.3")
     monkeypatch.setattr(bu.release_sources, "image_tags", lambda image: ["v1.4.3", "v1.4.4", "v1.5.0"])
     monkeypatch.setattr(bu.release_sources, "releases", lambda repo: [{"tag": "v1.5.0"}, {"tag": "v1.4.4"}])
     monkeypatch.setattr(bu.docker_compose, "states", lambda: {"filaman": "running"})
@@ -85,3 +87,82 @@ def test_a_tag_that_is_not_offered_is_refused(fake):
         with pytest.raises(JobFailed) as e:
             bu.install(FILAMAN, bad, Progress())
         assert e.value.code == "unknown_version"
+
+
+def test_an_installed_backend_keeps_its_version_when_the_default_moves():
+    defaults = {"filaman": "v2.0.0", "spoolman": "0.27.1", "bambuddy": "1.2.5.7"}
+    installed = {"filaman": "v1.4.3", "spoolman": "0.27.1", "bambuddy": "1.2.5.6"}
+    # Spoolman has the default; BamBuddy has a choice on record already.
+    assert bu.versions_to_keep({"bambuddy": "1.2.5.6"}, installed, defaults) == {"filaman": "v1.4.3"}
+    # Never started: no container, so the new default is what it gets.
+    assert bu.versions_to_keep({}, {}, defaults) == {}
+    # An image without a version in its name is left alone.
+    assert bu.versions_to_keep({}, {"filaman": ""}, defaults) == {}
+
+
+def test_only_a_backend_that_never_ran_picks_its_version():
+    assert bu.is_first_start(None, False, False)
+    assert not bu.is_first_start("v1.4.3", False, False)
+    assert not bu.is_first_start(None, True, False)
+    assert not bu.is_first_start(None, False, True)  # data left behind by a removed container
+
+
+def first_start_world(monkeypatch, containers, volumes, tags=("v1.4.3", "v1.5.0", "v1.6.0-beta.1")):
+    monkeypatch.setattr(bu, "default_version", lambda backend: "v1.4.3")
+    monkeypatch.setattr(bu.docker_compose, "container_images", lambda: containers)
+    monkeypatch.setattr(bu.docker_compose, "data_volumes", lambda: volumes)
+    monkeypatch.setattr(bu.release_sources, "image_tags", lambda image: list(tags))
+    settings.update({"backend_versions": {}})
+
+
+def test_first_start_takes_the_newest_stable_release(monkeypatch):
+    first_start_world(monkeypatch, containers={}, volumes=set())
+    bu.choose_first_version(FILAMAN)
+    assert settings.load()["backend_versions"] == {"filaman": "v1.5.0"}
+
+
+def test_an_installed_backend_keeps_its_version(monkeypatch):
+    first_start_world(monkeypatch, containers={"filaman": "ghcr.io/x:v1.4.3"}, volumes={"filaman-data"})
+    bu.choose_first_version(FILAMAN)
+    assert settings.load()["backend_versions"] == {}
+
+
+def test_data_without_a_container_keeps_the_default(monkeypatch):
+    first_start_world(monkeypatch, containers={}, volumes={"filaman-data"})
+    bu.choose_first_version(FILAMAN)
+    assert settings.load()["backend_versions"] == {}
+
+
+def test_without_docker_or_ghcr_the_default_applies(monkeypatch):
+    first_start_world(monkeypatch, containers=None, volumes=set())
+    bu.choose_first_version(FILAMAN)
+    assert settings.load()["backend_versions"] == {}
+
+    def offline(image):
+        raise bu.SourceError("source_unreachable", "offline")
+    first_start_world(monkeypatch, containers={}, volumes=set())
+    monkeypatch.setattr(bu.release_sources, "image_tags", offline)
+    bu.choose_first_version(FILAMAN)
+    assert settings.load()["backend_versions"] == {}
+
+
+def test_a_start_that_never_made_a_container_drops_the_first_choice(monkeypatch):
+    first_start_world(monkeypatch, containers={}, volumes=set())
+    chosen = bu.choose_first_version(FILAMAN)
+    bu.undo_first_version(FILAMAN, chosen)  # the download broke off: still no container
+    assert chosen == "v1.5.0" and settings.load()["backend_versions"] == {}
+
+
+def test_a_container_that_ran_the_first_choice_keeps_it(monkeypatch):
+    first_start_world(monkeypatch, containers={}, volumes=set())
+    chosen = bu.choose_first_version(FILAMAN)
+    monkeypatch.setattr(bu.docker_compose, "container_images", lambda: {"filaman": "ghcr.io/x:v1.5.0"})
+    bu.undo_first_version(FILAMAN, chosen)
+    assert settings.load()["backend_versions"] == {"filaman": "v1.5.0"}
+
+
+def test_undo_leaves_a_version_the_owner_chose(monkeypatch):
+    first_start_world(monkeypatch, containers={}, volumes=set())
+    settings.update({"backend_versions": {"filaman": "v1.4.4"}})
+    bu.undo_first_version(FILAMAN, None)
+    assert settings.load()["backend_versions"] == {"filaman": "v1.4.4"}

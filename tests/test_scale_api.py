@@ -1,5 +1,5 @@
 from spoolmanscale_pro.backends import backend_by_key
-from spoolmanscale_pro.scale_api import summarize, switch_and_confirm
+from spoolmanscale_pro.scale_api import is_this_pi, summarize, switch_and_confirm
 
 FILAMAN = backend_by_key("filaman")
 
@@ -57,3 +57,13 @@ def test_switch_gives_up_after_the_timeout():
     status = switch_and_confirm(scale, FILAMAN, timeout_s=30, sleep=lambda s: None,
                                 clock=lambda: next(ticks))
     assert status["backend"] == "Spoolman"
+
+
+def test_is_this_pi():
+    names = {"spoolmanscale-pro", "spoolmanscale-pro.local", "192.168.4.31"}
+    assert is_this_pi("192.168.4.31", names)
+    assert is_this_pi("192.168.4.31:80", names)
+    assert is_this_pi("SpoolmanScale-Pro.local", names)
+    assert is_this_pi("localhost", names) and is_this_pi("127.0.0.1:80", names)
+    assert not is_this_pi("192.168.4.28", names)
+    assert not is_this_pi("spoolmanscale.local", names)

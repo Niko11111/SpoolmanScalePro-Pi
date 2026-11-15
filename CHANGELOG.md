@@ -3,6 +3,185 @@
 One section per version, newest first. VERSION names the current one;
 scripts/check.sh fails when it has no section here.
 
+## 0.2.1
+
+SpoolmanScale Pro 0.2.1 makes the Pi's own WLANs work on a Raspberry Pi 3,
+keeps the Pi quick to answer, and makes the network page easier to live
+with. A Pi on 0.2.0 finds it on the Updates page.
+
+### Network
+
+- **Hotspot and setup WLAN on a Pi 3.** NetworkManager offers key types the
+  Pi 3's radio cannot handle as an access point: the WLAN did not appear,
+  or phones reported a wrong password. Both now offer WPA2-PSK only.
+- **Saved WLANs** are listed, the one used last first: join one with a tap,
+  without its password, or forget it. A join that fails takes the Pi back
+  to the network it was in, and the WLAN the Pi is in cannot be forgotten.
+- **Readable names:** "Connected to Home" and "Network cable" instead of
+  NetworkManager's netplan names.
+- **The hotspot password** stands in plain text, as a phone shows its own
+  hotspot's, filled with the current one or a suggestion.
+- **WLAN power saving is off:** on a Pi 3 the average ping dropped from
+  19 ms (up to 227 ms) to 6.5 ms, so the scale and the browser get their
+  answer without waiting for the radio to wake up.
+- The setup WLAN no longer traps a Pi whose router came up after it: every
+  10 minutes the Pi looks for its saved networks again.
+
+### Backends
+
+- A backend started for the first time takes its **newest release**. A
+  backend that ran before keeps its version until you update it.
+- FilaMan runs with one worker on a Pi Zero 2 W and a Pi 3, about 124 MB
+  instead of 366 MB; the System page lets you choose 1 to 4.
+- The fallback versions for a start without internet are Spoolman 0.27.1,
+  FilaMan v2.2.1 and BamBuddy 1.3.1.
+
+### Page
+
+- Every button carries an icon for its kind of action, and Network, System
+  and Backup arrange their cards in two columns.
+- One button installs the newest update; release notes show their first
+  lines and unfold on a click.
+- Copy buttons for the FilaMan login, and copying works over the Pi's plain
+  http address too.
+- A new login password is typed twice.
+- Buttons and boxes no longer touch.
+
+### Fixes
+
+- WLAN names with ":" or "\" can be joined and forgotten.
+- A first start whose download broke off chooses its version again next time.
+- Stricter argument checks in the root helper.
+- A voltage drop in the past is a quiet grey line; only a voltage that is
+  too low right now shows in red.
+
+*SpoolmanScale Pro 0.2.1 | FormFollowsFunction*
+
+## 0.2.1-beta.6
+
+- The hotspot's password stands in plain text on the Network page, filled
+  with the one the hotspot has, as a phone shows its own hotspot's: no
+  typing it again each time, and no second field, since what is typed is
+  seen. A Pi without a hotspot yet suggests one (like k7mp-x2qd-9rta). The
+  password stays where NetworkManager keeps it; the page reads it through
+  the root helper and it reaches no log.
+- The stop icon is a red square on every Stop button.
+
+## 0.2.1-beta.5
+
+Fixes from a review of 0.2.1-beta.2 to beta.4:
+
+- A backend's first start whose download broke off (slow network, no image
+  for this Pi yet) no longer keeps the newest version for good: the next
+  start chooses again, and an image already on the Pi still starts offline.
+- WLAN names with ":" or "\" (NetworkManager names a profile after the
+  network, which anyone nearby can name): the WLAN in use can no longer be
+  forgotten, a failed join goes back to such a network, and one with "\"
+  can be joined and forgotten at all. The page refuses to forget the WLAN
+  in use as well, not only the helper.
+- A failed "Forget" says it failed, instead of "in use".
+- The network name next to a saved WLAN is looked up safely when the
+  profile has a name nmcli knows as a word (help, --active).
+- The root helper checks its arguments as one line only; under the Pi's
+  shell, an argument with a written "\n" could pass a check on one line.
+- The hotspot fix (NetworkManager hook) keeps its reply socket under /run,
+  where no other account can take the name first.
+
+## 0.2.1-beta.4
+
+- Network page: a list of the saved WLANs, the one used last first. Each
+  one joins with a tap, without its password, and can be forgotten; the
+  WLAN the Pi is in cannot, so the page never cuts itself off. In the scan
+  list a saved network is marked and joins without the form. A join that
+  fails takes the Pi back to the network it was in.
+- The Pi's network shows its name: "Connected to Home" instead of the
+  connection NetworkManager made for it (netplan-wlan0-Home), and a cable
+  shows as "Network cable" instead of netplan-eth0.
+- When the Pi looks for a saved WLAN on its own (setup WLAN, hotspot off),
+  it tries the ones used last first.
+- Every button carries a small icon before its text, so its kind reads at
+  a glance: a tick saves, a bin deletes or forgets, a cloud installs,
+  circling arrows search for updates. One meaning has one icon everywhere,
+  the same as in TheRentalScale (Lucide icons, shipped with the page, so
+  they work offline).
+- Network, System and Backup arrange their cards in two columns that stack
+  on their own, the ones used most first: no card stands half empty next
+  to a long one any more. On a phone the left column comes first.
+- WLAN list: the buttons sit at the right edge, a network's password form
+  opens under it, and the list keeps its distance from the search buttons.
+  While the Pi runs its own WLAN, the scan no longer lists that one.
+- A new password for the login is typed twice, on the System page and when
+  the login is first created.
+- Updates: one button installs the newest version, without a list of
+  versions to choose from (an older one was never offered). The newest
+  release notes show their first lines and unfold on a click; older ones
+  stay folded.
+- Backups: the list shows the newest three and the rest on "Show all".
+- Nothing touches any more: the error message above the backend tiles, a
+  button row above a field, and an error under buttons or a field each
+  keep their distance (they sat at 0 px). tools/spacing_audit.js measures
+  every page for it.
+- FilaMan access: e-mail and password each have a copy button. Copying
+  works over the Pi's plain http address too, where browsers have no
+  clipboard API; this also fixes the MAC address's copy button, which did
+  nothing there.
+- A backend started for the first time takes its newest release, not a
+  version written into SpoolmanScale Pro; the version in the compose file
+  is only the fallback without internet. A backend that ran before keeps
+  its version, also when only its data are left. The "Tested with" line on
+  the Updates page is gone.
+- The fallback versions for a start without internet, and what
+  `install.sh --pull-all` downloads for offline use, are the newest
+  releases: FilaMan v2.2.1 (was v2.0.0) and BamBuddy 1.3.1 (was 1.2.5.7);
+  Spoolman stays on 0.27.1. A backend already installed keeps its version.
+
+## 0.2.1-beta.3
+
+- The setup WLAN and the Pi's own hotspot work on a Pi 3 again. NetworkManager
+  offers newer key types the Pi 3's radio cannot handle as an access point:
+  first neither WLAN appeared at all, then phones saw it but reported a
+  wrong password. Both WLANs now offer WPA2-PSK only; each restarts once,
+  for about two seconds, right after it comes up. The journal now also says
+  when the setup WLAN failed to open, instead of reporting it as open.
+- The hotspot password is typed twice, on the Network page and in
+  `setup-hotspot.sh`. A typo in the hidden field no longer sets a password
+  nobody knows.
+
+## 0.2.1-beta.2
+
+- WLAN power saving is off. The Pi answers the scale and the browser
+  without first waking its radio: on a Pi 3, a ping once a second took
+  19 ms on average and up to 227 ms with it on, against 6.5 ms when the
+  radio stays awake. Applies to every network the Pi joins, from the update
+  on, without a restart.
+
+## 0.2.1-beta.1
+
+- FilaMan runs with one worker process on a Pi Zero 2 W and a Pi 3, which
+  takes it from about 366 MB to about 124 MB when idle, and requests to the
+  printer drivers no longer have to be forwarded. A Pi 4 or 5 stays at
+  FilaMan's standard of 4. Needs FilaMan 1.6.1 or newer; a FilaMan that is
+  already running takes it the next time it starts.
+- System page, Advanced: choose the number of workers yourself, 1 to 4.
+- New installations start with Spoolman 0.27.1 and FilaMan 2.0.0, the newest
+  stable versions (BamBuddy stays on 1.2.5.7, which is its newest). A Pi that
+  already has a backend keeps its version until you update it on the Updates
+  page, with a backup first.
+- The RAM budget for several backends at once counts FilaMan's workers and
+  what the system itself takes on a Pi 3 (271 MB, measured).
+- Power supply: a voltage drop in the past is a quiet grey line. Only a
+  voltage that is too low right now is shown in red, with advice.
+- The setup WLAN no longer traps a Pi whose router came up later than the Pi,
+  for example after a power cut. Every 10 minutes, unless a device is
+  connected, the Pi looks for its saved networks, and goes back to one when
+  it finds it.
+- Switching the hotspot off keeps it on when no saved WLAN is in reach and no
+  cable is plugged in, instead of leaving the Pi unreachable until a restart.
+- Naming the Pi spoolmanscale asks first: that name belongs to the scale.
+  localhost is refused, and so is this Pi's own address as the scale's.
+- The overview stops polling while its browser tab is in the background, and
+  asks Docker less often while it is open.
+
 ## 0.2.0
 
 SpoolmanScale Pro 0.2 is a complete rewrite. Version 0.1 was a small web

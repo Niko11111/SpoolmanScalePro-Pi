@@ -4,7 +4,7 @@
  */
 (function () {
   "use strict";
-  const { t, el, api, busy, toast, formatDuration, formatClock } = SSPro;
+  const { t, el, api, busy, toast, formatDuration, formatClock, label } = SSPro;
 
   // Above this, the Pi's clock is called wrong and the page offers the
   // browser's time. A Pi has no battery clock, so after a power cut without
@@ -28,7 +28,7 @@
     const card = el("section", { class: "card" }, el("h2", { text: t("scale.title") }));
     if (!scale.paired) {
       card.append(el("p", { class: "hint", text: t("scale.not_paired") }),
-        el("div", { class: "btnrow" }, el("a", { class: "linkbtn", href: "#scale" }, t("scale.pair"))));
+        el("div", { class: "btnrow" }, el("a", { class: "linkbtn", href: "#scale" }, label("scale.pair"))));
       return card;
     }
     if (!scale.reachable) {
@@ -46,7 +46,7 @@
       row(t("scale.weight"), scale.weight, true),
       row(t("scale.firmware"), scale.version, true)));
     if (!scale.on_active || !scale.points_here) {
-      const sync = el("button", { type: "button", class: "block" }, t("scale.sync"));
+      const sync = el("button", { type: "button", class: "block" }, label("scale.sync"));
       sync.addEventListener("click", () => busy(sync, async () => {
         await api("/api/scale/sync", { method: "POST" });
         onChange();
@@ -75,7 +75,7 @@
   function clockFix(system, onChange) {
     const drift = Math.round(Date.now() / 1000) - system.clock_epoch_s;
     if (Math.abs(drift) <= CLOCK_DRIFT_LIMIT_S) return [];
-    const take = el("button", { type: "button", class: "block" }, t("system.take_clock"));
+    const take = el("button", { type: "button", class: "block" }, label("system.take_clock"));
     take.addEventListener("click", () => busy(take, async () => {
       await api("/api/system/clock", { method: "POST", body: { epoch_s: Math.round(Date.now() / 1000) } });
       toast(t("system.clock_set"));
@@ -84,32 +84,21 @@
     return [el("div", { class: "callout wr", text: t("system.clock_off", { min: Math.round(Math.abs(drift) / 60) }) }), take];
   }
 
-  // The power supply from vcgencmd: red while the voltage is too low right
-  // now, yellow when it was since boot, green otherwise. Nothing on a laptop.
-  // "Seen" quiets the yellow one until the next restart; red always shows.
-  function powerState(power, now, earlier) {
+  // The power supply from vcgencmd: red with advice while the voltage is too
+  // low right now, a quiet grey line when it was since boot, green otherwise.
+  // Nothing on a laptop.
+  function powerState(now, earlier) {
     if (now) return ["bd", "system.power_low_now"];
-    if (earlier && power.seen) return ["off", "system.power_seen"];
-    if (earlier) return ["wr", "system.power_low_before"];
+    if (earlier) return ["off", "system.power_low_before"];
     return ["ok", "system.power_ok"];
   }
 
-  function powerRows(power, onChange) {
+  function powerRows(power) {
     if (!power) return [];
     const now = power.now.includes("under_voltage");
-    const earlier = power.since_boot.includes("under_voltage");
-    const state = powerState(power, now, earlier);
+    const state = powerState(now, power.since_boot.includes("under_voltage"));
     const rows = [row(t("system.power"), el("span", { class: "pill " + state[0] }, t(state[1])))];
-    if (!now && (!earlier || power.seen)) return rows;
-    rows.push(el("div", { class: "callout " + state[0], text: t("system.power_hint") }));
-    if (!now) {
-      const seen = el("button", { type: "button", class: "quiet" }, t("system.power_seen_button"));
-      seen.addEventListener("click", () => busy(seen, async () => {
-        await api("/api/system/power/seen", { method: "POST" });
-        onChange();
-      }));
-      rows.push(el("div", { class: "btnrow" }, seen));
-    }
+    if (now) rows.push(el("div", { class: "callout bd", text: t("system.power_hint") }));
     return rows;
   }
 
@@ -128,7 +117,7 @@
       row(t("system.uptime"), formatDuration(system.uptime_s)),
       row(t("system.clock"), formatClock(system.clock_epoch_s)));
     return el("section", { class: "card" }, el("h2", { text: t("system.title_short") }), rows,
-      powerRows(system.power, onChange), clockFix(system, onChange));
+      powerRows(system.power), clockFix(system, onChange));
   }
 
   SSPro.views = Object.assign(SSPro.views || {}, { scaleCard, systemCard });

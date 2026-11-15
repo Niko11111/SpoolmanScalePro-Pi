@@ -6,7 +6,7 @@
  */
 (function () {
   "use strict";
-  const { t, el, api, ask, busy, toast, errorText, views } = SSPro;
+  const { t, el, api, ask, busy, toast, errorText, views, label } = SSPro;
 
   function row(key, value, mono) {
     return el("div", { class: "row" }, el("span", { class: "k", text: t(key) }),
@@ -17,21 +17,23 @@
   // failure since, if any.
   function versionRows(update, at, error) {
     const rows = [row("upd.installed", update.shown || update.current, true)];
-    if (update.current !== update.default) rows.push(row("upd.tested", update.default, true));
     if (at) rows.push(row("upd.checked", SSPro.formatClock(at)));
     if (error) rows.push(row("upd.last_try", errorText({ code: error })));
     return el("div", { class: "rows" }, rows);
   }
 
+  // Always the newest: an older one than installed is never offered (a
+  // newer backend may have changed its database), and stepping through the
+  // ones in between brings nothing the newest does not.
   function installForm(backend, update, start) {
-    const choice = el("select", {}, update.newer.map((tag) => el("option", { value: tag }, tag)));
-    const install = el("button", { type: "button" }, t("upd.install"));
+    const version = update.newer[0];
+    const install = el("button", { type: "button" }, label("upd.install_version", { version }));
     install.addEventListener("click", async () => {
       const text = t(backend.state === "running" ? "upd.install_text_running" : "upd.install_text", { name: backend.label });
-      if (!(await ask(t("upd.install_title", { name: backend.label, version: choice.value }), text, t("upd.install")))) return;
-      start(install, "/api/updates/" + backend.key, { version: choice.value });
+      if (!(await ask(t("upd.install_title", { name: backend.label, version }), text, t("upd.install")))) return;
+      start(install, "/api/updates/" + backend.key, { version });
     });
-    return el("div", { class: "field" }, el("label", { text: t("upd.choose") }), el("div", { class: "inrow" }, choice, install));
+    return el("div", { class: "btnrow" }, install);
   }
 
   function result(backend, update, start) {
@@ -56,7 +58,7 @@
   // kept: what the search found last for this backend, if it still applies.
   function backendCard(backend, start, kept) {
     const slot = el("div", { class: "wrap" });
-    const search = el("button", { type: "button", class: "quiet" }, t("upd.search"));
+    const search = el("button", { type: "button", class: "quiet" }, label("upd.search"));
     const card = el("section", { class: "card wide" }, el("h2", {}, el("span", { text: backend.label }), search), slot);
     const show = (update, at, error) => slot.replaceChildren(versionRows(update, at, error), ...result(backend, update, start));
     async function run() {
@@ -88,7 +90,7 @@
   }
 
   function optionsCard(settings, cards) {
-    const all = el("button", { type: "button" }, t("upd.search_all"));
+    const all = el("button", { type: "button" }, label("upd.search_all"));
     all.addEventListener("click", () => busy(all, () => Promise.all(cards.map((c) => c.search()))));
     return el("section", { class: "card wide" }, el("h2", { text: t("upd.title") }),
       settingSwitch(settings, "update_check", "upd.auto"),
