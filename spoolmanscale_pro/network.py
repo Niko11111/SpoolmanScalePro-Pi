@@ -70,8 +70,11 @@ def primary_address() -> str | None:
 def _ssid_of(connection: str) -> str:
     """The network name a WLAN connection joins. NetworkManager names a
     connection itself (netplan-wlan0-Home), so this is what a person knows."""
-    shown = (_read(["nmcli", "-g", "802-11-wireless.ssid", "connection", "show", connection]) or "").strip()
-    return rules.split_terse(shown)[0] if shown else connection
+    # "id": a name like "help" or "--active" (an SSID anyone nearby can
+    # choose) is a name, not a word nmcli knows. Two of the same name give
+    # two lines; the first is enough to show.
+    shown = (_read(["nmcli", "-g", "802-11-wireless.ssid", "connection", "show", "id", connection]) or "").strip()
+    return rules.split_terse(shown.splitlines()[0])[0] if shown else connection
 
 
 def saved() -> list[dict]:
@@ -122,7 +125,10 @@ def join_saved(name: str, ssid: str, progress: Progress) -> None:
 
 
 def forget(name: str) -> str | None:
-    """None once the WLAN is forgotten, else the error code."""
+    """None once the WLAN is forgotten, else the error code. The WLAN in use
+    is refused here as well as in the helper."""
+    if status().get("wlan", {}).get("connection") == name:
+        return "wifi_in_use"
     result = run_helper("wifi-forget", name)
     if result.code == EXIT_WIFI_IN_USE:
         return "wifi_in_use"

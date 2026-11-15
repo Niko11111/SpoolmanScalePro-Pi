@@ -3,7 +3,12 @@ wpa_supplicant. The file is a dispatcher hook, not part of the package, so it
 is loaded by its path."""
 
 import importlib.util
+import socket
+import tempfile
+import threading
 from pathlib import Path
+
+import pytest
 
 HOOK = Path(__file__).resolve().parent.parent / "system" / "ap-psk-only.py"
 _spec = importlib.util.spec_from_file_location("ap_psk_only", HOOK)
@@ -67,3 +72,42 @@ def test_leaves_a_client_wlan_alone(monkeypatch):
 def test_main_ignores_other_connections_without_touching_the_socket():
     assert hook.main(["hook", "wlan0", "up"], {"CONNECTION_ID": "netplan-wlan0-Home"}) == 0
     assert hook.main(["hook"], {}) == 0
+
+
+
+def short_dir() -> Path:
+    """A directory of its own under /tmp: macOS keeps AF_UNIX paths short."""
+    return Path(tempfile.mkdtemp(prefix="ap", dir="/tmp"))
+
+
+def test_control_talks_over_a_reply_socket_in_its_own_directory_and_cleans_up(monkeypatch):
+    base = short_dir()
+    control_dir, runtime_dir = base / "c", base / "r"
+    control_dir.mkdir()
+    runtime_dir.mkdir()
+    monkeypatch.setattr(hook, "CONTROL_DIR", str(control_dir))
+    monkeypatch.setattr(hook, "RUNTIME_DIR", str(runtime_dir))
+    server = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+    server.bind(str(control_dir / "wlan0"))
+
+    def answer():
+        data, peer = server.recvfrom(64)
+        server.sendto(b"PONG " + data, peer)
+    threading.Thread(target=answer, daemon=True).start()
+    control = hook.Control("wlan0")
+    try:
+        assert control.ask("PING") == "PONG PING"
+        assert Path(control.own_path).parent.parent == runtime_dir
+    finally:
+        control.close()
+        server.close()
+    assert list(runtime_dir.iterdir()) == []
+
+
+def test_control_cleans_up_when_wpa_supplicant_is_missing(monkeypatch):
+    base = short_dir()
+    monkeypatch.setattr(hook, "CONTROL_DIR", str(base / "missing"))
+    monkeypatch.setattr(hook, "RUNTIME_DIR", str(base))
+    with pytest.raises(OSError):
+        hook.Control("wlan0")
+    assert list(base.iterdir()) == []

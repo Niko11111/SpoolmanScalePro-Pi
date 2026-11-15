@@ -13,14 +13,29 @@ HOTSPOT = "spoolmanscale-hotspot"
 
 NMCLI = r"""#!/bin/sh
 echo "$*" >> "$STATE/log"
+# Like the real nmcli -t: ":" in a name as "\:", "\" as "\\".
+escape() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/:/\\:/g'; }
+# profiles: NAME:TYPE[:TIMESTAMP] per line; the name may hold ":" itself.
+rows() {
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    last=${line##*:}; rest=${line%:*}
+    case "$last" in
+      *[!0-9]*|"") ts=0; type=$last; name=$rest ;;
+      *) ts=$last; type=${rest##*:}; name=${rest%:*} ;;
+    esac
+    printf '%s\t%s\t%s\n' "$ts" "$type" "$(escape "$name")"
+  done < "$STATE/profiles"
+}
 case "$*" in
   "-t -f TYPE,STATE,CONNECTION device") cat "$STATE/devices" ;;
   "-t -f TYPE,STATE device") sed 's/:[^:]*$//' "$STATE/devices" ;;
   "-t -f NAME connection show --active") cat "$STATE/active" ;;
-  "-g NAME,TYPE connection show") cut -d: -f1,2 "$STATE/profiles" ;;
-  "-t -f TIMESTAMP,TYPE,NAME connection show") awk -F: '{ print ($3 == "" ? 0 : $3) ":" $2 ":" $1 }' "$STATE/profiles" ;;
-  "-t -f NAME,DEVICE connection show --active") sed -n 's/$/:wlan0/p' "$STATE/active" ;;
-  *"connection delete id "*) ;;
+  "-g NAME,TYPE connection show") rows | awk -F'\t' '{ print $3 ":" $2 }' ;;
+  "-t -f TIMESTAMP,TYPE,NAME connection show") rows | awk -F'\t' '{ print $1 ":" $2 ":" $3 }' ;;
+  "-t -f NAME,DEVICE connection show --active")
+    while IFS= read -r name; do [ -n "$name" ] && printf '%s:wlan0\n' "$(escape "$name")"; done < "$STATE/active" ;;
+  *"connection delete id "*) if [ -f "$STATE/delete_fails" ]; then exit 7; fi ;;
   *"connection up id "*)
     args="$*"; name="${args##*connection up id }"
     if [ "$name" = spoolmanscale-setup ] || [ "$name" = spoolmanscale-hotspot ]; then
@@ -28,6 +43,7 @@ case "$*" in
     elif grep -Fxq "$name" "$STATE/reachable"; then
       echo "$name" > "$STATE/active"; echo "wifi:connected:$name" > "$STATE/devices"
     else
+      : > "$STATE/active"  # trying another network drops the one wlan0 was in
       exit 10
     fi ;;
   *"connection down id "*) : > "$STATE/active" ;;
@@ -56,6 +72,8 @@ def run(tmp_path, verb, *args, **world):
         (state / name).write_text(text)
     if back_at:
         (state / "router_back_at").write_text(str(back_at))
+    if world.get("delete_fails"):
+        (state / "delete_fails").write_text("")
     for name, text in (("nmcli", NMCLI), ("sleep", SLEEP), ("ip", f"#!/bin/sh\nprintf '%s' '{neigh}'\n")):
         tool = bin_dir / name
         tool.write_text(text)
@@ -153,3 +171,60 @@ def test_hotspot_off_tries_the_wlan_used_last_first(tmp_path):
     done, active, _ = run(tmp_path, "hotspot-off", devices=f"wifi:connected:{HOTSPOT}\n", active=f"{HOTSPOT}\n",
                           profiles="Old:802-11-wireless:100\nNew:802-11-wireless:200\n", reachable="Old\nNew\n")
     assert done.returncode == 0 and active == "New"
+
+
+# Names as NetworkManager takes them from an SSID: anyone nearby picks those.
+COLON = "Hotel: Guest"
+BACKSLASH = "Back\\slash"
+
+
+def test_wifi_forget_refuses_the_wlan_in_use_whose_name_holds_a_colon(tmp_path):
+    done, _, log = run(tmp_path, "wifi-forget", COLON, devices=f"wifi:connected:{COLON}\n", active=f"{COLON}\n",
+                       profiles=f"{COLON}:802-11-wireless:200\nWork:802-11-wireless:100\n")
+    assert done.returncode == 7 and "connection delete" not in log
+
+
+def test_wifi_forget_reports_a_failed_delete_as_a_failure_not_as_in_use(tmp_path):
+    done, _, _ = run(tmp_path, "wifi-forget", "Work", delete_fails=True, **ON_HOME)
+    assert done.returncode == 2
+
+
+def test_wifi_up_joins_a_saved_wlan_whose_name_holds_a_backslash(tmp_path):
+    done, active, _ = run(tmp_path, "wifi-up", BACKSLASH, reachable=f"Home\n{BACKSLASH}\n",
+                          devices="wifi:connected:Home\n", active="Home\n",
+                          profiles=f"Home:802-11-wireless:200\n{BACKSLASH}:802-11-wireless:100\n")
+    assert done.returncode == 0 and active == BACKSLASH
+
+
+def test_wifi_up_goes_back_to_a_wlan_whose_name_holds_a_colon(tmp_path):
+    done, active, _ = run(tmp_path, "wifi-up", "Work", reachable=f"{COLON}\n",
+                          devices=f"wifi:connected:{COLON}\n", active=f"{COLON}\n",
+                          profiles=f"{COLON}:802-11-wireless:200\nWork:802-11-wireless:100\n")
+    assert done.returncode == 3 and active == COLON
+
+
+def helper_functions(tmp_path) -> Path:
+    """The helper's pure shell functions alone, to call them one by one."""
+    text = HELPER.read_text()
+    parts = [text[text.index(f"\n{name}() {{") + 1:] for name in ("one_line", "matches", "unescape_terse")]
+    lib = tmp_path / "lib.sh"
+    lib.write_text("".join(part[:part.index("\n}\n") + 3] for part in parts))
+    return lib
+
+
+def shell(lib: Path, script: str) -> subprocess.CompletedProcess:
+    return subprocess.run(["sh", "-c", f". {lib}; {script}"], capture_output=True, text=True, timeout=10)
+
+
+def test_matches_takes_one_line_only(tmp_path):
+    lib = helper_functions(tmp_path)
+    version = "[0-9]+\\.[0-9]+\\.[0-9]+"
+    assert shell(lib, f"matches 1.2.3 '{version}'").returncode == 0
+    assert shell(lib, f"matches '1.2.3\\nx; reboot' '{version}'").returncode == 1  # dash's echo made this two lines
+    assert shell(lib, f"matches \"$(printf '1.2.3\\nx')\" '{version}'").returncode == 1
+
+
+def test_unescape_terse_undoes_colon_and_backslash(tmp_path):
+    lib = helper_functions(tmp_path)
+    done = shell(lib, "printf '%s\\n' 'Hotel\\: Guest' 'Back\\\\slash' 'a\\\\\\:b' | unescape_terse")
+    assert done.stdout.splitlines() == ["Hotel: Guest", "Back\\slash", "a\\:b"]

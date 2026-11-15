@@ -3,6 +3,26 @@
 One section per version, newest first. VERSION names the current one;
 scripts/check.sh fails when it has no section here.
 
+## 0.2.1-beta.5
+
+Fixes from a review of 0.2.1-beta.2 to beta.4:
+
+- A backend's first start whose download broke off (slow network, no image
+  for this Pi yet) no longer keeps the newest version for good: the next
+  start chooses again, and an image already on the Pi still starts offline.
+- WLAN names with ":" or "\" (NetworkManager names a profile after the
+  network, which anyone nearby can name): the WLAN in use can no longer be
+  forgotten, a failed join goes back to such a network, and one with "\"
+  can be joined and forgotten at all. The page refuses to forget the WLAN
+  in use as well, not only the helper.
+- A failed "Forget" says it failed, instead of "in use".
+- The network name next to a saved WLAN is looked up safely when the
+  profile has a name nmcli knows as a word (help, --active).
+- The root helper checks its arguments as one line only; under the Pi's
+  shell, an argument with a written "\n" could pass a check on one line.
+- The hotspot fix (NetworkManager hook) keeps its reply socket under /run,
+  where no other account can take the name first.
+
 ## 0.2.1-beta.4
 
 - Network page: a list of the saved WLANs, the one used last first. Each

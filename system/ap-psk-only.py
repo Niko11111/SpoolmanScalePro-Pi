@@ -25,6 +25,7 @@ import time
 OWN_CONNECTIONS = ("spoolmanscale-hotspot", "spoolmanscale-setup")
 WANTED_KEY_MGMT = "WPA-PSK"
 CONTROL_DIR = "/run/wpa_supplicant"
+RUNTIME_DIR = "/run"
 REPLY_TIMEOUT_S = 5
 RESTART_PAUSE_S = 1
 REPLY_MAX_BYTES = 8192
@@ -50,11 +51,14 @@ class Control:
     which Raspberry Pi OS Lite does not ship)."""
 
     def __init__(self, interface: str):
-        self.own_path = os.path.join(tempfile.gettempdir(), f"sspro-wpactl-{os.getpid()}")
+        # Its own new directory under /run, which only root writes: in /tmp
+        # anyone could take a predictable name first and keep the fix away.
+        self.own_dir = tempfile.mkdtemp(prefix="sspro-wpactl-", dir=RUNTIME_DIR)
+        self.own_path = os.path.join(self.own_dir, "reply")
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
         self.sock.settimeout(REPLY_TIMEOUT_S)
-        self.sock.bind(self.own_path)
         try:
+            self.sock.bind(self.own_path)
             self.sock.connect(os.path.join(CONTROL_DIR, interface))
         except OSError:
             self.close()
@@ -71,7 +75,9 @@ class Control:
 
     def close(self) -> None:
         self.sock.close()
-        os.unlink(self.own_path)
+        if os.path.exists(self.own_path):
+            os.unlink(self.own_path)
+        os.rmdir(self.own_dir)
 
 
 def narrow(control: Control, connection: str) -> None:

@@ -144,3 +144,25 @@ def test_without_docker_or_ghcr_the_default_applies(monkeypatch):
     monkeypatch.setattr(bu.release_sources, "image_tags", offline)
     bu.choose_first_version(FILAMAN)
     assert settings.load()["backend_versions"] == {}
+
+
+def test_a_start_that_never_made_a_container_drops_the_first_choice(monkeypatch):
+    first_start_world(monkeypatch, containers={}, volumes=set())
+    chosen = bu.choose_first_version(FILAMAN)
+    bu.undo_first_version(FILAMAN, chosen)  # the download broke off: still no container
+    assert chosen == "v1.5.0" and settings.load()["backend_versions"] == {}
+
+
+def test_a_container_that_ran_the_first_choice_keeps_it(monkeypatch):
+    first_start_world(monkeypatch, containers={}, volumes=set())
+    chosen = bu.choose_first_version(FILAMAN)
+    monkeypatch.setattr(bu.docker_compose, "container_images", lambda: {"filaman": "ghcr.io/x:v1.5.0"})
+    bu.undo_first_version(FILAMAN, chosen)
+    assert settings.load()["backend_versions"] == {"filaman": "v1.5.0"}
+
+
+def test_undo_leaves_a_version_the_owner_chose(monkeypatch):
+    first_start_world(monkeypatch, containers={}, volumes=set())
+    settings.update({"backend_versions": {"filaman": "v1.4.4"}})
+    bu.undo_first_version(FILAMAN, None)
+    assert settings.load()["backend_versions"] == {"filaman": "v1.4.4"}

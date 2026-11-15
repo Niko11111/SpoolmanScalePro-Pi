@@ -87,10 +87,24 @@ set_time() {
   fi
 }
 
+# One line, and nothing else: an argument with a line break in it would
+# pass grep -x on any one of its lines, and grep -F reads each line as a
+# pattern of its own.
+one_line() {
+  case "$1" in *"
+"*) return 1 ;; esac
+}
+
+# True when $1 is one line that matches the extended regex $2 whole.
+# printf, not echo: dash's echo turns a written "\n" into a line break.
+matches() {
+  one_line "$1" && printf '%s\n' "$1" | grep -Eqx -- "$2"
+}
+
 set_hostname() {
   name="${1:-}"
   # The same rule as network_rules.HOSTNAME_RE.
-  echo "$name" | grep -Eqx '[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?' || die "invalid host name"
+  matches "$name" '[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?' || die "invalid host name"
   hostnamectl set-hostname "$name"
   if grep -q '^127\.0\.1\.1' /etc/hosts; then
     sed -i "s/^127\.0\.1\.1.*/127.0.1.1\t$name/" /etc/hosts
@@ -108,8 +122,14 @@ wifi_scan() {
     || nmcli -t -f IN-USE,SSID,SIGNAL,SECURITY,CHAN device wifi list --rescan no ifname wlan0
 }
 
+# nmcli -t writes ":" as "\:" and "\" as "\\"; one pass from the left
+# undoes both, so "a\\:b" (a backslash, then a field end) stays apart.
+unescape_terse() {
+  sed 's/\\\(.\)/\1/g'
+}
+
 active_wifi() {
-  nmcli -t -f NAME,DEVICE connection show --active | sed -n 's/^\(.*\):wlan0$/\1/p' | head -n 1
+  nmcli -t -f NAME,DEVICE connection show --active | sed -n 's/^\(.*\):wlan0$/\1/p' | head -n 1 | unescape_terse
 }
 
 wifi_connect() {
@@ -119,9 +139,11 @@ wifi_connect() {
   previous="$(active_wifi)"
   existed=0
   nmcli -g NAME connection show | grep -Fxq -- "$ssid" && existed=1
-  # The password reaches nmcli as an argument: visible to root in the
-  # process list for the second it runs, which on this single-user Pi is
-  # the same trust as the file NetworkManager keeps it in.
+  # The password reaches nmcli as an argument: for the second it runs, it
+  # stands in /proc/<pid>/cmdline, which every local account can read (not
+  # only root; the backends' containers have their own PID namespace and do
+  # not see it). On this Pi the only other accounts are pi and the service.
+  # Handing it over on a file or stdin instead needs a test on a Pi first.
   if [ -n "$psk" ]; then
     ok=0; nmcli --wait "$CONNECT_WAIT_S" device wifi connect "$ssid" password "$psk" ifname wlan0 >/dev/null && ok=1
   else
@@ -149,11 +171,11 @@ back_to() {
 saved_wlans() {
   nmcli -t -f TIMESTAMP,TYPE,NAME connection show \
     | sed -n 's/^\([0-9]*\):802-11-wireless:/\1 /p' | sort -rn | cut -d' ' -f2- \
-    | sed 's/\\:/:/g' | grep -vFx -e "$HOTSPOT_CONNECTION" -e "$SETUP_CONNECTION"
+    | unescape_terse | grep -vFx -e "$HOTSPOT_CONNECTION" -e "$SETUP_CONNECTION"
 }
 
 saved_wlan_named() {
-  [ -n "$1" ] && saved_wlans | grep -Fxq -- "$1"
+  [ -n "$1" ] && one_line "$1" && saved_wlans | grep -Fxq -- "$1"
 }
 
 wifi_up() {
@@ -175,13 +197,16 @@ wifi_forget() {
   name="$1"
   saved_wlan_named "$name" || die "no saved WLAN named '$name'"
   [ "$name" != "$(active_wifi)" ] || { echo "host-helper: '$name' is in use, join another one first" >&2; exit 7; }
-  nmcli connection delete id "$name" >/dev/null
+  # Its own failure, not nmcli's status: nmcli's 7 ("deletion failed")
+  # would read as this helper's 7 ("in use").
+  nmcli connection delete id "$name" >/dev/null || die "could not delete '$name'"
 }
 
 make_ap() {
   # $1 connection, $2 ssid, $3 psk, $4 channel, $5 autoconnect yes|no
   nmcli connection delete id "$1" >/dev/null 2>&1 || true
   # ipv4.method shared: NetworkManager runs DHCP for the clients itself.
+  # The PSK is an argument here too: see wifi_connect for who can read it.
   # pmf disable: NetworkManager 1.52 otherwise offers WPA-PSK-SHA256 as well,
   # which the Pi 3's radio (brcmfmac) refuses in access point mode ("key
   # setting validation failed"): the WLAN never opened (measured 12.11.2026).
@@ -337,7 +362,7 @@ os_upgrade_start() {
 self_update() {
   version="${1:-}"
   # The same form as VERSION; check_conventions.py checks VERSION for it.
-  echo "$version" | grep -Eqx '[0-9]+\.[0-9]+\.[0-9]+(-beta\.[0-9]+)?' || die "invalid version"
+  matches "$version" '[0-9]+\.[0-9]+\.[0-9]+(-beta\.[0-9]+)?' || die "invalid version"
   if systemctl is-active --quiet "$SELF_UPDATE_UNIT"; then
     echo "host-helper: an update is already running" >&2
     exit 5
@@ -418,10 +443,10 @@ tailscale_up() {
   tailscale_unit "tailscale up --hostname=$(hostname) --accept-dns=false --timeout=600s"
 }
 
-check_ip() { echo "$1" | grep -Eqx "$IP_RE" || die "not an IPv4 address: $1"; }
+check_ip() { matches "$1" "$IP_RE" || die "not an IPv4 address: $1"; }
 
 check_connection() {
-  nmcli -g NAME connection show | grep -Fxq -- "$1" || die "no connection named '$1'"
+  one_line "$1" && nmcli -g NAME connection show | grep -Fxq -- "$1" || die "no connection named '$1'"
   case "$1" in "$HOTSPOT_CONNECTION"|"$SETUP_CONNECTION") die "the Pi's own WLAN keeps its address" ;; esac
 }
 
@@ -450,9 +475,9 @@ ip_to_dhcp() {
 ip_static() {
   connection="${1:-}"; cidr="${2:-}"; gateway="${3:-}"; dns="${4:-}"
   check_connection "$connection"
-  echo "$cidr" | grep -Eqx "$IP_RE/[0-9]{1,2}" || die "address must be a.b.c.d/prefix"
+  matches "$cidr" "$IP_RE/[0-9]{1,2}" || die "address must be a.b.c.d/prefix"
   check_ip "$gateway"
-  echo "$dns" | grep -Eqx "$IP_RE(,$IP_RE)*" || die "DNS must be addresses separated by commas"
+  matches "$dns" "$IP_RE(,$IP_RE)*" || die "DNS must be addresses separated by commas"
   nmcli connection modify "$connection" ipv4.method manual ipv4.addresses "$cidr" \
     ipv4.gateway "$gateway" ipv4.dns "$dns"
   nmcli --wait 30 connection up "$connection" >/dev/null 2>&1 || true

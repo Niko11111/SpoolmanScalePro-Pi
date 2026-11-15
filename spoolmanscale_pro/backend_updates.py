@@ -101,19 +101,34 @@ def newest_release(backend: Backend) -> str | None:
     return found[0] if found else None
 
 
-def choose_first_version(backend: Backend) -> None:
+def choose_first_version(backend: Backend) -> str | None:
     """Before a start: a backend that never ran gets the newest release.
-    Anything unclear (Docker or ghcr.io not answering) leaves the default."""
+    Returns the version chosen, None when it keeps what it has. Anything
+    unclear (Docker or ghcr.io not answering) leaves the default."""
     containers, volumes = docker_compose.container_images(), docker_compose.data_volumes()
     if containers is None or volumes is None:
-        return
+        return None
     chosen = settings.load()["backend_versions"].get(backend.key)
     if not is_first_start(chosen, backend.key in containers, f"{backend.key}-data" in volumes):
-        return
+        return None
     newest = newest_release(backend)
     if newest:
         log.info("%s starts for the first time, with the newest release %s", backend.key, newest)
         set_version(backend, newest)
+    return newest
+
+
+def undo_first_version(backend: Backend, chosen: str | None) -> None:
+    """After a start that failed before a container existed (the download
+    broke off, no image for this Pi): the choice goes, so the next start
+    picks again and an image already here can still start offline. Once a
+    container ran the version, it stays: it may have written the data."""
+    if not chosen:
+        return
+    containers = docker_compose.container_images()
+    if containers is not None and backend.key not in containers:
+        log.info("%s did not start on %s, back to choosing at the next start", backend.key, chosen)
+        set_version(backend, None)
 
 
 def versions_to_keep(chosen: dict, installed: dict, defaults: dict) -> dict:

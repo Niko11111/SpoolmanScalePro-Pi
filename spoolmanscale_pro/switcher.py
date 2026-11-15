@@ -38,8 +38,9 @@ def _stop_others(keep: str | None, progress: Progress) -> None:
 
 def _start(target: Backend, progress: Progress) -> None:
     progress.step("starting")
-    backend_updates.choose_first_version(target)
+    first = backend_updates.choose_first_version(target)
     if not docker_compose.up(target.key).ok:
+        backend_updates.undo_first_version(target, first)
         raise JobFailed("start_failed", target.key)
     progress.step("waiting_ready")
     if not health.wait_until_ready(target):
