@@ -46,6 +46,10 @@ scripts/check.sh fails when it has no section here.
   is only the fallback without internet. A backend that ran before keeps
   its version, also when only its data are left. The "Tested with" line on
   the Updates page is gone.
+- The fallback versions for a start without internet, and what
+  `install.sh --pull-all` downloads for offline use, are the newest
+  releases: FilaMan v2.2.1 (was v2.0.0) and BamBuddy 1.3.1 (was 1.2.5.7);
+  Spoolman stays on 0.27.1. A backend already installed keeps its version.
 
 ## 0.2.1-beta.3
 
