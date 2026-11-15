@@ -7,6 +7,7 @@ or "\\" inside a value escaped with a backslash.
 """
 
 import re
+import secrets
 
 # RFC 1123: one label of letters, digits and hyphens, not starting or ending
 # with a hyphen. No underscore: mDNS would publish it, but many resolvers
@@ -19,6 +20,12 @@ PSK_MIN_LEN = 8
 PSK_MAX_LEN = 63
 # 2.4 GHz channels that do not overlap; the scale's ESP32 has no 5 GHz.
 HOTSPOT_CHANNELS = (1, 6, 11)
+# A suggested hotspot password: letters and digits in groups of four, easy
+# to type on a phone, without 0/o and 1/l/i, which read alike. 31^12 is
+# about 8 * 10^17: out of reach for guessing a captured handshake.
+SUGGESTED_PSK_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789"
+SUGGESTED_PSK_GROUPS = 3
+SUGGESTED_PSK_GROUP_LEN = 4
 # NetworkManager takes any connection name; this only keeps a request sane.
 CONNECTION_NAME_MAX_LEN = 255
 
@@ -148,6 +155,12 @@ def valid_psk(psk, allow_empty: bool) -> bool:
         return True
     return isinstance(psk, str) and PSK_MIN_LEN <= len(psk) <= PSK_MAX_LEN \
         and "\n" not in psk and "\r" not in psk
+
+
+def suggested_psk() -> str:
+    """A password for a hotspot that has none yet, like k7mp-x2qd-9rta."""
+    return "-".join("".join(secrets.choice(SUGGESTED_PSK_ALPHABET) for _ in range(SUGGESTED_PSK_GROUP_LEN))
+                    for _ in range(SUGGESTED_PSK_GROUPS))
 
 
 def valid_channel(channel) -> bool:

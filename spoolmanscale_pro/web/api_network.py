@@ -89,6 +89,14 @@ def hotspot_on():
     return _start("hotspot_on", ssid, lambda progress: network.hotspot_on(ssid, psk, channel, progress))
 
 
+@bp.get("/hotspot/password")
+def hotspot_password():
+    """Shown in plain text on the page, like a phone shows its hotspot's.
+    Without a hotspot yet, a suggestion (suggested: true)."""
+    current = network.hotspot_password()
+    return ok(psk=current or rules.suggested_psk(), suggested=not current)
+
+
 @bp.post("/hotspot/off")
 def hotspot_off():
     return _start("hotspot_off", "wlan0", network.hotspot_off)

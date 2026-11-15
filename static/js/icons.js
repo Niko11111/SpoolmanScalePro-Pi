@@ -48,7 +48,7 @@
     const shapes = SSPro.iconData[name];
     if (!shapes) return null;
     const svg = document.createElementNS(SVG_NS, "svg");
-    for (const [attr, value] of [["viewBox", "0 0 24 24"], ["class", "ico"], ["aria-hidden", "true"], ["focusable", "false"]]) {
+    for (const [attr, value] of [["viewBox", "0 0 24 24"], ["class", "ico ico-" + name], ["aria-hidden", "true"], ["focusable", "false"]]) {
       svg.setAttribute(attr, value);
     }
     for (const [tag, attrs] of shapes) {

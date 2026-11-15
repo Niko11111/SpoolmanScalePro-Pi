@@ -154,18 +154,19 @@
   function hotspotCard(net, start) {
     const on = net.wlan.mode === "hotspot";
     const ssid = el("input", { type: "text", value: net.hotspot_ssid || "SpoolmanScale-Pro", autocomplete: "off" });
-    const psk = el("input", { type: "password", autocomplete: "new-password", placeholder: t("net.hotspot_psk_hint") });
-    // Typed twice: the field hides what is typed, and a typo would set a
-    // password nobody knows, on the WLAN the Pi is then only reachable in.
-    const pskRepeat = el("input", { type: "password", autocomplete: "new-password" });
+    // In plain text, filled with the password the hotspot has (or a
+    // suggestion), as a phone shows its own: the hotspot is used rarely, and
+    // what is seen while typing needs no second field.
+    const psk = el("input", { type: "text", autocomplete: "off", autocapitalize: "none", spellcheck: "false",
+      class: "mono", placeholder: t("net.hotspot_psk_hint") });
+    const pskNote = el("p", { class: "hint" });
+    api("/api/network/hotspot/password").then((answer) => {
+      psk.value = answer.psk;
+      pskNote.textContent = answer.suggested ? t("net.hotspot_psk_suggested") : "";
+    }).catch((e) => toast(errorText(e), true));
     const channel = el("select", {}, CHANNELS.map((c) => el("option", { value: c, selected: c === net.hotspot_channel }, String(c))));
     const startButton = el("button", { type: "button" }, label(on ? "net.hotspot_restart" : "net.hotspot_on"));
     startButton.addEventListener("click", async () => {
-      if (psk.value !== pskRepeat.value) {
-        toast(t("net.hotspot_psk_mismatch"), true);
-        pskRepeat.focus();
-        return;
-      }
       if (!(await ask(t("net.hotspot_title"), t("net.hotspot_on_text", { address: net.hotspot_address }), t("net.hotspot_on")))) return;
       start(startButton, "/api/network/hotspot", { ssid: ssid.value, psk: psk.value, channel: Number(channel.value) });
     });
@@ -179,8 +180,7 @@
     return el("section", { class: "card" }, el("h2", { text: t("net.hotspot_title") }),
       el("p", { class: "hint", text: t("net.hotspot_hint") }),
       el("div", { class: "field" }, el("label", { text: t("net.hotspot_ssid") }), ssid),
-      el("div", { class: "field" }, el("label", { text: t("net.hotspot_psk") }), psk),
-      el("div", { class: "field" }, el("label", { text: t("net.hotspot_psk_repeat") }), pskRepeat),
+      el("div", { class: "field" }, el("label", { text: t("net.hotspot_psk") }), psk, pskNote),
       el("div", { class: "field" }, el("label", { text: t("net.hotspot_channel") }), channel),
       el("div", { class: "btnrow" }, startButton, stop));
   }

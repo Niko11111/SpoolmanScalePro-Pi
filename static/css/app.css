@@ -162,6 +162,8 @@ a.pill { text-decoration: none; }
 .field + .msg:not(:empty) { margin-top: 8px; }
 .field label { font-size: 13px; color: var(--ink-2); }
 .hint { font-size: 12px; color: var(--ink-soft); line-height: 1.55; }
+/* A hint a field fills later (the hotspot's suggestion): no gap while empty. */
+.field > .hint:empty { display: none; }
 .inrow { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 input[type=text], input[type=password], input[type=number], select {
   flex: 1; min-width: 0; background: var(--ground); border: 1px solid var(--line);
@@ -203,6 +205,8 @@ button.icon { padding: 7px; }
   width: 1.15em; height: 1.15em; flex: none; fill: none; stroke: currentColor;
   stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
 }
+/* Stop is a red square, like a stop button on a machine. */
+.ico-stop { fill: var(--bad); stroke: var(--bad); }
 
 /* ---- list of files (backups) ---- */
 .listrow {

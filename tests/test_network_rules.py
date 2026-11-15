@@ -124,3 +124,12 @@ def test_own_access_point_is_left_out_of_the_scan_while_it_runs():
     networks = [{"ssid": "SpoolmanScale-Pro", "in_use": True}, {"ssid": "Home", "in_use": False}]
     assert nr.without_own_access_point(networks, True) == [{"ssid": "Home", "in_use": False}]
     assert nr.without_own_access_point(networks, False) == networks
+
+
+def test_suggested_psk_is_a_valid_password_in_three_groups_of_four():
+    import re
+    for _ in range(50):
+        psk = nr.suggested_psk()
+        assert re.fullmatch(r"[a-hj-km-np-z2-9]{4}-[a-hj-km-np-z2-9]{4}-[a-hj-km-np-z2-9]{4}", psk), psk
+        assert nr.valid_psk(psk, allow_empty=False)
+    assert len({nr.suggested_psk() for _ in range(20)}) == 20

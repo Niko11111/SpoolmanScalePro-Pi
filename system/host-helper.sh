@@ -16,6 +16,7 @@
 #   wifi-forget NAME               delete a saved WLAN, never the one in use or the Pi's own
 #   hotspot-on       (stdin: SSID, PSK, CHANNEL)   the Pi's own WLAN
 #   hotspot-off                                     back to the known WLANs
+#   hotspot-psk                    print the hotspot's password, nothing without a hotspot
 #   setup-ap-if-offline            at boot: open the setup WLAN if nothing connected
 #   apt-check                      refresh the package lists, print a simulated upgrade
 #   os-upgrade-start               run the upgrade as its own systemd unit, log in UPGRADE_LOG
@@ -227,6 +228,14 @@ open_setup_ap() {
   else
     echo "host-helper: $SETUP_SSID could not be opened, see NetworkManager in the journal" >&2
   fi
+}
+
+# The hotspot's password, for the page to show in plain text, as a phone
+# shows its own hotspot's: the hotspot is used rarely, and a password nobody
+# remembers is no use at a fair. stdout only; the caller logs stderr alone.
+hotspot_psk() {
+  nmcli -s -g 802-11-wireless-security.psk connection show id "$HOTSPOT_CONNECTION" 2>/dev/null \
+    | head -n 1 | unescape_terse
 }
 
 hotspot_on() {
@@ -512,6 +521,7 @@ case "$verb" in
   wifi-forget)         wifi_forget "${2:-}" ;;
   hotspot-on)          hotspot_on ;;
   hotspot-off)         hotspot_off ;;
+  hotspot-psk)         hotspot_psk ;;
   setup-ap-if-offline) setup_ap_if_offline ;;
   apt-check)           apt_check ;;
   os-upgrade-start)    os_upgrade_start ;;

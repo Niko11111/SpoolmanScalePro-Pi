@@ -3,6 +3,16 @@
 One section per version, newest first. VERSION names the current one;
 scripts/check.sh fails when it has no section here.
 
+## 0.2.1-beta.6
+
+- The hotspot's password stands in plain text on the Network page, filled
+  with the one the hotspot has, as a phone shows its own hotspot's: no
+  typing it again each time, and no second field, since what is typed is
+  seen. A Pi without a hotspot yet suggests one (like k7mp-x2qd-9rta). The
+  password stays where NetworkManager keeps it; the page reads it through
+  the root helper and it reaches no log.
+- The stop icon is a red square on every Stop button.
+
 ## 0.2.1-beta.5
 
 Fixes from a review of 0.2.1-beta.2 to beta.4:

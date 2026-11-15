@@ -36,6 +36,8 @@ case "$*" in
   "-t -f NAME,DEVICE connection show --active")
     while IFS= read -r name; do [ -n "$name" ] && printf '%s:wlan0\n' "$(escape "$name")"; done < "$STATE/active" ;;
   *"connection delete id "*) if [ -f "$STATE/delete_fails" ]; then exit 7; fi ;;
+  "-s -g 802-11-wireless-security.psk connection show id spoolmanscale-hotspot")
+    if [ -f "$STATE/hotspot_psk" ]; then escape "$(cat "$STATE/hotspot_psk")"; echo; else exit 10; fi ;;
   *"connection up id "*)
     args="$*"; name="${args##*connection up id }"
     if [ "$name" = spoolmanscale-setup ] || [ "$name" = spoolmanscale-hotspot ]; then
@@ -74,6 +76,8 @@ def run(tmp_path, verb, *args, **world):
         (state / "router_back_at").write_text(str(back_at))
     if world.get("delete_fails"):
         (state / "delete_fails").write_text("")
+    if "hotspot_psk" in world:
+        (state / "hotspot_psk").write_text(world["hotspot_psk"])
     for name, text in (("nmcli", NMCLI), ("sleep", SLEEP), ("ip", f"#!/bin/sh\nprintf '%s' '{neigh}'\n")):
         tool = bin_dir / name
         tool.write_text(text)
@@ -228,3 +232,13 @@ def test_unescape_terse_undoes_colon_and_backslash(tmp_path):
     lib = helper_functions(tmp_path)
     done = shell(lib, "printf '%s\\n' 'Hotel\\: Guest' 'Back\\\\slash' 'a\\\\\\:b' | unescape_terse")
     assert done.stdout.splitlines() == ["Hotel: Guest", "Back\\slash", "a\\:b"]
+
+
+def test_hotspot_psk_prints_the_password_unescaped(tmp_path):
+    done, _, _ = run(tmp_path, "hotspot-psk", hotspot_psk="k7mp:x2\\qd")
+    assert done.returncode == 0 and done.stdout == "k7mp:x2\\qd\n"
+
+
+def test_hotspot_psk_prints_nothing_without_a_hotspot(tmp_path):
+    done, _, _ = run(tmp_path, "hotspot-psk")
+    assert done.returncode == 0 and done.stdout == ""

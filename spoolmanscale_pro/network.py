@@ -135,6 +135,13 @@ def forget(name: str) -> str | None:
     return None if result.ok else "network_change_failed"
 
 
+def hotspot_password() -> str:
+    """The hotspot's password as NetworkManager keeps it; "" when there is
+    no hotspot yet or the helper did not answer."""
+    result = run_helper("hotspot-psk")
+    return result.output.rstrip("\n") if result.ok else ""
+
+
 def hotspot_on(ssid: str, psk: str, channel: int, progress: Progress) -> None:
     progress.step("starting_hotspot")
     # Kept for the form; the password stays with NetworkManager only.

@@ -24,3 +24,10 @@ def test_the_wlan_in_use_is_not_forgotten_even_if_the_page_offers_it(monkeypatch
     assert helper == []
     assert network.forget("Work") is None
     assert helper == [("wifi-forget", "Work")]
+
+
+def test_hotspot_password_is_what_the_helper_prints_without_its_line_end(monkeypatch):
+    monkeypatch.setattr(network, "run_helper", lambda *args, **kw: HelperResult(0, "k7mp-x2qd-9rta\n"))
+    assert network.hotspot_password() == "k7mp-x2qd-9rta"
+    monkeypatch.setattr(network, "run_helper", lambda *args, **kw: HelperResult(2, ""))
+    assert network.hotspot_password() == ""
